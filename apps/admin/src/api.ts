@@ -557,6 +557,7 @@ export async function fetchDeliveryReportCsv(
     priority?: DeliveryPriority | "";
     proof?: "com" | "sem" | "";
     mapPoint?: "com" | "sem" | "";
+    attendant?: string;
     exportLimit?: number;
   } = {},
 ) {
@@ -569,6 +570,7 @@ export async function fetchDeliveryReportCsv(
   if (input.priority) params.set("priority", apiPriorityFromDeliveryPriority(input.priority));
   if (input.proof) params.set("proof", input.proof);
   if (input.mapPoint) params.set("mapPoint", input.mapPoint);
+  if (input.attendant?.trim()) params.set("attendant", input.attendant.trim());
   if (input.exportLimit) params.set("exportLimit", String(input.exportLimit));
 
   const query = params.toString();

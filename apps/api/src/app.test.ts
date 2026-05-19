@@ -335,6 +335,31 @@ test("admin password reset validates payload before database work", async () => 
   }
 });
 
+test("admin user creation validates courier base store before database work", async () => {
+  const app = await createApp({ logger: false });
+  try {
+    const response = await app.inject({
+      method: "POST",
+      url: "/users",
+      headers: {
+        authorization: `Bearer ${adminToken()}`,
+      },
+      payload: {
+        name: "Carlos Motoboy",
+        phone: "13999999999",
+        password: "Farma0012870",
+        role: "MOTOBOY",
+      },
+    });
+    const payload = response.json() as { error: string };
+
+    assert.equal(response.statusCode, 400);
+    assert.equal(payload.error, "VALIDATION_ERROR");
+  } finally {
+    await app.close();
+  }
+});
+
 test("login route validates payload before database work", async () => {
   const app = await createApp({ logger: false });
   try {
@@ -401,6 +426,57 @@ test("courier cannot update another courier availability before database work", 
     assert.equal(response.statusCode, 403);
     assert.equal(payload.error, "FORBIDDEN");
     assert.equal(payload.message, "Motoboy so pode atualizar a propria disponibilidade.");
+  } finally {
+    await app.close();
+  }
+});
+
+test("courier availability validates service area before database work", async () => {
+  const app = await createApp({ logger: false });
+  try {
+    const token = courierToken("11111111-1111-4111-8111-111111111111");
+    const response = await app.inject({
+      method: "POST",
+      url: "/couriers/availability",
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+      payload: {
+        courierId: "11111111-1111-4111-8111-111111111111",
+        available: true,
+        serviceArea: "OUTRA",
+      },
+    });
+    const payload = response.json() as { error: string };
+
+    assert.equal(response.statusCode, 400);
+    assert.equal(payload.error, "VALIDATION_ERROR");
+  } finally {
+    await app.close();
+  }
+});
+
+test("courier location validates service area before database work", async () => {
+  const app = await createApp({ logger: false });
+  try {
+    const token = courierToken("11111111-1111-4111-8111-111111111111");
+    const response = await app.inject({
+      method: "POST",
+      url: "/couriers/location",
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+      payload: {
+        courierId: "11111111-1111-4111-8111-111111111111",
+        latitude: -24.0038253,
+        longitude: -46.273904,
+        serviceArea: "OUTRA",
+      },
+    });
+    const payload = response.json() as { error: string };
+
+    assert.equal(response.statusCode, 400);
+    assert.equal(payload.error, "VALIDATION_ERROR");
   } finally {
     await app.close();
   }

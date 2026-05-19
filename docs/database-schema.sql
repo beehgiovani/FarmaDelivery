@@ -103,6 +103,7 @@ CREATE TABLE "Courier" (
     "userId" TEXT NOT NULL,
     "baseStoreName" TEXT NOT NULL,
     "available" BOOLEAN NOT NULL DEFAULT false,
+    "preferredServiceArea" TEXT NOT NULL DEFAULT 'ASTURIAS',
     "currentLat" DECIMAL(10,7),
     "currentLng" DECIMAL(10,7),
     "lastLocationAt" TIMESTAMP(3),
@@ -305,6 +306,9 @@ CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Courier_userId_key" ON "Courier"("userId");
+
+-- CreateIndex
+CREATE INDEX "Courier_preferredServiceArea_available_idx" ON "Courier"("preferredServiceArea", "available");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "CourierDeviceToken_token_key" ON "CourierDeviceToken"("token");

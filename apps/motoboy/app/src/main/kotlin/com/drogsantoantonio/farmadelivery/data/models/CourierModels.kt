@@ -9,6 +9,7 @@ data class CourierDto(
   val phone: String? = null,
   val baseStoreName: String,
   val available: Boolean,
+  val preferredServiceArea: String? = null,
   val currentLat: Double? = null,
   val currentLng: Double? = null,
   val lastLocationAt: String? = null,
@@ -21,12 +22,14 @@ data class CourierLocationRequest(
   val latitude: Double,
   val longitude: Double,
   val available: Boolean? = null,
+  val serviceArea: String? = null,
 )
 
 @Serializable
 data class CourierAvailabilityRequest(
   val courierId: String,
   val available: Boolean,
+  val serviceArea: String? = null,
 )
 
 @Serializable

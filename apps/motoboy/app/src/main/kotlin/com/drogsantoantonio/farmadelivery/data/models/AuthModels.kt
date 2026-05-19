@@ -34,6 +34,7 @@ data class CourierRef(
   val id: String,
   val baseStoreName: String,
   val available: Boolean,
+  val preferredServiceArea: String? = null,
   val currentLat: Double? = null,
   val currentLng: Double? = null,
   val lastLocationAt: String? = null,

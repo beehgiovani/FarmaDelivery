@@ -36,6 +36,7 @@ import {
   resolveCourierServiceAreaStoreScope,
   resolveCourierStoreScope,
   resolveUserStoreScope,
+  storeMatchesCourierServiceArea,
   type CourierServiceArea,
 } from "../accessScope";
 import {
@@ -49,6 +50,30 @@ import {
 } from "../supabaseRest";
 import { isCourierPushConfigured, sendCourierPushNotification } from "../notifications";
 import { deliveryCreationNotes } from "../deliveryCreationAudit";
+
+const DELIVERY_REPORT_EXPORT_DEFAULT_LIMIT = 5000;
+const DELIVERY_REPORT_EXPORT_PAGE_SIZE = 5000;
+const deliveryReportExportInclude = {
+  store: true,
+  customer: true,
+  customerAddress: true,
+  courier: {
+    include: {
+      user: true,
+    },
+  },
+  events: {
+    where: { type: "CRIADA" },
+    select: { metadata: true },
+    take: 1,
+  },
+  _count: {
+    select: {
+      proofs: true,
+    },
+  },
+} satisfies Prisma.DeliveryInclude;
+type DeliveryReportExportRow = Prisma.DeliveryGetPayload<{ include: typeof deliveryReportExportInclude }>;
 
 /** Registra rotas de entregas, clientes, relatorios, comprovantes, transicoes e notificacoes. */
 export async function deliveryRoutes(app: FastifyInstance) {
@@ -286,31 +311,10 @@ export async function deliveryRoutes(app: FastifyInstance) {
     const exportLimit = deliveryReportExportLimit(parsed.data.exportLimit);
 
     try {
-      const deliveries = await prisma.delivery.findMany({
-        where: deliveryReportWhere(session, storeScope, parsed.data.storeId, parsed.data),
-        orderBy: { createdAt: "desc" },
-        take: exportLimit,
-        include: {
-          store: true,
-          customer: true,
-          customerAddress: true,
-          courier: {
-            include: {
-              user: true,
-            },
-          },
-          events: {
-            where: { type: "CRIADA" },
-            select: { metadata: true },
-            take: 1,
-          },
-          _count: {
-            select: {
-              proofs: true,
-            },
-          },
-        },
-      });
+      const deliveries = await fetchDeliveryReportExportWithPrisma(
+        deliveryReportWhere(session, storeScope, parsed.data.storeId, parsed.data),
+        exportLimit,
+      );
 
       return sendDeliveryReportCsv(
         reply,
@@ -356,10 +360,10 @@ export async function deliveryRoutes(app: FastifyInstance) {
     } catch (error) {
       app.log.error({ error }, "delivery report export error");
       if (canUseSupabaseRest()) {
-        const deliveries = await supabaseRest<SupabaseDelivery[]>("Delivery", {
-          query:
-            `select=id,publicCode,storeDailyDate,storeDailyNumber,status,priority,createdAt,acceptedAt,collectedAt,deliveredAt,canceledAt,Store(id,name),Courier(id,User(name)),Customer(id,name,phone),CustomerAddress(id,street,number,complement,neighborhood,latitude,longitude),DeliveryProof(id),DeliveryEvent(type,metadata)&order=createdAt.desc&limit=${exportLimit}${deliveryReportRestFilter(session, storeScope, parsed.data.storeId, parsed.data)}`,
-        });
+        const deliveries = await fetchDeliveryReportExportWithSupabaseRest(
+          deliveryReportRestFilter(session, storeScope, parsed.data.storeId, parsed.data),
+          exportLimit,
+        );
 
         return sendDeliveryReportCsv(
           reply,
@@ -1502,6 +1506,39 @@ function sendDeliveryReportCsv(reply: FastifyReply, csv: string, period: { date?
     .send(csv);
 }
 
+/** Busca exportacao de relatorio em paginas para suportar volumes acima de 20k sem consulta unica gigante. */
+async function fetchDeliveryReportExportWithPrisma(where: Prisma.DeliveryWhereInput, exportLimit: number) {
+  const deliveries: DeliveryReportExportRow[] = [];
+  for (let skip = 0; skip < exportLimit; skip += DELIVERY_REPORT_EXPORT_PAGE_SIZE) {
+    const take = Math.min(DELIVERY_REPORT_EXPORT_PAGE_SIZE, exportLimit - deliveries.length);
+    const page = await prisma.delivery.findMany({
+      where,
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      skip,
+      take,
+      include: deliveryReportExportInclude,
+    });
+    deliveries.push(...page);
+    if (page.length < take) break;
+  }
+  return deliveries;
+}
+
+/** Mantem a exportacao paginada tambem no fallback PostgREST. */
+async function fetchDeliveryReportExportWithSupabaseRest(restFilter: string, exportLimit: number) {
+  const deliveries: SupabaseDelivery[] = [];
+  for (let offset = 0; offset < exportLimit; offset += DELIVERY_REPORT_EXPORT_PAGE_SIZE) {
+    const limit = Math.min(DELIVERY_REPORT_EXPORT_PAGE_SIZE, exportLimit - deliveries.length);
+    const page = await supabaseRest<SupabaseDelivery[]>("Delivery", {
+      query:
+        `select=id,publicCode,storeDailyDate,storeDailyNumber,status,priority,createdAt,acceptedAt,collectedAt,deliveredAt,canceledAt,Store(id,name),Courier(id,User(name)),Customer(id,name,phone),CustomerAddress(id,street,number,complement,neighborhood,latitude,longitude),DeliveryProof(id),DeliveryEvent(type,metadata)&order=createdAt.desc,id.desc&limit=${limit}&offset=${offset}${restFilter}`,
+    });
+    deliveries.push(...page);
+    if (page.length < limit) break;
+  }
+  return deliveries;
+}
+
 /** Define o texto do periodo usado no nome do CSV e no contexto do relatorio. */
 function deliveryReportPeriodLabel(period: { date?: string; startsAt?: string; endsAt?: string }) {
   if (period.startsAt && period.endsAt && period.startsAt !== period.endsAt) {
@@ -1518,7 +1555,7 @@ function deliveryReportScopeLabel(session: { role: string }, storeId?: string) {
 
 /** Mantem limite padrao seguro para exportacao server-side. */
 export function deliveryReportExportLimit(value: number | undefined) {
-  return value ?? 5000;
+  return value ?? DELIVERY_REPORT_EXPORT_DEFAULT_LIMIT;
 }
 
 /** Converte filtros de data em intervalo aberto no fim do dia para consultar timestamps. */
@@ -3135,10 +3172,17 @@ async function notifyDeliveryCanceledIfRequested(data: {
   }
 }
 
-/** Lista motoboys ativos, disponiveis e alocados na loja para receber nova corrida. */
+/** Lista motoboys ativos, disponiveis, alocados e na praca persistida para receber nova corrida. */
 async function listAvailableCourierIdsForStore(storeId: string) {
   const now = new Date();
   try {
+    const store = await prisma.store.findUnique({
+      where: { id: storeId },
+      select: { name: true },
+    });
+    if (!store) return [];
+    const preferredServiceArea = storeMatchesCourierServiceArea(store.name, "PEREQUE") ? "PEREQUE" : "ASTURIAS";
+
     const assignments = await prisma.courierStoreAssignment.findMany({
       where: {
         storeId,
@@ -3149,6 +3193,7 @@ async function listAvailableCourierIdsForStore(storeId: string) {
         OR: [{ endsAt: null }, { endsAt: { gte: now } }],
         courier: {
           available: true,
+          preferredServiceArea,
           user: {
             active: true,
           },
@@ -3164,6 +3209,13 @@ async function listAvailableCourierIdsForStore(storeId: string) {
     if (!canUseSupabaseRest()) throw error;
   }
 
+  const stores = await supabaseRest<Array<{ name: string }>>("Store", {
+    query: `select=name&id=eq.${storeId}&limit=1`,
+  });
+  const store = stores[0];
+  if (!store) return [];
+  const preferredServiceArea = storeMatchesCourierServiceArea(store.name, "PEREQUE") ? "PEREQUE" : "ASTURIAS";
+
   const assignments = await supabaseRest<Array<{ courierId: string }>>("CourierStoreAssignment", {
     query: `select=courierId&storeId=eq.${storeId}&active=eq.true&startsAt=lte.${now.toISOString()}&or=(endsAt.is.null,endsAt.gte.${now.toISOString()})`,
   });
@@ -3171,7 +3223,7 @@ async function listAvailableCourierIdsForStore(storeId: string) {
   if (courierIds.length === 0) return [];
 
   const couriers = await supabaseRest<Array<{ id: string }>>("Courier", {
-    query: `select=id,User!inner(active)&id=in.(${courierIds.join(",")})&available=eq.true&User.active=eq.true`,
+    query: `select=id,User!inner(active)&id=in.(${courierIds.join(",")})&available=eq.true&preferredServiceArea=eq.${preferredServiceArea}&User.active=eq.true`,
   });
   return couriers.map((courier) => courier.id);
 }

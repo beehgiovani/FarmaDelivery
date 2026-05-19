@@ -1,57 +1,25 @@
 import type { Delivery } from "./types";
 
-export type ThermalReceiptPaperWidth = 58 | 80;
-
 type ThermalReceiptOptions = {
   printedAt?: Date;
-  paperWidthMm?: ThermalReceiptPaperWidth;
 };
 
-const thermalReceiptPaperWidthStorageKey = "farmadelivery.thermalReceiptPaperWidth";
-
-const thermalReceiptLayouts: Record<
-  ThermalReceiptPaperWidth,
-  {
-    pageWidthMm: number;
-    bodyWidthMm: number;
-    pageMarginMm: number;
-    labelWidthMm: number;
-    fontSizePx: number;
-    titleSizePx: number;
-    subtitleSizePx: number;
-    addressSizePx: number;
-    footerSizePx: number;
-  }
-> = {
-  58: {
-    pageWidthMm: 58,
-    bodyWidthMm: 50,
-    pageMarginMm: 3,
-    labelWidthMm: 17,
-    fontSizePx: 10,
-    titleSizePx: 13,
-    subtitleSizePx: 11,
-    addressSizePx: 11,
-    footerSizePx: 9,
-  },
-  80: {
-    pageWidthMm: 80,
-    bodyWidthMm: 72,
-    pageMarginMm: 4,
-    labelWidthMm: 21,
-    fontSizePx: 11,
-    titleSizePx: 15,
-    subtitleSizePx: 12,
-    addressSizePx: 12,
-    footerSizePx: 10,
-  },
+const thermalReceiptLayout = {
+  pageWidthMm: 80,
+  bodyWidthMm: 72,
+  pageMarginMm: 4,
+  labelWidthMm: 21,
+  fontSizePx: 11,
+  titleSizePx: 15,
+  subtitleSizePx: 12,
+  addressSizePx: 12,
+  footerSizePx: 10,
 };
 
 /** Monta o HTML da comanda termica usando somente dados reais da entrega. */
 export function buildThermalReceiptHtml(delivery: Delivery, options: ThermalReceiptOptions = {}) {
   const printedAt = options.printedAt ?? new Date();
-  const paperWidthMm = options.paperWidthMm ?? 80;
-  const layout = thermalReceiptLayouts[paperWidthMm];
+  const layout = thermalReceiptLayout;
   const deliveryCode = delivery.publicCode ?? delivery.id;
   const identityRows = [
     ["Entrega", deliveryCode],
@@ -200,33 +168,9 @@ export function printThermalReceipt(delivery: Delivery, options: ThermalReceiptO
   if (!printWindow) return false;
 
   printWindow.document.open();
-  printWindow.document.write(
-    buildThermalReceiptHtml(delivery, {
-      ...options,
-      paperWidthMm: options.paperWidthMm ?? 80,
-    }),
-  );
+  printWindow.document.write(buildThermalReceiptHtml(delivery, options));
   printWindow.document.close();
   return true;
-}
-
-/** Le a largura de papel preferida nesta maquina da loja, com 80mm como padrao seguro. */
-export function readThermalReceiptPaperWidthPreference(): ThermalReceiptPaperWidth {
-  try {
-    const value = localStorage.getItem(thermalReceiptPaperWidthStorageKey);
-    return value === "58" ? 58 : 80;
-  } catch {
-    return 80;
-  }
-}
-
-/** Salva localmente a largura de papel da comanda sem depender do banco. */
-export function saveThermalReceiptPaperWidthPreference(value: ThermalReceiptPaperWidth) {
-  try {
-    localStorage.setItem(thermalReceiptPaperWidthStorageKey, String(value));
-  } catch {
-    // A escolha de papel e uma preferencia local; se o navegador bloquear, a impressao ainda usa 80mm.
-  }
 }
 
 /** Monta uma linha label/valor da comanda, destacando endereco por ser o dado mais importante. */

@@ -1,6 +1,6 @@
 # FarmaDelivery
 
-FarmaDelivery e um monorepo para gestao operacional de entregas em uma rede de farmacias. O projeto centraliza o cadastro de entregas, o acompanhamento por unidade, a conferencia de balconistas/caixas, a operacao de motoboys, relatórios administrativos e integrações de geolocalizacao, push e backend.
+FarmaDelivery e um monorepo para gestao operacional de entregas em uma rede de farmacias. O projeto centraliza o cadastro de entregas, o acompanhamento por unidade, a conferencia de balconistas/caixas, a operacao de motoboys, relatorios administrativos e integracoes de geolocalizacao, push e backend.
 
 Este README descreve o produto, a stack, a estrutura do repositorio e os fluxos principais. Dados sensiveis, nomes reais de lojas, enderecos, coordenadas, chaves e arquivos locais de ambiente nao devem ser documentados aqui.
 
@@ -22,8 +22,8 @@ No fluxo operacional, o computador da loja usa um login da propria unidade. Ao c
 - Mobile Android: Kotlin, Gradle e integracoes Firebase.
 - Banco e autenticacao operacional: Supabase/PostgreSQL.
 - Push e servicos mobile: Firebase Cloud Messaging.
-- Testes: Vitest para API/admin e testes Kotlin/JUnit no app Android.
-- Qualidade: TypeScript, lint por workspace, testes automatizados e scripts auxiliares.
+- Testes: `tsx --test` nos workspaces TypeScript e Kotlin/JUnit no app Android.
+- Qualidade: TypeScript, builds por workspace, testes automatizados e scripts auxiliares.
 
 ## Aplicacoes
 
@@ -69,6 +69,14 @@ Arquivos sensiveis e artefatos locais nao devem ser versionados:
 - cache local do Supabase e Gradle.
 
 Use `.env.example` e documentacao tecnica para indicar variaveis esperadas sem expor valores reais.
+
+O arquivo `.firebaserc` versionado e um template seguro. Antes de publicar no Firebase Hosting, configure localmente o Project ID e os targets reais com a CLI do Firebase, mantendo esses valores fora da documentacao publica quando identificarem ambiente real.
+
+Para uso com Docker Compose local, crie arquivos ignorados pelo Git em `env/api.env` e `env/admin.env` a partir dos exemplos versionados:
+
+- `apps/api/.env.example` para `env/api.env`.
+- `apps/admin/.env.example` para `env/admin.env`.
+- `apps/motoboy-pwa/.env.example` tambem pode complementar `env/admin.env` quando o PWA usar Firebase/Web Push no compose.
 
 ## Estrutura do repositorio
 

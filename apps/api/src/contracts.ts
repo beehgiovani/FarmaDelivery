@@ -85,6 +85,14 @@ export const createUserSchema = z
         path: ["email"],
       });
     }
+
+    if ((value.role === "GERENTE" || value.role === "MOTOBOY") && !value.storeId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "storeId is required for this role.",
+        path: ["storeId"],
+      });
+    }
   });
 
 export const resetUserPasswordSchema = z.object({
@@ -217,7 +225,8 @@ export const deliveryReportQuerySchema = z.object({
   priority: z.enum(["NORMAL", "URGENTE", "RETORNO"]).optional(),
   proof: z.enum(["com", "sem"]).optional(),
   mapPoint: z.enum(["com", "sem"]).optional(),
-  exportLimit: z.coerce.number().int().min(1).max(20000).optional(),
+  attendant: z.string().trim().min(1).max(80).optional(),
+  exportLimit: z.coerce.number().int().min(1).max(50000).optional(),
 }).refine((value) => !(value.startsAt && value.endsAt) || value.startsAt <= value.endsAt, {
   message: "startsAt must be before or equal to endsAt.",
   path: ["endsAt"],
@@ -228,11 +237,13 @@ export const updateCourierLocationSchema = z.object({
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
   available: z.boolean().optional(),
+  serviceArea: courierServiceAreaSchema.optional(),
 });
 
 export const updateCourierAvailabilitySchema = z.object({
   courierId: uuidSchema,
   available: z.boolean(),
+  serviceArea: courierServiceAreaSchema.optional(),
 });
 
 export const registerCourierDeviceTokenSchema = z.object({

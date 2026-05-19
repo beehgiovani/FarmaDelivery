@@ -17,6 +17,7 @@ import {
 } from "./contracts";
 
 const courierId = "11111111-1111-4111-8111-111111111111";
+const storeId = "44444444-4444-4444-8444-444444444444";
 
 test("defines manual delivery deadline tiers with warning and critical limits", () => {
   assert.deepEqual([...DELIVERY_DEADLINE_TIERS], ["PERTO", "MEDIO", "LONGE"]);
@@ -69,12 +70,22 @@ test("validates courier availability updates without requiring location", () => 
   const parsed = updateCourierAvailabilitySchema.parse({
     courierId,
     available: false,
+    serviceArea: "PEREQUE",
   });
 
   assert.deepEqual(parsed, {
     courierId,
     available: false,
+    serviceArea: "PEREQUE",
   });
+
+  assert.throws(() =>
+    updateCourierAvailabilitySchema.parse({
+      courierId,
+      available: false,
+      serviceArea: "OUTRA",
+    }),
+  );
 });
 
 test("accepts an optional courier service area when accepting a delivery", () => {
@@ -112,6 +123,21 @@ test("keeps location availability optional so GPS does not change availability a
     latitude: -23.961,
     longitude: -46.333,
   });
+
+  assert.deepEqual(
+    updateCourierLocationSchema.parse({
+      courierId,
+      latitude: -23.961,
+      longitude: -46.333,
+      serviceArea: "ASTURIAS",
+    }),
+    {
+      courierId,
+      latitude: -23.961,
+      longitude: -46.333,
+      serviceArea: "ASTURIAS",
+    },
+  );
 });
 
 test("accepts android and web courier device token platforms", () => {
@@ -159,6 +185,7 @@ test("validates delivery report date range query", () => {
       priority: "URGENTE",
       proof: "com",
       mapPoint: "sem",
+      attendant: "Ana Balcao",
       exportLimit: "10000",
     }),
     {
@@ -168,6 +195,7 @@ test("validates delivery report date range query", () => {
       priority: "URGENTE",
       proof: "com",
       mapPoint: "sem",
+      attendant: "Ana Balcao",
       exportLimit: 10000,
     },
   );
@@ -180,9 +208,10 @@ test("validates delivery report date range query", () => {
   );
   assert.throws(() =>
     deliveryReportQuerySchema.parse({
-      exportLimit: "25000",
+      exportLimit: "50001",
     }),
   );
+  assert.equal(deliveryReportQuerySchema.parse({ exportLimit: "50000" }).exportLimit, 50000);
 });
 
 test("requires a real login identifier when creating access users", () => {
@@ -192,12 +221,14 @@ test("requires a real login identifier when creating access users", () => {
       email: "asturias@loja.com",
       password: "Farma0012870",
       role: "GERENTE",
+      storeId,
     }),
     {
       name: "Acesso Loja Asturias",
       email: "asturias@loja.com",
       password: "Farma0012870",
       role: "GERENTE",
+      storeId,
     },
   );
 
@@ -210,8 +241,17 @@ test("requires a real login identifier when creating access users", () => {
   );
   assert.throws(() =>
     createUserSchema.parse({
+      name: "Motoboy sem loja",
+      phone: "(13) 99999-0000",
+      password: "Farma0012870",
+      role: "MOTOBOY",
+    }),
+  );
+  assert.throws(() =>
+    createUserSchema.parse({
       name: "Acesso sem senha",
       email: "asturias@loja.com",
+      storeId,
       role: "GERENTE",
     }),
   );
@@ -220,8 +260,28 @@ test("requires a real login identifier when creating access users", () => {
       name: "Telefone incompleto",
       phone: "(13)",
       password: "Farma0012870",
+      storeId,
       role: "GERENTE",
     }),
+  );
+});
+
+test("requires store base when creating courier access", () => {
+  assert.deepEqual(
+    createUserSchema.parse({
+      name: "Carlos Motoboy",
+      phone: "(13) 99999-0000",
+      password: "Farma0012870",
+      role: "MOTOBOY",
+      storeId,
+    }),
+    {
+      name: "Carlos Motoboy",
+      phone: "(13) 99999-0000",
+      password: "Farma0012870",
+      role: "MOTOBOY",
+      storeId,
+    },
   );
 });
 

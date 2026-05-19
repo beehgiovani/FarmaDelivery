@@ -140,6 +140,7 @@ CREATE TABLE IF NOT EXISTS
         "userId" TEXT NOT NULL,
         "baseStoreName" TEXT NOT NULL,
         "available" BOOLEAN NOT NULL DEFAULT false,
+        "preferredServiceArea" TEXT NOT NULL DEFAULT 'ASTURIAS',
         "currentLat" DECIMAL(10, 7),
         "currentLng" DECIMAL(10, 7),
         "lastLocationAt" TIMESTAMP(3),
@@ -147,6 +148,25 @@ CREATE TABLE IF NOT EXISTS
         "updatedAt" TIMESTAMP(3) NOT NULL,
         CONSTRAINT "Courier_pkey" PRIMARY KEY ("id")
     );
+
+ALTER TABLE "Courier"
+ADD COLUMN IF NOT EXISTS "preferredServiceArea" TEXT NOT NULL DEFAULT 'ASTURIAS';
+
+UPDATE "Courier"
+SET "preferredServiceArea" = 'ASTURIAS'
+WHERE "preferredServiceArea" IS NULL;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Courier_preferredServiceArea_check') THEN
+    ALTER TABLE "Courier"
+      ADD CONSTRAINT "Courier_preferredServiceArea_check"
+      CHECK ("preferredServiceArea" IN ('ASTURIAS', 'PEREQUE'));
+  END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS "Courier_preferredServiceArea_available_idx"
+  ON "Courier"("preferredServiceArea", "available");
 
 -- CreateTable
 CREATE TABLE IF NOT EXISTS
@@ -1042,7 +1062,7 @@ COMMENT ON TABLE public."User" IS
 'System users and operational references. ADMIN/GERENTE/MOTOBOY are login roles; BALCONISTA_CAIXA is used as an operational reference/autocomplete and may not have login credentials. RLS is enabled with no public SELECT policy; the API applies auth, store scope and service-role access. Never expose passwordHash.';
 
 COMMENT ON TABLE public."Courier" IS
-'Courier profile linked one-to-one to a MOTOBOY user. Stores availability, last known location and base label used by admin, PWA and Android. RLS is enabled with no public SELECT policy; clients read/update through API endpoints that enforce role, courier ownership and store/service-area scope.';
+'Courier profile linked one-to-one to a MOTOBOY user. Stores availability, last known location, base label and preferredServiceArea chosen in PWA/Android so server-side push can route new deliveries after API restarts. RLS is enabled with no public SELECT policy; clients read/update through API endpoints that enforce role, courier ownership and store/service-area scope.';
 
 COMMENT ON TABLE public."CourierDeviceToken" IS
 'FCM/Web Push device tokens for couriers. Tokens are sensitive and are only registered/used by server-side API code for notifications. RLS is enabled with no public SELECT policy; monitor/export endpoints must expose only aggregate or sanitized device metadata, never token values.';

@@ -42,6 +42,7 @@ import androidx.core.content.FileProvider
 import com.drogsantoantonio.farmadelivery.data.models.AuthSession
 import com.drogsantoantonio.farmadelivery.data.models.DeliveryDto
 import com.drogsantoantonio.farmadelivery.data.models.DeliveryEventDto
+import com.drogsantoantonio.farmadelivery.data.repository.CourierRepository
 import com.drogsantoantonio.farmadelivery.data.repository.DeliveryRepository
 import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
@@ -55,14 +56,19 @@ private enum class DeliveryListSection {
 }
 
 private enum class CourierServiceArea(val value: String, val label: String, val summary: String) {
-    Asturias("ASTURIAS", "Praca Asturias", "Todas as lojas, exceto Pereque"),
-    Pereque("PEREQUE", "Praca Pereque", "Somente Pereque"),
+  Asturias("ASTURIAS", "Praca Asturias", "Todas as lojas, exceto Pereque"),
+  Pereque("PEREQUE", "Praca Pereque", "Somente Pereque");
+
+  companion object {
+    fun fromValue(value: String?): CourierServiceArea = entries.firstOrNull { it.value == value } ?: Asturias
+  }
 }
 
 @Composable
 fun DeliveriesScreen(
   session: AuthSession,
   deliveryRepository: DeliveryRepository,
+  courierRepository: CourierRepository,
   available: Boolean,
   onAvailabilityChanged: (Boolean) -> Unit,
   onLogout: () -> Unit,
@@ -72,7 +78,7 @@ fun DeliveriesScreen(
   var loading by remember { mutableStateOf(true) }
   var error by remember { mutableStateOf<String?>(null) }
   var selectedSection by remember { mutableStateOf(DeliveryListSection.Available) }
-  var serviceArea by remember { mutableStateOf(CourierServiceArea.Asturias) }
+  var serviceArea by remember { mutableStateOf(CourierServiceArea.fromValue(session.courier?.preferredServiceArea)) }
   var lastSyncedAt by remember { mutableStateOf<Instant?>(null) }
 
   fun refresh() {
@@ -127,6 +133,19 @@ fun DeliveriesScreen(
         onSelected = { nextArea ->
           serviceArea = nextArea
           deliveries = emptyList()
+          session.courier?.id?.let { courierId ->
+            scope.launch {
+              runCatching {
+                courierRepository.updateAvailability(
+                  courierId = courierId,
+                  available = available,
+                  serviceArea = nextArea.value,
+                )
+              }.onFailure { failure ->
+                error = failure.message ?: "Nao foi possivel salvar a praca escolhida."
+              }
+            }
+          }
         },
       )
 

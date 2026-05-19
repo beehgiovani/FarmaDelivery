@@ -149,6 +149,9 @@ export function App() {
         if (nextSession.role !== "MOTOBOY") {
           throw new Error("Este acesso e exclusivo para motoboys.");
         }
+        const nextServiceArea = normalizeCourierServiceArea(nextSession.courier?.preferredServiceArea ?? localStorage.getItem(SERVICE_AREA_KEY));
+        setServiceArea(nextServiceArea);
+        localStorage.setItem(SERVICE_AREA_KEY, nextServiceArea);
         setAvailable(nextSession.courier?.available == true);
         setSession(nextSession);
       })
@@ -231,6 +234,7 @@ export function App() {
           courierId: activeCourierId,
           latitude,
           longitude,
+          serviceArea,
         })
           .then(() => {
             lastTrackedLocationRef.current = {
@@ -250,7 +254,7 @@ export function App() {
     );
 
     return () => stopOpenAppTracking(watchIdRef);
-  }, [available, courierId, session, trackingEnabled]);
+  }, [available, courierId, serviceArea, session, trackingEnabled]);
 
   const sections = useMemo(() => deliverySections(deliveries), [deliveries]);
 
@@ -263,13 +267,16 @@ export function App() {
 
     localStorage.setItem(TOKEN_KEY, nextSession.token);
     setAuthToken(nextSession.token);
+    const nextServiceArea = normalizeCourierServiceArea(nextSession.courier?.preferredServiceArea ?? localStorage.getItem(SERVICE_AREA_KEY));
+    setServiceArea(nextServiceArea);
+    localStorage.setItem(SERVICE_AREA_KEY, nextServiceArea);
     setAvailable(nextSession.courier?.available == true);
     setSession(nextSession);
   }
 
   async function logout() {
     if (courierId) {
-      await updateAvailability({ courierId, available: false }).catch(() => undefined);
+      await updateAvailability({ courierId, available: false, serviceArea }).catch(() => undefined);
     }
     clearLocalSession();
   }
@@ -335,6 +342,7 @@ export function App() {
           courierId,
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
+          serviceArea,
         })
           .then(() => {
             setNotice("Localizacao enviada.");
@@ -378,7 +386,7 @@ export function App() {
     setError(null);
     setNotice(null);
     try {
-      const courier = await updateAvailability({ courierId, available: nextAvailable });
+      const courier = await updateAvailability({ courierId, available: nextAvailable, serviceArea });
       setAvailable(Boolean(courier?.available));
       if (!nextAvailable) {
         setTrackingEnabled(false);
@@ -411,12 +419,19 @@ export function App() {
     }
   }
 
-  function selectServiceArea(nextServiceArea: CourierServiceArea) {
+  async function selectServiceArea(nextServiceArea: CourierServiceArea) {
     setServiceArea(nextServiceArea);
     localStorage.setItem(SERVICE_AREA_KEY, nextServiceArea);
     deliveriesRef.current = [];
     setDeliveries([]);
     setNotice(`${courierServiceAreaLabel(nextServiceArea)} selecionada.`);
+    if (!courierId) return;
+
+    try {
+      await updateAvailability({ courierId, available, serviceArea: nextServiceArea });
+    } catch (err) {
+      setError(messageFrom(err));
+    }
   }
 
   if (checkingSession) {
@@ -477,7 +492,7 @@ export function App() {
               className={serviceArea === area ? "active" : ""}
               key={area}
               type="button"
-              onClick={() => selectServiceArea(area)}
+              onClick={() => void selectServiceArea(area)}
             >
               {courierServiceAreaLabel(area).replace("Praca ", "")}
             </button>

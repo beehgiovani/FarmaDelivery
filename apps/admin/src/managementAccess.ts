@@ -15,7 +15,7 @@ export type CreatedAccessCard = {
   storeName: string;
 };
 
-export type AccessFlow = "counterReference" | "systemAccess";
+export type AccessFlow = "counterReference" | "systemAccess" | "courierAccess";
 
 export type AccessFormState = {
   name: string;
@@ -31,7 +31,7 @@ export function activeStoreAccessUsers(users: TeamUser[]) {
 }
 
 export function requiresBaseStoreForRole(role: TeamRole) {
-  return role === "GERENTE";
+  return role === "GERENTE" || role === "MOTOBOY";
 }
 
 export function requiresLoginCredentialsForRole(role: TeamRole) {
@@ -39,7 +39,9 @@ export function requiresLoginCredentialsForRole(role: TeamRole) {
 }
 
 export function accessFlowForRole(role: TeamRole): AccessFlow {
-  return role === "BALCONISTA_CAIXA" ? "counterReference" : "systemAccess";
+  if (role === "BALCONISTA_CAIXA") return "counterReference";
+  if (role === "MOTOBOY") return "courierAccess";
+  return "systemAccess";
 }
 
 export function buildAccessFormForFlow(input: {
@@ -57,6 +59,18 @@ export function buildAccessFormForFlow(input: {
       password: "",
       role: "BALCONISTA_CAIXA",
       storeId: "",
+    };
+  }
+
+  if (input.flow === "courierAccess") {
+    return {
+      ...input.current,
+      name: "",
+      phone: "",
+      email: "",
+      password: input.current.password || input.initialPassword || "",
+      role: "MOTOBOY",
+      storeId: input.current.storeId || input.defaultStoreId || "",
     };
   }
 

@@ -1,15 +1,15 @@
 {
   "projects": {
-    "default": "farmadelivery-d40a9"
+    "default": "farmadelivery-project-id"
   },
   "targets": {
-    "farmadelivery-d40a9": {
+    "farmadelivery-project-id": {
       "hosting": {
-        "drogstoantonio": [
-          "drogstoantonio"
+        "farmadelivery-admin": [
+          "farmadelivery-admin-site"
         ],
         "motoboy-pwa": [
-          "drogstoantonio-motoboy"
+          "farmadelivery-motoboy-site"
         ]
       }
     }

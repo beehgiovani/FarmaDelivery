@@ -7,22 +7,30 @@ import com.drogsantoantonio.farmadelivery.data.models.CourierLocationRequest
 import com.drogsantoantonio.farmadelivery.data.models.DeviceTokenRequest
 
 class CourierRepository(private val service: CourierService) {
-  suspend fun updateLocation(courierId: String, latitude: Double, longitude: Double, available: Boolean?) {
+  suspend fun updateLocation(
+    courierId: String,
+    latitude: Double,
+    longitude: Double,
+    available: Boolean?,
+    serviceArea: String? = null,
+  ) {
     service.updateLocation(
       CourierLocationRequest(
         courierId = courierId,
         latitude = latitude,
         longitude = longitude,
         available = available,
+        serviceArea = serviceArea,
       ),
     )
   }
 
-  suspend fun updateAvailability(courierId: String, available: Boolean): CourierDto {
+  suspend fun updateAvailability(courierId: String, available: Boolean, serviceArea: String? = null): CourierDto {
     return service.updateAvailability(
       CourierAvailabilityRequest(
         courierId = courierId,
         available = available,
+        serviceArea = serviceArea,
       ),
     )
   }

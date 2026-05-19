@@ -1,5 +1,5 @@
 import type { FormEvent, ReactNode } from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { LocateFixed, MapPin, MapPinned, Phone, Printer, Search, UserRound } from "lucide-react";
 import { createDelivery, geocodeAddress, lookupCustomerByPhone, type CreatedDeliveryResult } from "../api";
 import { apiDeadlineTierFromDeliveryDeadlineTier, mapDeliveryDeadlineTier, mapDeliveryPriority, mapDeliveryStatus } from "../apiMappers";
@@ -85,8 +85,16 @@ export function DeliveryForm({ stores, redirectStores = stores, attendants = [],
   const [feedback, setFeedback] = useState<string>("");
   const [showMapPicker, setShowMapPicker] = useState(false);
 
+  // Garante que o storeName sempre reflita a loja disponivel quando o form nao tem valor
+  // (ex: primeiro render, apos reset ou quando a loja muda por ser usuario de loja unica)
+  useEffect(() => {
+    if (!form.storeName && stores[0]?.name) {
+      setForm((current) => ({ ...current, storeName: stores[0].name }));
+    }
+  }, [stores, form.storeName]);
+
   const selectedStore = useMemo(
-    () => stores.find((store) => store.name === (form.storeName || stores[0]?.name)),
+    () => stores.find((store) => store.name === form.storeName) ?? stores[0],
     [form.storeName, stores],
   );
   const redirectStore = useMemo(
@@ -115,13 +123,14 @@ export function DeliveryForm({ stores, redirectStores = stores, attendants = [],
   }
 
   async function submitDelivery({ skipGeocode }: { skipGeocode: boolean }) {
-    if (!selectedStore?.id || !canSubmit) {
+    const selectedStoreId = selectedStore?.id;
+    if (!selectedStoreId || !canSubmit) {
       const missing = [];
       if (!hasEnoughDeliveryPhoneDigits(form.phone)) missing.push("telefone");
       if (!form.customerName.trim()) missing.push("nome do cliente");
       if (!form.street.trim()) missing.push("endereco");
       if (!form.number.trim()) missing.push("numero");
-      if (!selectedStore?.id) missing.push("loja de origem");
+      if (!selectedStoreId) missing.push("loja de origem");
 
       setSubmitState("error");
       setFeedback(`Preencha os campos obrigatorios: ${missing.join(", ")}.`);
@@ -135,8 +144,8 @@ export function DeliveryForm({ stores, redirectStores = stores, attendants = [],
       const deliveryCoordinates = skipGeocode ? parsedCoordinates ?? undefined : await resolveCoordinatesForSubmit();
       const normalizedPhone = normalizeDeliveryPhoneInput(form.phone);
       const result = await createDelivery({
-        storeId: selectedStore.id,
-        redirectStoreId: redirectStore?.id && redirectStore.id !== selectedStore.id ? redirectStore.id : undefined,
+        storeId: selectedStoreId,
+        redirectStoreId: redirectStore?.id && redirectStore.id !== selectedStoreId ? redirectStore.id : undefined,
         customerAddressId: customerLookup?.addresses.some((address) => address.id === selectedAddressId)
           ? selectedAddressId
           : undefined,

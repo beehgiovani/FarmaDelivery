@@ -1,7 +1,7 @@
 {
   "hosting": [
     {
-      "target": "drogstoantonio",
+      "target": "farmadelivery-admin",
       "public": "apps/admin/dist",
       "ignore": [
         "firebase.json",

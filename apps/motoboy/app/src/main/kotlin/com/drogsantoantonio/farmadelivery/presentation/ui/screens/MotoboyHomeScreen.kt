@@ -106,6 +106,7 @@ fun MotoboyHomeScreen(
         HomeTab.Deliveries -> DeliveriesScreen(
           session = session,
           deliveryRepository = deliveryRepository,
+          courierRepository = courierRepository,
           available = available,
           onAvailabilityChanged = { available = it },
           onLogout = onLogout,

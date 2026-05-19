@@ -154,20 +154,23 @@ model User {
 }
 
 model Courier {
-  id               String                   @id @default(uuid())
-  userId           String                   @unique
-  user             User                     @relation(fields: [userId], references: [id])
-  baseStoreName    String
-  available        Boolean                  @default(false)
-  currentLat       Decimal?                 @db.Decimal(10, 7)
-  currentLng       Decimal?                 @db.Decimal(10, 7)
-  lastLocationAt   DateTime?
-  routes           CourierRoute[]
-  deliveries       Delivery[]
-  storeAssignments CourierStoreAssignment[]
-  deviceTokens     CourierDeviceToken[]
-  createdAt        DateTime                 @default(now())
-  updatedAt        DateTime                 @updatedAt
+  id                   String                   @id @default(uuid())
+  userId               String                   @unique
+  user                 User                     @relation(fields: [userId], references: [id])
+  baseStoreName        String
+  available            Boolean                  @default(false)
+  preferredServiceArea String                   @default("ASTURIAS")
+  currentLat           Decimal?                 @db.Decimal(10, 7)
+  currentLng           Decimal?                 @db.Decimal(10, 7)
+  lastLocationAt       DateTime?
+  routes               CourierRoute[]
+  deliveries           Delivery[]
+  storeAssignments     CourierStoreAssignment[]
+  deviceTokens         CourierDeviceToken[]
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+
+  @@index([preferredServiceArea, available])
 }
 
 model CourierDeviceToken {
@@ -248,24 +251,24 @@ model CustomerAddress {
 }
 
 model Delivery {
-  id                    String           @id @default(uuid())
-  publicCode            String           @unique
-  storeDailyDate        DateTime         @db.Date
+  id                    String               @id @default(uuid())
+  publicCode            String               @unique
+  storeDailyDate        DateTime             @db.Date
   storeDailyNumber      Int
   storeId               String
-  store                 Store            @relation(fields: [storeId], references: [id])
+  store                 Store                @relation(fields: [storeId], references: [id])
   redirectedFromStoreId String?
   customerId            String
-  customer              Customer         @relation(fields: [customerId], references: [id])
+  customer              Customer             @relation(fields: [customerId], references: [id])
   customerAddressId     String
-  customerAddress       CustomerAddress  @relation(fields: [customerAddressId], references: [id])
+  customerAddress       CustomerAddress      @relation(fields: [customerAddressId], references: [id])
   courierId             String?
-  courier               Courier?         @relation(fields: [courierId], references: [id])
-  status                DeliveryStatus   @default(AGUARDANDO_MOTOBOY)
-  priority              DeliveryPriority @default(NORMAL)
+  courier               Courier?             @relation(fields: [courierId], references: [id])
+  status                DeliveryStatus       @default(AGUARDANDO_MOTOBOY)
+  priority              DeliveryPriority     @default(NORMAL)
   deadlineTier          DeliveryDeadlineTier @default(MEDIO)
   notes                 String?
-  createdAt             DateTime         @default(now())
+  createdAt             DateTime             @default(now())
   earliestDispatchAt    DateTime?
   acceptedAt            DateTime?
   collectedAt           DateTime?

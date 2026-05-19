@@ -9,7 +9,7 @@ Este documento registra a "lingua comum" entre API, painel admin/loja, PWA motob
 - API valida payloads, filtros e transicoes em `apps/api/src/contracts.ts` e nas rotas de `apps/api/src/routes`.
 - Painel admin centraliza conversoes em `apps/admin/src/apiMappers.ts`.
 - PWA motoboy centraliza exibicao em helpers `apps/motoboy-pwa/src/*Labels.ts`, `deliverySections.ts` e `routeNavigation.ts`.
-- Android motoboy centraliza exibicao em helpers `apps/motoboy/app/src/main/kotlin/com/farmadelivery/farmadelivery/presentation/ui/screens/*Labels.kt`, `DeliverySections.kt` e `RouteNavigation.kt`.
+- Android motoboy centraliza exibicao em helpers de `apps/motoboy/app/src/main/kotlin/.../presentation/ui/screens/*Labels.kt`, `DeliverySections.kt` e `RouteNavigation.kt`, sem depender de nomes de pacote em documentacao publica.
 
 ## Valores compartilhados
 
@@ -88,11 +88,11 @@ Detalhes operacionais de pagamento:
 Praca de atendimento do motoboy:
 
 - Emprestimos ocasionais de motoboy nao dependem de UI administrativa nem de nova tabela.
-- O motoboy escolhe a praca no app/PWA ao operar: `GERAL` ou `DEDICADA`.
-- `GERAL` lista entregas aguardando de todas as lojas exceto lojas cujo nome normalize para `dedicada`; `DEDICADA` lista apenas essas lojas.
+- O motoboy escolhe a praca no app/PWA ao operar: `ASTURIAS` ou `PEREQUE`.
+- `ASTURIAS` lista entregas aguardando de todas as lojas exceto lojas cujo nome normalize para `pereque`; `PEREQUE` lista apenas essas lojas.
 - A API aceita `serviceArea` em `GET /deliveries`, `POST /deliveries/accept`, historico e comprovantes para manter listagem, aceite e leitura alinhados.
 - Entregas ja aceitas pelo proprio motoboy continuam visiveis independentemente da praca escolhida.
-- A escolha de praca e operacional e local ao app; sem persistencia no banco, push server-side de nova entrega ainda pode depender da alocacao ativa existente. Notificacao local do PWA continua funcionando enquanto o app esta aberto.
+- A escolha de praca persiste em `Courier.preferredServiceArea` via PWA, app Android e API, mantendo o direcionamento de push server-side mesmo apos reinicio da API.
 
 Conclusao de entrega e comprovante:
 

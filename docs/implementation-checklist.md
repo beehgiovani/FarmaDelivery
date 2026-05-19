@@ -104,15 +104,18 @@ Atualizado em 2026-05-19.
 - Teste de contrato da API garante que os detalhes de pagamento em `notes` sejam preservados ao validar a criacao de entrega.
 - Motoboy escolhe a praca de atendimento no PWA e no app Android, sem criar fluxo administrativo de emprestimo ocasional.
 - API reconhece `serviceArea` em listagem, aceite, historico e comprovantes de entrega, mantendo a visao do motoboy alinhada a praca escolhida.
-- Praca `GERAL` atende todas as lojas exceto Loja Dedicada; praca `DEDICADA` atende apenas Loja Dedicada, usando normalizacao do nome da loja no backend.
+- Praca `ASTURIAS` atende todas as lojas exceto Pereque; praca `PEREQUE` atende apenas Pereque, usando normalizacao do nome da loja no backend.
+- Praca escolhida pelo motoboy persiste em `Courier.preferredServiceArea` via PWA, app Android e API, mantendo o direcionamento de push server-side mesmo apos reinicio da API.
 - Fluxo de nova entrega preserva o atendente/balconista como referencia por nome no autocomplete global, sem transformar funcionario de balcao em login.
 - Cadastro de `BALCONISTA_CAIXA` no admin ficou como referencia operacional global por padrao, sem exigir loja base; `GERENTE` segue como login operacional da unidade.
 - Cadastro de `BALCONISTA_CAIXA` nao exige telefone, email ou senha, pois serve como referencia/autocomplete; o backend gera hash interno apenas para compatibilidade com o modelo atual.
-- UI de acessos possui fluxos separados para funcionario de conferencia (`BALCONISTA_CAIXA`, sem login) e logins do sistema (`GERENTE`, `ADMIN` e `MOTOBOY`, com credenciais), evitando misturar balconista/caixa com login da loja.
+- UI de acessos possui fluxos separados para funcionario de conferencia (`BALCONISTA_CAIXA`, sem login), motoboy (`MOTOBOY`, login dedicado) e logins do sistema (`GERENTE` e `ADMIN`), evitando misturar balconista/caixa, motoboy e login da loja.
+- Cadastro de motoboy no admin foi separado em fluxo dedicado, com login proprio para o app/campo e loja base obrigatoria, sem misturar com login da loja ou referencia de balconista.
 - Login operacional de loja, como Loja Central, fica limitado a propria unidade; admin permanece como unico acesso de visao geral.
 - Listagem e CSV de relatorios preservam o balconista de lancamento/conferencia e o motoboy que entregou, mantendo os demais dados operacionais da entrega.
 - Relatorio operacional tambem distribui entregas por balconista/atendente informado, alem de loja, motoboy, status e prioridade.
 - Painel de relatorios permite filtrar a visao carregada por balconista/atendente, com autocomplete, busca sem diferenciar acentos e exportacao local preservando o filtro.
+- Exportacao CSV server-side de relatorios aceita filtro de balconista/atendente, aplica busca sem diferenciar acentos e registra o filtro no contexto do arquivo.
 - Textos do painel admin foram revisados para linguagem de usuario final, removendo termos como API, banco, Supabase, push e tokens das telas operacionais.
 - Tela de equipe/lojas ganhou cards destacados por situacao e painel de acessos por loja, com atalho para o admin preparar acesso operacional da unidade.
 - Cadastro de loja no admin foi reorganizado como fluxo de unidade: dados internos, endereco, ponto opcional no mapa, operacao de motoboy, horario padrao e painel lateral com lojas cadastradas e atalho para preparar login da unidade.
@@ -131,9 +134,10 @@ Atualizado em 2026-05-19.
 - Endpoint agregado `GET /reports/deliveries-summary` aceita `startsAt` e `endsAt` para relatorio por intervalo.
 - Agregacao server-side de relatorios foi isolada em modulo testavel, cobrindo periodo, comprovantes e distribuicoes.
 - Endpoint `GET /reports/deliveries-export` gera CSV server-side com escopo, periodo, resumo, distribuicoes e telefone mascarado.
-- Endpoint `GET /reports/deliveries-export` aceita `exportLimit` validado ate 20000 linhas, mantendo 5000 como padrao seguro.
+- Endpoint `GET /reports/deliveries-export` aceita `exportLimit` validado ate 50000 linhas, mantendo 5000 como padrao seguro.
+- Exportacao CSV server-side de relatorios busca entregas em paginas de 5000 registros no Prisma e no fallback Supabase REST, evitando consulta unica gigante para historicos longos.
 - CSV de relatorios server-side e fallback local indicam no contexto quando o limite de exportacao foi atingido, sinalizando que pode haver mais linhas fora do arquivo.
-- Painel de relatorios permite escolher exportacao de 5000, 10000 ou 20000 linhas.
+- Painel de relatorios permite escolher exportacao de 5000, 10000, 20000 ou 50000 linhas.
 - Painel envia status, prioridade e comprovante para a exportacao server-side do relatorio; se a API falhar numa visao filtrada ja carregada, exporta a visao local como contingencia.
 - Exportacao CSV das entregas filtradas no painel.
 - Exportacao CSV com telefone mascarado por padrao.
@@ -190,7 +194,7 @@ Atualizado em 2026-05-19.
 - Escopo backend de login de loja agora considera alocacoes ativas em listagem de lojas, entregas, relatorios, criacao e alteracao de entregas.
 - Listagem de usuarios considera o escopo ativo do login de loja no Prisma e no fallback Supabase REST, mantendo balconistas/caixas globais disponiveis para autocomplete operacional.
 - Listagem de motoboys considera alocacoes ativas de loja para login de loja no Prisma e no fallback Supabase REST, mantendo motoboy restrito ao proprio cadastro.
-- Escopo backend de motoboy pode usar `CourierStoreAssignment` ativa como fallback legado, mas listagem/aceite operacional dos apps passa a preferir a praca escolhida pelo motoboy.
+- Escopo backend de motoboy usa a praca escolhida pelo app para entregas livres, enquanto `CourierStoreAssignment` permanece para escopo administrativo de login de loja e cadastros.
 - Motoboy continua podendo ver/alterar entregas ja aceitas por ele; entregas livres aguardando nos apps ficam restritas a praca de atendimento selecionada.
 - Listagem de rotas compartilhadas filtra as paradas visiveis para login de loja conforme o escopo ativo, evitando expor paradas de outras unidades.
 - Fallback Supabase REST de eventos operacionais autenticados exige `actorUserId` antes de gravar criacao, agendamento, redirecionamento, transicao ou cancelamento de entrega.
@@ -201,6 +205,8 @@ Atualizado em 2026-05-19.
 - Planejador LGPD gera resumo/CSV de impacto agregado sem expor IDs ou dados pessoais dos registros afetados.
 - API possui builders testaveis de patches LGPD para anonimizar cliente/endereco, limpar localizacao, revogar token e preparar exclusao de binario de comprovante.
 - API possui CLI local `lgpd:dry-run` para gerar relatorio LGPD agregado em JSON/CSV a partir de arquivo ou stdin, sem conectar ao banco.
+- API possui rotina `lgpd:retention` conectada ao Prisma para montar plano a partir do banco e executar retencao/anonimizacao somente com `--apply`; sem essa flag, roda em dry-run e nao altera banco/arquivos.
+- Testes da rotina LGPD conectada ao Prisma cobrem dry-run sem mutacao, execucao com `--apply`, comprovante vencido sem exclusor fisico, montagem do plano a partir do banco sem expor dados pessoais e aliases seguros da CLI.
 - Loading, empty, error, fatal state e toast global.
 - Logo e cores da FarmaDelivery aplicados no painel.
 - Logo real da FarmaDelivery aplicado no PWA motoboy e no app Android motoboy, substituindo marca/desenho `FD` e vetor manual; PWA tambem usa o logo real em favicon/manifest icons.
@@ -254,7 +260,7 @@ Atualizado em 2026-05-19.
 - App Android motoboy possui rotulos testados para acoes de disponibilidade e GPS, evitando botoes ambiguos como dois "Pausar" no mesmo painel.
 - Base de notificacoes FCM iniciada: tabela `CourierDeviceToken`, endpoint protegido de cadastro de token e registro automatico do token pelo app Android ao entrar como motoboy.
 - App motoboy atualiza o token FCM no backend quando o Firebase gera um novo token.
-- API possui servico server-side de push FCM com Firebase Admin SDK, desativacao de tokens invalidos, envio no cancelamento quando `notifyCourier` estiver ativo e aviso de nova entrega disponivel para motoboys disponiveis com alocacao ativa na loja; a escolha de praca feita no app ainda nao persiste no banco para direcionar push server-side apos reinicio da API.
+- API possui servico server-side de push FCM com Firebase Admin SDK, desativacao de tokens invalidos, envio no cancelamento quando `notifyCourier` estiver ativo e aviso de nova entrega disponivel para motoboys disponiveis com alocacao ativa na loja e `Courier.preferredServiceArea` compativel com a loja.
 - Scheduler interno da API processa entregas agendadas cujo `earliestDispatchAt` chegou, dispara notificacao de nova entrega e registra evento `NOTIFICACAO_ENVIADA` para evitar duplicidade.
 - Endpoint administrativo `GET /notifications/summary` consolida configuracao push, tokens ativos/inativos e envios recentes auditados.
 - Painel admin possui monitoramento de notificacoes push com status do Firebase Admin, worker, tokens e falhas recentes.
@@ -309,6 +315,7 @@ Atualizado em 2026-05-19.
 - SQL consolidado `database/schema-full.sql` e snapshot `docs/database-schema.sql` regenerados apos a numeracao diaria por loja, mantendo os arquivos locais de schema atualizados.
 - `database/schema-full.sql` contem schema, migrations, seeds, policies, realtime e comentarios SQL em um unico arquivo; nao e necessario rodar seeds/policies/realtime separados logo apos ele.
 - Comentarios SQL das tabelas centralizados em `database/schema-full.sql`, documentando finalidade, uso no codigo, RLS e cuidados operacionais.
+- Checkup do `database/schema-full.sql` confirmou que as tabelas criadas no arquivo canonico possuem `COMMENT ON TABLE` e RLS habilitada.
 - PWA iPhone abre a rota no Google Maps seguindo a sequencia de paradas pendentes, com origem na localizacao atual, ultima parada como destino e paradas anteriores como waypoints.
 - PWA iPhone limita waypoints enviados ao Google Maps e mantem URL segura quando nao ha paradas pendentes.
 - PWA iPhone divide rotas longas em um trecho continuo compativel com o limite de waypoints do Google Maps, monta a URL a partir do trecho ja calculado e informa quantas paradas ficam para depois com texto gerado por helper testado.
@@ -331,22 +338,23 @@ Atualizado em 2026-05-19.
 - Firebase Hosting web preparado para o painel admin com target `farmadelivery-admin`.
 - Docker de desenvolvimento criado e validado para subir API, admin e PWA motoboy juntos via `docker compose`, mantendo secrets fora da imagem e usando `env/*.env` em runtime.
 - Ambiente Docker validado com API, admin e PWA motoboy `healthy`, URLs locais respondendo `200 OK` e testes de API/admin/PWA executados dentro dos containers.
+- Scripts manuais de policies e realtime foram aplicados no Supabase antes da consolidacao, com execucao reportada como bem-sucedida.
+- Validacao pos-limpeza confirmou que arquivos sensiveis locais (`.env`, `google-services.json`, `local.properties`, logs e caches) permanecem ignorados e fora do versionamento.
+- Documentacao publica/canonica foi revisada para nao expor dados reais de loja, project id, targets Firebase, package Android especifico, chaves, tokens ou credenciais.
+- Validacao geral apos restaurar nomes/configuracoes funcionais da aplicacao passou em `npm test`, `npm run build` e `:app:testDebugUnitTest`.
 
 ## Em andamento
     
 - Revisar filtros finos nos fallbacks Supabase REST quando surgirem novos endpoints.
-- Consolidar policies de RLS conforme o modelo final de autenticacao.
-- Evoluir relatorios para historico longo, filtros avancados e exportacoes server-side.
+- Revisar RLS final por perfil no Supabase antes de producao, mantendo o arquivo canonico como fonte unica.
+- Evoluir relatorios para filtros avancados adicionais e, se necessario em producao, exportacao assincrona por fila/worker.
 
 ## Falta
 
-- Abrir o modulo Android no Android Studio para smoke test visual em emulador/aparelho. (teste visual Aprovado (não subi a api para fazer o teste completo))
+- Fazer smoke test completo do app Android em emulador/aparelho com API publicada ou API local acessivel pelo dispositivo.
 - Evoluir app Kotlin com mapa nativo/embarcado da rota e offline. 
 - Testar Web Push real do PWA em dispositivo iOS instalado pela Tela de Inicio apos configurar VAPID key e deploy HTTPS.
 - Permissao/background policy final de localizacao para publicacao na Play Store, se o app for publicado externamente.
-- Relatorios avancados com paginacao/assinc para exports acima de 20000 linhas.
-- Conectar planejador LGPD a rotina automatizada de retencao/anonimizacao antes de producao.
-- Ampliar testes automatizados de fluxos HTTP autenticados, fallback REST, frontend e permissoes por perfil.
 - Deploy da API e estrategia final de banco/producao.
 
 ## Observacoes tecnicas
@@ -360,3 +368,4 @@ Atualizado em 2026-05-19.
 - O SQL unificado deve prevenir duplicidades/erros por existencia com `IF NOT EXISTS`, `DROP POLICY IF EXISTS`, `CREATE OR REPLACE` ou blocos `DO $$`, mantendo os nomes existentes usados pelo Prisma/API.
 - Toda nova tabela ou mudanca relevante de acesso deve atualizar os `COMMENT ON TABLE` em `database/schema-full.sql` com finalidade, uso no codigo, RLS e cuidados operacionais.
 - Os SQLs incrementais antigos foram incorporados ao `database/schema-full.sql` e removidos para evitar duplicidade operacional.
+- Dados reais necessarios ao funcionamento da aplicacao permanecem no codigo/SQL/configuracoes operacionais; sanitizacao publica deve acontecer na documentacao, exemplos e ambientes versionaveis, sem quebrar contratos do app.

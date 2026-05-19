@@ -1,5 +1,5 @@
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { Building2, Clock3, Copy, Download, Info, KeyRound, ShieldCheck, UserRoundCog } from "lucide-react";
+import { Building2, Clock3, Copy, Download, Info, KeyRound, ShieldCheck, Truck, UserRoundCog } from "lucide-react";
 import {
   assignmentLabel,
   buildAssignmentsCsv,
@@ -130,7 +130,7 @@ export function ManagementPanel({
   const [createdAccess, setCreatedAccess] = useState<CreatedAccessCard | null>(null);
   const [passwordResetUserId, setPasswordResetUserId] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<ManagementSection>("acessos");
-  const [accessFlow, setAccessFlow] = useState<AccessFlow>("systemAccess");
+  const [accessFlow, setAccessFlow] = useState<AccessFlow>("courierAccess");
   const [optimisticStores, setOptimisticStores] = useState<StoreUnit[]>([]);
   const accessFormRef = useRef<HTMLFormElement | null>(null);
   const managedStores = useMemo(() => mergeStoreUnits(stores, optimisticStores), [stores, optimisticStores]);
@@ -143,9 +143,10 @@ export function ManagementPanel({
   const currentRoleRequiresLogin = requiresLoginCredentialsForRole(form.role);
   const isCounterReference = accessFlow === "counterReference";
   const isStoreLogin = accessFlow === "systemAccess" && form.role === "GERENTE";
+  const isCourierAccess = accessFlow === "courierAccess";
 
   useEffect(() => {
-    if (form.role !== "BALCONISTA_CAIXA" && !form.storeId && managedStores[0]?.id) {
+    if (requiresBaseStoreForRole(form.role) && !form.storeId && managedStores[0]?.id) {
       setForm((current) => ({ ...current, storeId: managedStores[0].id ?? "" }));
     }
     if (!hoursForm.storeId && managedStores[0]?.id) {
@@ -243,7 +244,7 @@ export function ManagementPanel({
     setForm((current) => ({
       ...current,
       role,
-      storeId: role === "BALCONISTA_CAIXA" ? "" : current.storeId || managedStores[0]?.id || "",
+      storeId: requiresBaseStoreForRole(role) ? current.storeId || managedStores[0]?.id || "" : "",
     }));
   }
 
@@ -287,7 +288,7 @@ export function ManagementPanel({
         email: emailForLogin || undefined,
         password: requiresLogin ? form.password : undefined,
         role: form.role,
-        storeId: form.role === "BALCONISTA_CAIXA" ? undefined : form.storeId || undefined,
+        storeId: requiresBaseStoreForRole(form.role) ? form.storeId || undefined : undefined,
       });
       setSubmitState("success");
       setFeedback(
@@ -721,27 +722,36 @@ export function ManagementPanel({
             <small>Somente nome para autocomplete da entrega. Nao cria login.</small>
           </button>
           <button
+            className={`accessFlowCard ${accessFlow === "courierAccess" ? "selected" : ""}`}
+            type="button"
+            onClick={() => selectAccessFlow("courierAccess")}
+          >
+            <Truck size={18} />
+            <strong>Motoboy</strong>
+            <small>Login dedicado para o app do motoboy, com loja base para cadastro.</small>
+          </button>
+          <button
             className={`accessFlowCard ${accessFlow === "systemAccess" ? "selected" : ""}`}
             type="button"
             onClick={() => selectAccessFlow("systemAccess")}
           >
             <KeyRound size={18} />
             <strong>Logins do sistema</strong>
-            <small>Login da loja, admin ou motoboy. Todos entram com credenciais.</small>
+            <small>Login da loja ou admin. Balconista e motoboy ficam em fluxos proprios.</small>
           </button>
         </div>
 
-        <form className={`teamForm ${isStoreLogin ? "storeLoginForm" : ""}`} ref={accessFormRef} onSubmit={handleSubmit}>
+        <form className={`teamForm ${isStoreLogin || isCourierAccess ? "storeLoginForm" : ""}`} ref={accessFormRef} onSubmit={handleSubmit}>
           <div className="sectionHeader">
             <div>
-              <span className="eyebrow">{isCounterReference ? "Fluxo separado" : isStoreLogin ? "Fluxo da unidade" : "Login"}</span>
-              <h2>{isCounterReference ? "Novo funcionario de conferencia" : isStoreLogin ? "Novo login da loja" : "Novo login do sistema"}</h2>
+              <span className="eyebrow">{isCounterReference ? "Fluxo separado" : isStoreLogin ? "Fluxo da unidade" : isCourierAccess ? "Fluxo do motoboy" : "Login"}</span>
+              <h2>{isCounterReference ? "Novo funcionario de conferencia" : isStoreLogin ? "Novo login da loja" : isCourierAccess ? "Novo motoboy" : "Novo login do sistema"}</h2>
             </div>
           </div>
 
           <div className="accessHelperCard">
             <span>
-              {isCounterReference ? <Info size={18} /> : <KeyRound size={18} />}
+              {isCounterReference ? <Info size={18} /> : isCourierAccess ? <Truck size={18} /> : <KeyRound size={18} />}
             </span>
             <div>
               <strong>
@@ -749,6 +759,8 @@ export function ManagementPanel({
                   ? "Nao e login: e apenas referencia para conferencia"
                   : isStoreLogin
                     ? "Acesso usado no computador da loja"
+                    : isCourierAccess
+                      ? "Login dedicado ao app do motoboy"
                     : "Login criado pelo admin"}
               </strong>
               <small>
@@ -756,6 +768,8 @@ export function ManagementPanel({
                   ? "Este cadastro alimenta o autocomplete do campo Atendente no lancamento de entrega. Nao gera usuario de entrada no sistema."
                   : isStoreLogin
                     ? "Escolha a unidade, defina o identificador do login e entregue a senha inicial para o responsavel da loja."
+                    : isCourierAccess
+                      ? "Informe nome, telefone ou email, senha inicial e loja base. A praca de atendimento sera escolhida pelo motoboy no app."
                     : "Use telefone ou email como identificador do acesso. A senha inicial pode ser alterada depois pelo admin."}
               </small>
             </div>
@@ -763,12 +777,12 @@ export function ManagementPanel({
 
           <div className="teamFormGrid">
             <label className="inputGroup">
-              <span>{isCounterReference ? "Nome do funcionario" : isStoreLogin ? "Nome do acesso da loja" : "Nome"}</span>
+              <span>{isCounterReference ? "Nome do funcionario" : isStoreLogin ? "Nome do acesso da loja" : isCourierAccess ? "Nome do motoboy" : "Nome"}</span>
               <input
                 className="plainInput"
                 name="team-user-name"
                 value={form.name}
-                placeholder={isCounterReference ? "Nome usado na conferencia" : isStoreLogin ? "Ex.: Loja Centro" : undefined}
+                placeholder={isCounterReference ? "Nome usado na conferencia" : isStoreLogin ? "Ex.: Loja Centro" : isCourierAccess ? "Nome do entregador" : undefined}
                 onChange={(event) => setForm({ ...form, name: event.target.value })}
               />
             </label>
@@ -784,21 +798,21 @@ export function ManagementPanel({
             ) : (
               <>
                 <label className="inputGroup">
-                  <span>{isStoreLogin ? "Telefone do login" : "Telefone"}</span>
+                  <span>{isStoreLogin ? "Telefone do login" : isCourierAccess ? "Telefone do motoboy" : "Telefone"}</span>
                   <input
                     className="plainInput"
                     inputMode="tel"
                     value={form.phone}
-                    placeholder={isStoreLogin ? "Telefone da unidade" : undefined}
+                    placeholder={isStoreLogin ? "Telefone da unidade" : isCourierAccess ? "(13) 99999-0000" : undefined}
                     onChange={(event) => setForm({ ...form, phone: normalizeDeliveryPhoneInput(event.target.value) })}
                   />
                 </label>
                 <label className="inputGroup">
-                  <span>{isStoreLogin ? "Email do login" : "Email"}</span>
+                  <span>{isStoreLogin ? "Email do login" : isCourierAccess ? "Email do motoboy" : "Email"}</span>
                   <input
                     className="plainInput"
                     value={form.email}
-                    placeholder={isStoreLogin ? "Email da unidade" : undefined}
+                    placeholder={isStoreLogin ? "Email da unidade" : isCourierAccess ? "Opcional se usar telefone" : undefined}
                     onChange={(event) => setForm({ ...form, email: event.target.value })}
                   />
                 </label>
@@ -826,7 +840,7 @@ export function ManagementPanel({
                 <span>Funcao</span>
                 <select value={form.role} onChange={(event) => setFormForRole(event.target.value as TeamRole)}>
                   {roles
-                    .filter((role) => role.value !== "BALCONISTA_CAIXA")
+                    .filter((role) => role.value !== "BALCONISTA_CAIXA" && role.value !== "MOTOBOY")
                     .map((role) => (
                       <option key={role.value} value={role.value}>
                         {role.label}
@@ -836,8 +850,8 @@ export function ManagementPanel({
               </label>
             ) : (
               <div className="referenceNotice">
-                <strong>{isCounterReference ? "Tipo fixo: referencia" : "Tipo fixo: login da loja"}</strong>
-                <small>{isCounterReference ? "Sera salvo como Balconista / caixa (referencia)." : "Sera salvo como Acesso da loja."}</small>
+                <strong>{isCounterReference ? "Tipo fixo: referencia" : isCourierAccess ? "Tipo fixo: motoboy" : "Tipo fixo: login da loja"}</strong>
+                <small>{isCounterReference ? "Sera salvo como Balconista / caixa (referencia)." : isCourierAccess ? "Sera salvo como Motoboy com login proprio." : "Sera salvo como Acesso da loja."}</small>
               </div>
             )}
             {isCounterReference ? (
@@ -847,9 +861,9 @@ export function ManagementPanel({
               </div>
             ) : (
               <label className="inputGroup">
-                <span>{isStoreLogin ? "Loja deste login" : "Loja base"}</span>
+                <span>{isStoreLogin ? "Loja deste login" : isCourierAccess ? "Loja base do motoboy" : "Loja base"}</span>
                 <select value={form.storeId} onChange={(event) => setForm({ ...form, storeId: event.target.value })}>
-                  <option value="">Sem loja fixa</option>
+                  <option value="">{isCourierAccess ? "Escolha a loja base" : "Sem loja fixa"}</option>
                   {managedStores.map((store) => (
                     <option key={store.id ?? store.name} value={store.id ?? ""}>
                       {store.name}
@@ -870,7 +884,9 @@ export function ManagementPanel({
                 : currentRoleRequiresLogin
                   ? isStoreLogin
                     ? "Criar login da loja"
-                    : "Cadastrar acesso"
+                    : isCourierAccess
+                      ? "Cadastrar motoboy"
+                      : "Cadastrar acesso"
                   : "Cadastrar referencia"}
             </button>
           </div>

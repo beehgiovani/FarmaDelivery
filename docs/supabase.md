@@ -7,9 +7,9 @@
 
 ## Regras de uso
 
-- Nao exponha `SUPABASE_SERVICE_ROLE_JWT` no frontend.
+- Nao exponha `SUPABASE_SERVICE_ROLE_JWT` nem `SUPABASE_SECRET_KEY` no frontend.
 - O frontend usa apenas chave publishable/anon.
-- A API pode usar `SUPABASE_SERVICE_ROLE_JWT` como fallback server-side.
+- A API pode usar `SUPABASE_SERVICE_ROLE_JWT` ou `SUPABASE_SECRET_KEY` como fallback server-side.
 - Use valores reais apenas nos `.env` locais; `.env.example` deve manter placeholders.
 - O SQL deve ser aplicado manualmente pelo Supabase SQL Editor quando necessario.
 - Use `database/schema-full.sql` como arquivo unico para schema, seeds, policies, realtime e comentarios SQL.
@@ -45,6 +45,11 @@ Os antigos scripts auxiliares foram incorporados ao arquivo canonico e removidos
 - A API local ja opera contra o Supabase via fallback REST.
 - Auth foi validado via fallback REST.
 - Prisma direto ainda deve ser estabilizado com o pooler.
+- Policies e verificacao de realtime foram executadas manualmente no Supabase antes da consolidacao do SQL canonico, com sucesso reportado.
+- `database/schema-full.sql` substitui os scripts separados antigos e deve ser usado como fonte unica para novos realinhamentos.
+- `Courier.preferredServiceArea` persiste a praca escolhida pelo motoboy (`ASTURIAS` ou `PEREQUE`) e deve existir antes de validar push server-side por praca.
+- Os comentarios SQL das tabelas estao no arquivo canonico e devem documentar finalidade, uso no codigo, RLS e cuidados operacionais.
+- Arquivos locais com secrets, como `.env`, `google-services.json`, `local.properties`, logs e caches, devem permanecer ignorados e fora do Git.
 
 ## Conferencias Manuais Uteis
 

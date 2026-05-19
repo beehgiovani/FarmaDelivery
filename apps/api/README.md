@@ -27,6 +27,11 @@ Este app nao deve documentar nomes reais de lojas, enderecos, coordenadas, chave
   - `GERENTE`: login operacional de loja/unidade.
   - `MOTOBOY`: fluxo de entrega e localizacao.
   - `BALCONISTA_CAIXA`: referencia operacional/autocomplete, sem acesso autenticado operacional.
+- Cadastro de usuarios via admin separa os fluxos:
+  - `ADMIN`: login geral, sem loja vinculada.
+  - `GERENTE`: login operacional da loja, com `storeId` obrigatorio.
+  - `MOTOBOY`: login dedicado do app/campo, com `storeId` obrigatorio para criar motoboy e vinculo base inicial.
+  - `BALCONISTA_CAIXA`: referencia de conferencia/autocomplete, sem senha operacional obrigatoria e sem loja obrigatoria.
 - Criacao de entregas com cliente, endereco, prioridade, prazo manual, agendamento, atendente/balconista e numeracao diaria por loja.
 - Geocodificacao via backend com cache e consultas progressivas.
 - Entregas com e sem ponto de mapa.
@@ -37,7 +42,7 @@ Este app nao deve documentar nomes reais de lojas, enderecos, coordenadas, chave
 - Disponibilidade de motoboy e escopo de entregas conforme alocacao ativa.
 - Cadastro e monitoramento de tokens FCM/Web Push sem expor tokens.
 - Scheduler interno de notificacoes para entregas agendadas.
-- Plano LGPD de dry-run para retencao/anonimizacao.
+- Plano LGPD de dry-run e rotina Prisma segura para retencao/anonimizacao.
 
 ## Rotas principais
 
@@ -101,6 +106,13 @@ Dry-run LGPD:
 
 ```bash
 npm run lgpd:dry-run -w apps/api --
+```
+
+Rotina LGPD conectada ao banco, em dry-run por padrao:
+
+```bash
+npm run lgpd:retention -w apps/api --
+npm run lgpd:retention -w apps/api -- --apply
 ```
 
 Prisma:

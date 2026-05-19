@@ -61,7 +61,7 @@ Esta matriz e uma politica inicial para orientar produto, API e scripts futuros.
 ## Acesso minimo
 
 - Admin e gerente acessam dados operacionais dentro das responsabilidades da gestao.
-- Balconista/caixa acessa apenas o escopo da loja vinculada, salvo regra documentada de emprestimo.
+- Balconista/caixa e apenas referencia operacional/autocomplete, sem login autenticado; o acesso operacional da unidade fica no login da loja.
 - Motoboy acessa apenas entregas disponiveis, aceitas por ele, rota propria e localizacao propria.
 - Fallback Supabase REST deve manter as mesmas regras de escopo da rota principal.
 
@@ -73,7 +73,7 @@ Esta matriz e uma politica inicial para orientar produto, API e scripts futuros.
 
 ## Dry-run local
 
-Antes de conectar a rotina LGPD ao banco, a API oferece uma ferramenta local para validar um plano a partir de JSON, sem executar alteracoes:
+A API oferece uma ferramenta local para validar um plano a partir de JSON, sem conectar ao banco e sem executar alteracoes:
 
 ```powershell
 npm --workspace apps/api run lgpd:dry-run -- input=lgpd-input.json format=json requestedBy=admin@example.com
@@ -81,6 +81,16 @@ npm --workspace apps/api run lgpd:dry-run -- input=lgpd-input.json format=csv ou
 ```
 
 O JSON de entrada segue o formato de `LgpdRetentionPlanInput` em `apps/api/src/lgpdRetention.ts`, com listas opcionais de `deliveries`, `proofs`, `customers`, `courierLocations` e `deviceTokens`. A saida e agregada por categoria, acao e motivo; nao lista IDs nem dados pessoais dos registros afetados.
+
+Para a rotina conectada ao banco, use sempre primeiro sem `--apply`; nesse modo ela monta o plano a partir do Prisma e retorna o impacto sem alterar registros ou arquivos:
+
+```powershell
+npm --workspace apps/api run lgpd:retention
+npm --workspace apps/api run lgpd:retention -- --apply
+npm --workspace apps/api run lgpd:retention -- --apply --delete-proof-binaries
+```
+
+O modo `--apply` anonimiza campos pessoais planejados, limpa localizacao vencida e revoga tokens antigos. A exclusao fisica de binarios de comprovante so acontece quando `--delete-proof-binaries` tambem for informado; os metadados do comprovante permanecem para auditoria minima.
 
 ## Estado implementado
 
@@ -94,11 +104,12 @@ O JSON de entrada segue o formato de `LgpdRetentionPlanInput` em `apps/api/src/l
 - Planejador LGPD gera resumo e CSV de impacto por categoria, acao e motivo, sem expor IDs ou dados pessoais dos registros afetados.
 - API possui builders puros de patches LGPD para anonimizar cliente/endereco, limpar localizacao, revogar token e preparar exclusao de binario de comprovante preservando metadados.
 - API possui CLI local `lgpd:dry-run` para gerar relatorio agregado JSON/CSV a partir de arquivo ou stdin, sem conectar ao banco e sem executar alteracoes.
+- API possui rotina `lgpd:retention` conectada ao Prisma, com dry-run por padrao e execucao destrutiva somente com `--apply`.
 
 ## Pendencias antes de producao
 
 - Validar juridicamente os prazos iniciais da matriz de retencao.
-- Conectar o planejador LGPD a uma rotina automatizada de anonimizacao/exclusao para dados antigos, mantendo modo `dry-run`, relatorio de impacto e execucao manual aprovada.
-- Criar rotina para excluir arquivos de comprovante vencidos no storage e reconciliar metadados orfaos.
+- Validar juridicamente/operacionalmente uma primeira execucao manual aprovada da rotina `lgpd:retention -- --apply` antes de agenda-la.
+- Reconciliar metadados orfaos de comprovantes caso arquivos externos ja tenham sido removidos fora da rotina.
 - Revisar RLS final no Supabase com o modelo de autenticacao consolidado.
 - Criar procedimento administrativo para solicitacao de acesso, correcao e exclusao de dados.

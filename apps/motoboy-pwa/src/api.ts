@@ -96,6 +96,7 @@ export async function updateLocation(input: {
   latitude: number;
   longitude: number;
   available?: boolean;
+  serviceArea?: CourierServiceArea;
 }) {
   const response = await fetch(`${API_URL}/couriers/location`, {
     method: "POST",
@@ -111,9 +112,11 @@ export async function updateLocation(input: {
 export async function updateAvailability(input: {
   courierId: string;
   available: boolean;
+  serviceArea?: CourierServiceArea;
 }): Promise<{
   id: string;
   available: boolean;
+  preferredServiceArea?: string | null;
 }> {
   const response = await fetch(`${API_URL}/couriers/availability`, {
     method: "POST",
@@ -123,7 +126,7 @@ export async function updateAvailability(input: {
     },
     body: JSON.stringify(input),
   });
-  return readPayload(response) as Promise<{ id: string; available: boolean }>;
+  return readPayload(response) as Promise<{ id: string; available: boolean; preferredServiceArea?: string | null }>;
 }
 
 export async function registerCourierDeviceToken(input: {

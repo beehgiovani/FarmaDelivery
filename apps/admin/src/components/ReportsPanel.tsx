@@ -24,7 +24,7 @@ import { StateBlock } from "./StateBlock";
 
 const deliveryStatuses: DeliveryStatus[] = ["Aguardando", "Aceita", "Coletada", "Em rota", "Entregue", "Problema", "Cancelada"];
 const deliveryPriorities: DeliveryPriority[] = ["Normal", "Urgente", "Retorno"];
-const reportExportLimits = [5000, 10000, 20000];
+const reportExportLimits = [5000, 10000, 20000, 50000];
 type ReportSection = "filters" | "summary" | "distribution" | "export";
 
 type ReportsPanelProps = {
@@ -315,22 +315,6 @@ export function ReportsPanel({
     setExportError("");
     setExportLoading(true);
     try {
-      if (filters.attendant.trim()) {
-        exportDeliveriesCsv(
-          filteredDeliveries,
-          dateLabel,
-          scopeLabel,
-          null,
-          deliveries.length,
-          filters.status,
-          filters.priority,
-          filters.proof,
-          filters.mapPoint,
-          exportLimit,
-          filters.attendant,
-        );
-        return;
-      }
       const result = await fetchDeliveryReportCsv({
         startsAt: dateRange.startsAt,
         endsAt: dateRange.endsAt,
@@ -339,6 +323,7 @@ export function ReportsPanel({
         priority: filters.priority,
         proof: filters.proof,
         mapPoint: filters.mapPoint,
+        attendant: filters.attendant,
         exportLimit,
       });
       downloadBlob(result.blob, result.fileName);

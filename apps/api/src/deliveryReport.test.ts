@@ -103,11 +103,11 @@ test("matches report period against any operational timestamp", () => {
   assert.equal(reportDeliveryMatchesPeriod(delivery, { startsAt: "2026-05-13", endsAt: "2026-05-15" }), false);
 });
 
-test("filters report deliveries by status, priority, proof state and map point", () => {
+test("filters report deliveries by status, priority, proof state, map point and attendant", () => {
   const deliveries = [
     makeDelivery({ id: "waiting", status: "AGUARDANDO_MOTOBOY", priority: "NORMAL", proofCount: 0, hasMapPoint: false }),
-    makeDelivery({ id: "delivered-proof", status: "ENTREGUE", priority: "URGENTE", proofCount: 1, hasMapPoint: true }),
-    makeDelivery({ id: "delivered-no-proof", status: "ENTREGUE", priority: "URGENTE", proofCount: 0, hasMapPoint: false }),
+    makeDelivery({ id: "delivered-proof", status: "ENTREGUE", priority: "URGENTE", proofCount: 1, hasMapPoint: true, attendantName: "Ana Balcao" }),
+    makeDelivery({ id: "delivered-no-proof", status: "ENTREGUE", priority: "URGENTE", proofCount: 0, hasMapPoint: false, attendantName: "Joao" }),
   ];
 
   assert.deepEqual(
@@ -129,6 +129,10 @@ test("filters report deliveries by status, priority, proof state and map point",
   assert.deepEqual(
     filterReportDeliveries(deliveries, null, { mapPoint: "sem" }).map((delivery) => delivery.id),
     ["waiting", "delivered-no-proof"],
+  );
+  assert.deepEqual(
+    filterReportDeliveries(deliveries, null, { attendant: "ana balcão" }).map((delivery) => delivery.id),
+    ["delivered-proof"],
   );
 });
 
@@ -163,7 +167,7 @@ test("exports delivery report csv with masked phone and distributions", () => {
       scopeLabel: "todas as lojas",
       periodLabel: "2026-05-16",
       period: { date: "2026-05-16" },
-      filters: { status: "ENTREGUE", proof: "com", mapPoint: "sem" },
+      filters: { status: "ENTREGUE", proof: "com", mapPoint: "sem", attendant: "ana" },
       exportLimit: 10000,
     },
   );
@@ -176,6 +180,7 @@ test("exports delivery report csv with masked phone and distributions", () => {
   assert.match(csv, /"filtro_status","ENTREGUE"/);
   assert.match(csv, /"filtro_comprovante","com_comprovante"/);
   assert.match(csv, /"filtro_ponto_mapa","sem_ponto"/);
+  assert.match(csv, /"filtro_balconista","ana"/);
   assert.match(csv, /"distribuicao_por_status"/);
   assert.match(csv, /"distribuicao_por_balconista"/);
   assert.match(csv, /"Ana Balcao","1"/);
@@ -252,6 +257,7 @@ test("escapes spreadsheet formulas in server-side delivery report csv", () => {
 test("uses default delivery report export limit when query is omitted", () => {
   assert.equal(deliveryReportExportLimit(undefined), 5000);
   assert.equal(deliveryReportExportLimit(10000), 10000);
+  assert.equal(deliveryReportExportLimit(50000), 50000);
 });
 
 test("builds delivery report Supabase REST filters with store scope and report filters", () => {

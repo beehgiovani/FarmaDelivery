@@ -45,10 +45,10 @@ test("keeps only active store access users", () => {
   assert.deepEqual(activeStoreAccessUsers(users).map((user) => user.id), ["user-1"]);
 });
 
-test("requires base store only for operational store logins", () => {
+test("requires base store for store logins and courier access", () => {
   assert.equal(requiresBaseStoreForRole("GERENTE"), true);
   assert.equal(requiresBaseStoreForRole("BALCONISTA_CAIXA"), false);
-  assert.equal(requiresBaseStoreForRole("MOTOBOY"), false);
+  assert.equal(requiresBaseStoreForRole("MOTOBOY"), true);
   assert.equal(requiresBaseStoreForRole("ADMIN"), false);
 });
 
@@ -94,6 +94,19 @@ test("system access flow defaults to store login without offering counter refere
       initialPassword: "FarmaNova123",
     }),
     makeAccessForm({ role: "GERENTE", storeId: "store-1", password: "FarmaNova123" }),
+  );
+});
+
+test("prepares courier access as its own credentialed flow with base store", () => {
+  assert.equal(accessFlowForRole("MOTOBOY"), "courierAccess");
+  assert.deepEqual(
+    buildAccessFormForFlow({
+      flow: "courierAccess",
+      current: makeAccessForm({ role: "GERENTE", storeId: "", password: "" }),
+      defaultStoreId: "store-1",
+      initialPassword: "FarmaMoto123",
+    }),
+    makeAccessForm({ role: "MOTOBOY", storeId: "store-1", password: "FarmaMoto123" }),
   );
 });
 

@@ -28,6 +28,7 @@ Este app nao deve documentar nomes reais de lojas, enderecos, coordenadas, chave
 - Cadastros administrativos de lojas/unidades, acessos, horarios, alocacoes e equipe operacional.
 - `BALCONISTA_CAIXA` tratado como referencia operacional/autocomplete, sem login individual de loja.
 - Login de loja tratado como acesso da unidade, limitado ao seu escopo.
+- Cadastro de motoboy tratado em fluxo dedicado, com login proprio para o app e loja base obrigatoria.
 - Relatorios por periodo, loja, motoboy, balconista/atendente, status, prioridade, comprovante e ponto de mapa.
 - Exportacoes CSV com telefone mascarado e protecao contra formulas de planilha.
 - Monitoramento de notificacoes sem expor tokens de dispositivo.
@@ -55,9 +56,10 @@ src/
 As variaveis devem ser configuradas fora do repositorio em arquivos locais ignorados ou no ambiente de deploy.
 
 - `VITE_API_URL`: URL base da API.
-- Variaveis Supabase/Firebase web, quando o recurso correspondente estiver ativo.
+- `VITE_SUPABASE_URL`: URL do projeto Supabase usada pelo realtime do painel.
+- `VITE_SUPABASE_PUBLISHABLE_KEY`: chave publishable/anon do Supabase para realtime autenticado.
 
-Use exemplos sem valores reais quando precisar documentar ambiente.
+Use `apps/admin/.env.example` como base e mantenha valores reais apenas em `.env` local ou no ambiente de deploy.
 
 ## Comandos
 

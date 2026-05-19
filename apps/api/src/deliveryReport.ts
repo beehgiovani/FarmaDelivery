@@ -9,6 +9,7 @@ export type DeliveryReportFilters = {
   priority?: string;
   proof?: "com" | "sem";
   mapPoint?: "com" | "sem";
+  attendant?: string;
 };
 
 export type ReportDeliveryRow = {
@@ -152,6 +153,7 @@ export function buildDeliveryReportCsv(deliveries: ReportDeliveryExportRow[], co
       ["filtro_prioridade", context.filters?.priority ?? "todas"],
       ["filtro_comprovante", context.filters?.proof ? proofFilterLabel(context.filters.proof) : "todos"],
       ["filtro_ponto_mapa", context.filters?.mapPoint ? mapPointFilterLabel(context.filters.mapPoint) : "todos"],
+      ["filtro_balconista", context.filters?.attendant?.trim() || "todos"],
       [""],
     ],
     [
@@ -198,7 +200,9 @@ export function filterReportDeliveries<T extends ReportDeliveryRow>(
       !filters.proof || (filters.proof === "com" ? delivery.proofCount > 0 : delivery.proofCount === 0);
     const matchesMapPoint =
       !filters.mapPoint || (filters.mapPoint === "com" ? delivery.hasMapPoint === true : delivery.hasMapPoint !== true);
-    return matchesPeriod && matchesStatus && matchesPriority && matchesProof && matchesMapPoint;
+    const matchesAttendant =
+      !filters.attendant?.trim() || normalizeFilterText(delivery.attendantName ?? "").includes(normalizeFilterText(filters.attendant));
+    return matchesPeriod && matchesStatus && matchesPriority && matchesProof && matchesMapPoint && matchesAttendant;
   });
 }
 
@@ -262,6 +266,14 @@ function proofFilterLabel(value: "com" | "sem") {
 
 function mapPointFilterLabel(value: "com" | "sem") {
   return value === "com" ? "no_mapa" : "sem_ponto";
+}
+
+function normalizeFilterText(value: string) {
+  return value
+    .trim()
+    .toLocaleLowerCase("pt-BR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
 }
 
 function formatStoreDailyNumber(value: number | null | undefined) {

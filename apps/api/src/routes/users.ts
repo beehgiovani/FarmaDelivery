@@ -20,6 +20,8 @@ import { hashPassword, verifyPassword } from "../passwordHash";
 import { canUseSupabaseRest, supabaseRest, type SupabaseCourier, type SupabaseStore, type SupabaseUser } from "../supabaseRest";
 import { isStoreLoginRole, resolveUserStoreScope } from "../accessScope";
 
+const DEFAULT_COURIER_SERVICE_AREA = "ASTURIAS";
+
 /** Registra autenticacao, usuarios, motoboys, dispositivos e alocacoes operacionais. */
 export async function userRoutes(app: FastifyInstance) {
   app.get("/auth/me", async (request, reply) => {
@@ -216,6 +218,7 @@ export async function userRoutes(app: FastifyInstance) {
         phone: courier.user.phone,
         baseStoreName: courier.baseStoreName,
         available: courier.available,
+        preferredServiceArea: courier.preferredServiceArea ?? DEFAULT_COURIER_SERVICE_AREA,
         currentLat: courier.currentLat ? Number(courier.currentLat) : null,
         currentLng: courier.currentLng ? Number(courier.currentLng) : null,
         lastLocationAt: courier.lastLocationAt?.toISOString() ?? null,
@@ -259,6 +262,7 @@ export async function userRoutes(app: FastifyInstance) {
           currentLat: parsed.data.latitude,
           currentLng: parsed.data.longitude,
           available: parsed.data.available,
+          ...(parsed.data.serviceArea ? { preferredServiceArea: parsed.data.serviceArea } : {}),
           lastLocationAt: new Date(),
         },
         include: {
@@ -272,6 +276,7 @@ export async function userRoutes(app: FastifyInstance) {
         phone: courier.user.phone,
         baseStoreName: courier.baseStoreName,
         available: courier.available,
+        preferredServiceArea: courier.preferredServiceArea ?? DEFAULT_COURIER_SERVICE_AREA,
         currentLat: courier.currentLat ? Number(courier.currentLat) : null,
         currentLng: courier.currentLng ? Number(courier.currentLng) : null,
         lastLocationAt: courier.lastLocationAt?.toISOString() ?? null,
@@ -313,6 +318,7 @@ export async function userRoutes(app: FastifyInstance) {
         where: { id: parsed.data.courierId },
         data: {
           available: parsed.data.available,
+          ...(parsed.data.serviceArea ? { preferredServiceArea: parsed.data.serviceArea } : {}),
         },
         include: {
           user: true,
@@ -325,6 +331,7 @@ export async function userRoutes(app: FastifyInstance) {
         phone: courier.user.phone,
         baseStoreName: courier.baseStoreName,
         available: courier.available,
+        preferredServiceArea: courier.preferredServiceArea ?? DEFAULT_COURIER_SERVICE_AREA,
         currentLat: courier.currentLat ? Number(courier.currentLat) : null,
         currentLng: courier.currentLng ? Number(courier.currentLng) : null,
         lastLocationAt: courier.lastLocationAt?.toISOString() ?? null,
@@ -464,6 +471,7 @@ export async function userRoutes(app: FastifyInstance) {
               id: user.courier.id,
               baseStoreName: user.courier.baseStoreName,
               available: user.courier.available,
+              preferredServiceArea: user.courier.preferredServiceArea ?? DEFAULT_COURIER_SERVICE_AREA,
               currentLat: user.courier.currentLat ? Number(user.courier.currentLat) : null,
               currentLng: user.courier.currentLng ? Number(user.courier.currentLng) : null,
               lastLocationAt: user.courier.lastLocationAt?.toISOString() ?? null,
@@ -764,7 +772,8 @@ export async function userRoutes(app: FastifyInstance) {
             ? await tx.courier.create({
                 data: {
                   userId: user.id,
-                  baseStoreName: user.store?.name ?? "Asturias",
+                  baseStoreName: user.store?.name ?? "Loja base",
+                  preferredServiceArea: DEFAULT_COURIER_SERVICE_AREA,
                 },
               })
             : null;
@@ -785,7 +794,7 @@ export async function userRoutes(app: FastifyInstance) {
             data: {
               courierId: courier.id,
               storeId: user.storeId,
-          kind: user.store?.baseType === "DEDICADA" ? "DEDICADA" : "COBERTURA",
+              kind: user.store?.baseType === "DEDICADA" ? "DEDICADA" : "COBERTURA",
               reason: "Vinculo inicial definido no cadastro do motoboy.",
             },
           });
@@ -816,6 +825,7 @@ export async function userRoutes(app: FastifyInstance) {
               id: result.courier.id,
               baseStoreName: result.courier.baseStoreName,
               available: result.courier.available,
+              preferredServiceArea: result.courier.preferredServiceArea ?? DEFAULT_COURIER_SERVICE_AREA,
               currentLat: null,
               currentLng: null,
               lastLocationAt: null,
@@ -1124,6 +1134,7 @@ function mapUserSession(user: {
     id: string;
     baseStoreName: string;
     available: boolean;
+    preferredServiceArea?: string | null;
     currentLat: unknown;
     currentLng: unknown;
     lastLocationAt: Date | null;
@@ -1149,6 +1160,7 @@ function mapUserSession(user: {
           id: user.courier.id,
           baseStoreName: user.courier.baseStoreName,
           available: user.courier.available,
+          preferredServiceArea: user.courier.preferredServiceArea ?? DEFAULT_COURIER_SERVICE_AREA,
           currentLat: user.courier.currentLat ? Number(user.courier.currentLat) : null,
           currentLng: user.courier.currentLng ? Number(user.courier.currentLng) : null,
           lastLocationAt: user.courier.lastLocationAt?.toISOString() ?? null,
@@ -1211,7 +1223,8 @@ async function createUserWithSupabaseRest(data: typeof createUserSchema._output)
       prefer: "return=representation",
       body: {
         userId: user.id,
-        baseStoreName: store?.name ?? "Asturias",
+        baseStoreName: store?.name ?? "Loja base",
+        preferredServiceArea: DEFAULT_COURIER_SERVICE_AREA,
       },
     });
     courier = couriers[0] ?? null;
@@ -1222,7 +1235,7 @@ async function createUserWithSupabaseRest(data: typeof createUserSchema._output)
         body: {
           courierId: courier.id,
           storeId: store.id,
-    kind: store.baseType === "DEDICADA" ? "DEDICADA" : "COBERTURA",
+          kind: store.baseType === "DEDICADA" ? "DEDICADA" : "COBERTURA",
           reason: "Vinculo inicial definido no cadastro do motoboy.",
         },
       });
@@ -1238,12 +1251,6 @@ async function createUserWithSupabaseRest(data: typeof createUserSchema._output)
 
 function passwordForCreatedUser(data: typeof createUserSchema._output) {
   return data.password ?? `reference-${randomUUID()}`;
-}
-
-/** Resolve nome da loja para usar como base do motoboy quando o cadastro vem pelo fallback REST. */
-async function resolveStoreName(storeId?: string) {
-  const store = await resolveStore(storeId);
-  return store?.name ?? "Asturias";
 }
 
 /** Busca dados minimos da loja no fallback REST para criar vinculos iniciais. */
@@ -1361,6 +1368,7 @@ function mapSupabaseUser(user: SupabaseUser) {
           id: user.Courier.id,
           baseStoreName: user.Courier.baseStoreName,
           available: user.Courier.available,
+          preferredServiceArea: user.Courier.preferredServiceArea ?? DEFAULT_COURIER_SERVICE_AREA,
           currentLat: user.Courier.currentLat,
           currentLng: user.Courier.currentLng,
           lastLocationAt: user.Courier.lastLocationAt,
@@ -1379,6 +1387,7 @@ function mapSupabaseCourier(courier: SupabaseCourier) {
     phone: courier.User?.phone ?? null,
     baseStoreName: courier.baseStoreName,
     available: courier.available,
+    preferredServiceArea: courier.preferredServiceArea ?? DEFAULT_COURIER_SERVICE_AREA,
     currentLat: courier.currentLat,
     currentLng: courier.currentLng,
     lastLocationAt: courier.lastLocationAt,
@@ -1397,6 +1406,7 @@ async function updateCourierLocationWithSupabaseRest(data: typeof updateCourierL
       currentLat: data.latitude,
       currentLng: data.longitude,
       available: data.available,
+      ...(data.serviceArea ? { preferredServiceArea: data.serviceArea } : {}),
       lastLocationAt: new Date().toISOString(),
     },
   });
@@ -1413,6 +1423,7 @@ async function updateCourierAvailabilityWithSupabaseRest(data: typeof updateCour
     prefer: "return=representation",
     body: {
       available: data.available,
+      ...(data.serviceArea ? { preferredServiceArea: data.serviceArea } : {}),
     },
   });
   const courier = couriers[0];

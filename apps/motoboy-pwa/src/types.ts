@@ -12,6 +12,7 @@ export type AuthSession = {
     id: string;
     baseStoreName: string;
     available: boolean;
+    preferredServiceArea?: string | null;
     currentLat?: number | null;
     currentLng?: number | null;
     lastLocationAt?: string | null;

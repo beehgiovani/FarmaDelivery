@@ -9,6 +9,7 @@
     "test": "tsx --test src/**/*.test.ts",
     "admin:reset-password": "tsx src/adminResetPasswordCli.ts",
     "lgpd:dry-run": "tsx src/lgpdRetentionCli.ts",
+    "lgpd:retention": "tsx src/lgpdRetentionJobCli.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",

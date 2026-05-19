@@ -18,17 +18,6 @@ test("builds an 80mm thermal receipt with delivery data", () => {
   assert.match(html, /window\.print/);
 });
 
-test("builds a 58mm thermal receipt layout when selected", () => {
-  const html = buildThermalReceiptHtml(makeDelivery(), {
-    paperWidthMm: 58,
-    printedAt: new Date("2026-05-17T12:30:00.000Z"),
-  });
-
-  assert.match(html, /size: 58mm auto/);
-  assert.match(html, /width: 50mm/);
-  assert.match(html, /grid-template-columns: 17mm 1fr/);
-});
-
 test("shows store daily number when delivery already has the daily sequence", () => {
   const html = buildThermalReceiptHtml(makeDelivery({ storeDailyNumber: 9 }));
 
