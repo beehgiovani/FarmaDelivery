@@ -343,6 +343,7 @@ Atualizado em 2026-05-19.
 - Documentacao publica/canonica foi revisada para nao expor dados reais de loja, project id, targets Firebase, package Android especifico, chaves, tokens ou credenciais.
 - Validacao geral apos restaurar nomes/configuracoes funcionais da aplicacao passou em `npm test`, `npm run build` e `:app:testDebugUnitTest`.
 - Auditoria estatica `npm run db:rls:check` criada para validar `database/schema-full.sql`, garantindo RLS e comentarios em todas as tabelas e policy anon apenas nas tabelas publicas de catalogo.
+- Checagem `npm run env:production:check -- file=env/api.env file=env/admin.env` criada para revisar variaveis de deploy sem imprimir valores sensiveis.
 
 ## Em andamento
     
@@ -356,7 +357,7 @@ Atualizado em 2026-05-19.
 - Evoluir app Kotlin com mapa nativo/embarcado da rota e offline. 
 - Testar Web Push real do PWA em dispositivo iOS instalado pela Tela de Inicio apos configurar VAPID key e deploy HTTPS.
 - Permissao/background policy final de localizacao para publicacao na Play Store, se o app for publicado externamente.
-- Deploy da API e estrategia final de banco/producao.
+- Deploy da API e estrategia final de banco/producao, usando `npm run env:production:check` como pre-check local.
 
 ## Observacoes tecnicas
 

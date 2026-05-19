@@ -114,6 +114,12 @@ Build completo:
 npm run build
 ```
 
+Checar variaveis antes de deploy, sem imprimir valores sensiveis:
+
+```bash
+npm run env:production:check -- file=env/api.env file=env/admin.env
+```
+
 Rodar testes do admin:
 
 ```bash
