@@ -349,6 +349,7 @@ Atualizado em 2026-05-19.
 - Roteiro de smoke test manual do app Android documentado em `apps/motoboy/README.md`, cobrindo API acessivel, login de motoboy, praca, GPS, rota, pagamento, comprovante, problema, FCM e logout.
 - Roteiro de smoke test Web Push do PWA no iOS documentado em `apps/motoboy-pwa/README.md`, cobrindo deploy HTTPS, app instalado na Tela de Inicio, VAPID, Firebase Admin, registro de token e recebimento de notificacao.
 - Politica atual de localizacao Android documentada em `apps/motoboy/README.md`: foreground service com notificacao persistente, sem `ACCESS_BACKGROUND_LOCATION`, e checklist para Play Store se background real virar requisito.
+- Checagem `env:production:check` agora sinaliza como warning quando um arquivo informado por `file=` nao existe, evitando typo silencioso no preflight de deploy.
 
 ## Em andamento
     

@@ -2,12 +2,18 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const args = parseArgs(process.argv.slice(2));
+const inputFiles = args.files.map(readEnvFile);
 const env = {
   ...process.env,
-  ...Object.assign({}, ...args.files.map(readEnvFile)),
+  ...Object.assign({}, ...inputFiles.map((file) => file.values)),
 };
 
 const checks = [
+  ...inputFiles.filter((file) => !file.exists).map((file) => ({
+    status: "warn",
+    name: `env file ${file.filePath}`,
+    reason: "file_not_found",
+  })),
   requireValue("API_SESSION_SECRET", { placeholderPattern: /troque_por|local-session-secret/i, minLength: 43 }),
   requireValue("SUPABASE_URL", { placeholderPattern: /PROJECT_REF/i }),
   requireOneOf(["SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_JWT"], { placeholderPattern: /xxx|secret_xxx|service_role/i }),
@@ -102,9 +108,9 @@ function parseArgs(rawArgs) {
 
 function readEnvFile(filePath) {
   const resolved = resolve(process.cwd(), filePath);
-  if (!existsSync(resolved)) return {};
+  if (!existsSync(resolved)) return { filePath, exists: false, values: {} };
 
-  return Object.fromEntries(
+  const values = Object.fromEntries(
     readFileSync(resolved, "utf8")
       .split(/\r?\n/)
       .map((line) => line.trim())
@@ -116,6 +122,7 @@ function readEnvFile(filePath) {
         return [key, value];
       }),
   );
+  return { filePath, exists: true, values };
 }
 
 function publicCheck(check) {
