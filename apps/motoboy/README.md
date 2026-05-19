@@ -134,6 +134,23 @@ Use este roteiro quando houver API publicada ou API local acessivel pelo emulado
 - `local.properties` deve apontar para o Android SDK da maquina.
 - `google-services.json`, `local.properties`, `.gradle/`, `.kotlin/` e `build/` ficam fora do versionamento.
 
+## Politica de localizacao
+
+Estado atual do app Android:
+
+- O Manifest declara `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION`, `FOREGROUND_SERVICE` e `FOREGROUND_SERVICE_LOCATION`.
+- O Manifest nao declara `ACCESS_BACKGROUND_LOCATION`.
+- O rastreamento automatico roda em `ForegroundService` do tipo `location`, com notificacao persistente, iniciado pelo fluxo do motoboy logado e parado no logout/parada manual.
+- A localizacao e usada para atualizar a posicao operacional do motoboy durante atendimento/disponibilidade, nao para rastreamento invisivel fora do fluxo de campo.
+
+Para publicacao externa na Play Store:
+
+1. Declarar no Play Console o tipo de foreground service `location` quando exigido pelo target SDK.
+2. Manter texto de permissao e tela de contexto explicando que a localizacao atualiza a posicao do motoboy durante a operacao de entrega.
+3. Nao adicionar `ACCESS_BACKGROUND_LOCATION` enquanto o produto nao exigir localizacao com o app fechado ou iniciado a partir do background.
+4. Se `ACCESS_BACKGROUND_LOCATION` virar requisito, preparar disclosure especifico, declaracao de permissao sensivel no Play Console, revisao de LGPD e teste em Android 10+ antes do envio.
+5. Revalidar no aparelho que o servico so permanece ativo com notificacao visivel e que o logout/parada encerra o envio de localizacao.
+
 ## Cuidados
 
 - Nao colocar secrets no app.
@@ -142,5 +159,6 @@ Use este roteiro quando houver API publicada ou API local acessivel pelo emulado
 - Token FCM e dado sensivel: nao registrar em log, tela ou documentacao.
 - Android 13+ exige permissao `POST_NOTIFICATIONS`.
 - O servico automatico usa notificacao persistente e para no logout.
+- Nao solicitar localizacao em background sem decisao explicita de produto, justificativa de core feature e preparacao de declaracao na Play Store.
 - Foto de comprovante e enviada ao backend somente quando o motoboy confirma a entrega.
 - Manter paridade de contrato com `apps/motoboy-pwa` e com os tipos/respostas da API.
