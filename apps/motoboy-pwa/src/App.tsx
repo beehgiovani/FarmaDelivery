@@ -857,6 +857,8 @@ function DeliveryActions(props: {
           <label className="filePicker">
             <Camera size={18} />
             {proof ? proof.name : "Foto opcional"}
+
+            {/* compat-api/html-ignore-next-line */}
             <input
               type="file"
               accept="image/png,image/jpeg,image/webp"
