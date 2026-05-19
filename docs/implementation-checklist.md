@@ -345,6 +345,7 @@ Atualizado em 2026-05-19.
 - Auditoria estatica `npm run db:rls:check` criada para validar `database/schema-full.sql`, garantindo RLS e comentarios em todas as tabelas e policy anon apenas nas tabelas publicas de catalogo.
 - Checagem `npm run env:production:check -- file=env/api.env file=env/admin.env` criada para revisar variaveis de deploy sem imprimir valores sensiveis, incluindo tamanho minimo do `API_SESSION_SECRET`.
 - Gerador `npm run secret:session` criado para produzir `API_SESSION_SECRET` forte sem versionar segredo.
+- Preflight de producao documentado no README e checklist de banco documentado em `docs/supabase.md`, cobrindo segredo de sessao, pooler, comprovantes, Firebase Admin, VAPID, RLS, testes e build.
 
 ## Em andamento
     

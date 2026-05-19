@@ -96,3 +96,14 @@ Essa checagem valida se toda tabela criada em `database/schema-full.sql` tem RLS
 3. Configurar credenciais reais do Firebase Admin para push server-side.
 4. Configurar VAPID key e testar Web Push real no PWA instalado no iOS.
 5. Fazer smoke test completo do app Android com API publicada ou API local acessivel pelo aparelho.
+
+## Checklist de Banco para Producao
+
+Antes do deploy final, trate `database/schema-full.sql` como fonte unica:
+
+1. Rodar `npm run db:rls:check` localmente para validar RLS, comentarios e policies publicas no arquivo canonico.
+2. Aplicar ou revisar manualmente o SQL no Supabase SQL Editor, sem usar terminal para execucao direta.
+3. Confirmar que tabelas sensiveis nao possuem policy `TO anon`.
+4. Confirmar que `Realtime` esta habilitado apenas para as tabelas esperadas pelo painel, PWA e apps de campo.
+5. Confirmar que o backend usa service role/secret key apenas server-side e que o frontend usa somente publishable/anon key.
+6. Validar login admin, login operacional de loja, autocomplete de balconista/caixa e login de motoboy depois da aplicacao do SQL.

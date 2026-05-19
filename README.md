@@ -140,6 +140,19 @@ Build do admin:
 npm run build -w apps/admin
 ```
 
+## Preflight de producao
+
+Antes de publicar uma versao, confira nesta ordem:
+
+1. Gerar um `API_SESSION_SECRET` novo com `npm run secret:session` e configurar o valor apenas no ambiente da API.
+2. Configurar `DATABASE_URL` com pooler do Supabase e manter service role/secret key somente no backend.
+3. Configurar `DELIVERY_PROOF_STORAGE_DIR` em armazenamento persistente ou migrar comprovantes para storage externo antes de depender de containers efemeros.
+4. Configurar uma credencial Firebase Admin no backend para FCM HTTP v1; a VAPID/Web Push key do frontend nao substitui essa credencial.
+5. Configurar `VITE_API_URL`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` e, no PWA, `VITE_FIREBASE_WEB_PUSH_VAPID_KEY`.
+6. Rodar `npm run env:production:check -- file=env/api.env file=env/admin.env` sem imprimir valores sensiveis.
+7. Rodar `npm run db:rls:check`, `npm test` e `npm run build`.
+8. Conferir no Supabase SQL Editor se o banco aplicado esta alinhado ao `database/schema-full.sql`.
+
 ## Documentacao complementar
 
 - `docs/README.md`: indice canonico da documentacao tecnica.
