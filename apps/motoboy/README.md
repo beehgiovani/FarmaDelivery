@@ -109,6 +109,24 @@ Testes unitarios:
 .\gradlew.bat :app:testDebugUnitTest
 ```
 
+## Smoke test manual
+
+Use este roteiro quando houver API publicada ou API local acessivel pelo emulador/aparelho:
+
+1. Configurar `farmadelivery.apiUrl` em `local.properties`; no emulador use `http://10.0.2.2:3333`, em aparelho fisico use uma URL HTTPS publicada ou um host da rede local acessivel pelo celular.
+2. Conferir se `app/google-services.json` existe localmente para validar FCM; o arquivo nao deve ser versionado.
+3. Rodar `.\gradlew.bat :app:assembleDebug` e instalar o APK no emulador/aparelho.
+4. Abrir o app, fazer login com um usuario `MOTOBOY` e confirmar que usuarios de loja ou balconista/caixa nao entram no fluxo de campo.
+5. Escolher a praca de atendimento e conferir se a lista de entregas livres muda conforme a praca selecionada.
+6. Ativar disponibilidade e permitir notificacoes no Android 13+ quando o sistema solicitar.
+7. Permitir localizacao, enviar localizacao manualmente e confirmar no painel que o motoboy aparece atualizado.
+8. Aceitar uma entrega, coletar, sair em rota e abrir o app de mapas por rota/parada navegavel.
+9. Conferir na tela da entrega os dados operacionais de pagamento, valor, telefone, endereco, observacoes e numero diario quando a API enviar.
+10. Concluir entrega com confirmacao textual; quando aplicavel, anexar foto de comprovante e confirmar que o historico no painel mostra o evento.
+11. Registrar um problema em outra entrega de teste e confirmar que o status e o historico aparecem no painel.
+12. Enviar uma notificacao FCM de teste pelo backend ou por uma entrega elegivel e confirmar recebimento no canal `deliveries`.
+13. Fazer logout e confirmar que o app tenta marcar o motoboy como indisponivel e interrompe o servico de localizacao.
+
 ## Ambiente Android
 
 - `compileSdk` e `targetSdk` seguem a configuracao atual do Gradle.

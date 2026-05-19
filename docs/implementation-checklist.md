@@ -346,6 +346,7 @@ Atualizado em 2026-05-19.
 - Checagem `npm run env:production:check -- file=env/api.env file=env/admin.env` criada para revisar variaveis de deploy sem imprimir valores sensiveis, incluindo tamanho minimo do `API_SESSION_SECRET`.
 - Gerador `npm run secret:session` criado para produzir `API_SESSION_SECRET` forte sem versionar segredo.
 - Preflight de producao documentado no README e checklist de banco documentado em `docs/supabase.md`, cobrindo segredo de sessao, pooler, comprovantes, Firebase Admin, VAPID, RLS, testes e build.
+- Roteiro de smoke test manual do app Android documentado em `apps/motoboy/README.md`, cobrindo API acessivel, login de motoboy, praca, GPS, rota, pagamento, comprovante, problema, FCM e logout.
 
 ## Em andamento
     
@@ -355,7 +356,7 @@ Atualizado em 2026-05-19.
 
 ## Falta
 
-- Fazer smoke test completo do app Android em emulador/aparelho com API publicada ou API local acessivel pelo dispositivo.
+- Executar smoke test completo do app Android em emulador/aparelho com API publicada ou API local acessivel pelo dispositivo.
 - Evoluir app Kotlin com mapa nativo/embarcado da rota e offline. 
 - Testar Web Push real do PWA em dispositivo iOS instalado pela Tela de Inicio apos configurar VAPID key e deploy HTTPS.
 - Permissao/background policy final de localizacao para publicacao na Play Store, se o app for publicado externamente.
