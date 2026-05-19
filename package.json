@@ -1,0 +1,26 @@
+{
+  "name": "farmadelivery",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/admin",
+    "apps/api",
+    "apps/motoboy-pwa"
+  ],
+  "scripts": {
+    "build": "npm run build -w apps/admin && npm run build -w apps/api && npm run build -w apps/motoboy-pwa",
+    "test": "npm run test -w apps/admin && npm run test -w apps/api && npm run test -w apps/motoboy-pwa",
+    "admin:reset-password": "npm run admin:reset-password -w apps/api --",
+    "db:schema:snapshot": "node scripts/snapshot-db-schema.mjs",
+    "db:sql:full": "node scripts/build-full-sql.mjs",
+    "deploy:admin": "npm run build -w apps/admin && firebase deploy --only hosting:drogstoantonio",
+    "dev:admin": "npm run dev -w apps/admin",
+    "dev:api": "npm run dev -w apps/api",
+    "dev:motoboy:pwa": "npm run dev -w apps/motoboy-pwa",
+    "docker:up": "docker compose up --build",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "docker:ps": "docker compose ps",
+    "deploy:motoboy:pwa": "npm run build -w apps/motoboy-pwa && firebase deploy --only hosting:motoboy-pwa"
+  }
+}

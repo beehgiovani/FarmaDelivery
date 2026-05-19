@@ -1,0 +1,65 @@
+name: farmadelivery
+
+services:
+  api:
+    build:
+      context: .
+    command: npm run dev -w apps/api
+    env_file:
+      - ./env/api.env
+    environment:
+      API_PORT: "3333"
+      DELIVERY_PROOF_STORAGE_DIR: /app/uploads/delivery-proofs
+    ports:
+      - "3333:3333"
+    volumes:
+      - api_uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3333/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  admin:
+    build:
+      context: .
+    command: npm run dev -w apps/admin -- --port 5173
+    env_file:
+      - ./env/admin.env
+    environment:
+      VITE_API_URL: http://localhost:3333
+    ports:
+      - "5173:5173"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5173').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  motoboy-pwa:
+    build:
+      context: .
+    command: npm run dev -w apps/motoboy-pwa -- --port 5174
+    env_file:
+      - ./env/admin.env
+    environment:
+      VITE_API_URL: http://localhost:3333
+    ports:
+      - "5174:5174"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5174').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+volumes:
+  api_uploads:

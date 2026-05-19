@@ -1,0 +1,363 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  ADMIN
+  GERENTE
+  BALCONISTA_CAIXA
+  MOTOBOY
+}
+
+enum StoreBaseType {
+  COMPARTILHADA
+  DEDICADA
+}
+
+enum DeliveryStatus {
+  RASCUNHO
+  AGUARDANDO_MOTOBOY
+  ACEITA_PELO_MOTOBOY
+  COLETADA
+  EM_ROTA
+  ENTREGUE
+  PROBLEMA
+  CANCELADA
+}
+
+enum DeliveryPriority {
+  NORMAL
+  URGENTE
+  RETORNO
+}
+
+enum DeliveryDeadlineTier {
+  PERTO
+  MEDIO
+  LONGE
+}
+
+enum DeliveryEventType {
+  CRIADA
+  AGENDADA
+  REDIRECIONADA
+  ACEITA
+  COLETADA
+  ROTA_RECALCULADA
+  OCORRENCIA_REGISTRADA
+  NOTIFICACAO_ENVIADA
+  ENTREGUE
+  CANCELADA
+}
+
+enum RouteStatus {
+  ABERTA
+  EM_ANDAMENTO
+  FINALIZADA
+  CANCELADA
+}
+
+enum RouteStopType {
+  COLETA
+  ENTREGA
+}
+
+enum RouteStopStatus {
+  PENDENTE
+  CONCLUIDA
+  PULADA
+  CANCELADA
+}
+
+enum AssignmentKind {
+  BASE
+  TEMPORARIA
+  COBERTURA
+  DEDICADA
+  RODIZIO
+}
+
+model Store {
+  id                 String                   @id @default(uuid())
+  code               String                   @unique
+  name               String
+  address            String
+  latitude           Decimal?                 @db.Decimal(10, 7)
+  longitude          Decimal?                 @db.Decimal(10, 7)
+  baseType           StoreBaseType
+  active             Boolean                  @default(true)
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+  users              User[]
+  deliveries         Delivery[]
+  routeStops         RouteStop[]
+  weeklyHours        StoreWeeklyHours[]
+  dateOverrides      StoreDateOverride[]
+  userAssignments    UserStoreAssignment[]
+  courierAssignments CourierStoreAssignment[]
+  deliverySequences  DeliveryDailySequence[]
+}
+
+model StoreWeeklyHours {
+  id        String   @id @default(uuid())
+  storeId   String
+  store     Store    @relation(fields: [storeId], references: [id])
+  dayOfWeek Int
+  opensAt   String
+  closesAt  String
+  closed    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([storeId, dayOfWeek])
+  @@index([storeId])
+}
+
+model StoreDateOverride {
+  id        String   @id @default(uuid())
+  storeId   String
+  store     Store    @relation(fields: [storeId], references: [id])
+  date      DateTime @db.Date
+  opensAt   String?
+  closesAt  String?
+  closed    Boolean  @default(false)
+  reason    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([storeId, date])
+  @@index([date])
+}
+
+model User {
+  id               String                @id @default(uuid())
+  name             String
+  phone            String?
+  email            String?               @unique
+  passwordHash     String
+  role             UserRole
+  active           Boolean               @default(true)
+  storeId          String?
+  store            Store?                @relation(fields: [storeId], references: [id])
+  courier          Courier?
+  events           DeliveryEvent[]       @relation("DeliveryEventActor")
+  deliveryProofs   DeliveryProof[]       @relation("DeliveryProofActor")
+  storeAssignments UserStoreAssignment[]
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+}
+
+model Courier {
+  id               String                   @id @default(uuid())
+  userId           String                   @unique
+  user             User                     @relation(fields: [userId], references: [id])
+  baseStoreName    String
+  available        Boolean                  @default(false)
+  currentLat       Decimal?                 @db.Decimal(10, 7)
+  currentLng       Decimal?                 @db.Decimal(10, 7)
+  lastLocationAt   DateTime?
+  routes           CourierRoute[]
+  deliveries       Delivery[]
+  storeAssignments CourierStoreAssignment[]
+  deviceTokens     CourierDeviceToken[]
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+}
+
+model CourierDeviceToken {
+  id         String   @id @default(uuid())
+  courierId  String
+  courier    Courier  @relation(fields: [courierId], references: [id])
+  token      String   @unique
+  platform   String   @default("android")
+  active     Boolean  @default(true)
+  lastSeenAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([courierId, active])
+}
+
+model UserStoreAssignment {
+  id        String         @id @default(uuid())
+  userId    String
+  user      User           @relation(fields: [userId], references: [id])
+  storeId   String
+  store     Store          @relation(fields: [storeId], references: [id])
+  kind      AssignmentKind @default(BASE)
+  startsAt  DateTime       @default(now())
+  endsAt    DateTime?
+  active    Boolean        @default(true)
+  reason    String?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@index([userId, active, startsAt, endsAt])
+  @@index([storeId, active])
+}
+
+model CourierStoreAssignment {
+  id        String         @id @default(uuid())
+  courierId String
+  courier   Courier        @relation(fields: [courierId], references: [id])
+  storeId   String
+  store     Store          @relation(fields: [storeId], references: [id])
+  kind      AssignmentKind @default(COBERTURA)
+  startsAt  DateTime       @default(now())
+  endsAt    DateTime?
+  active    Boolean        @default(true)
+  reason    String?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@index([courierId, active, startsAt, endsAt])
+  @@index([storeId, active])
+}
+
+model Customer {
+  id         String            @id @default(uuid())
+  name       String
+  phone      String            @unique
+  addresses  CustomerAddress[]
+  deliveries Delivery[]
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+}
+
+model CustomerAddress {
+  id           String     @id @default(uuid())
+  customerId   String
+  customer     Customer   @relation(fields: [customerId], references: [id])
+  street       String
+  number       String
+  complement   String?
+  neighborhood String?
+  reference    String?
+  latitude     Decimal?   @db.Decimal(10, 7)
+  longitude    Decimal?   @db.Decimal(10, 7)
+  active       Boolean    @default(true)
+  deliveries   Delivery[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model Delivery {
+  id                    String           @id @default(uuid())
+  publicCode            String           @unique
+  storeDailyDate        DateTime         @db.Date
+  storeDailyNumber      Int
+  storeId               String
+  store                 Store            @relation(fields: [storeId], references: [id])
+  redirectedFromStoreId String?
+  customerId            String
+  customer              Customer         @relation(fields: [customerId], references: [id])
+  customerAddressId     String
+  customerAddress       CustomerAddress  @relation(fields: [customerAddressId], references: [id])
+  courierId             String?
+  courier               Courier?         @relation(fields: [courierId], references: [id])
+  status                DeliveryStatus   @default(AGUARDANDO_MOTOBOY)
+  priority              DeliveryPriority @default(NORMAL)
+  deadlineTier          DeliveryDeadlineTier @default(MEDIO)
+  notes                 String?
+  createdAt             DateTime         @default(now())
+  earliestDispatchAt    DateTime?
+  acceptedAt            DateTime?
+  collectedAt           DateTime?
+  deliveredAt           DateTime?
+  canceledAt            DateTime?
+  events                DeliveryEvent[]
+  routeStops            RouteStop[]
+  proofs                DeliveryProof[]
+
+  @@unique([storeId, storeDailyDate, storeDailyNumber])
+  @@index([storeId, status])
+  @@index([storeId, storeDailyDate])
+  @@index([courierId, status])
+  @@index([createdAt])
+}
+
+model DeliveryDailySequence {
+  storeId      String
+  store        Store    @relation(fields: [storeId], references: [id])
+  sequenceDate DateTime @db.Date
+  lastNumber   Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@id([storeId, sequenceDate])
+  @@index([sequenceDate])
+}
+
+model DeliveryProof {
+  id          String   @id @default(uuid())
+  deliveryId  String
+  delivery    Delivery @relation(fields: [deliveryId], references: [id])
+  actorUserId String?
+  actorUser   User?    @relation("DeliveryProofActor", fields: [actorUserId], references: [id])
+  fileName    String
+  mimeType    String
+  storagePath String
+  sizeBytes   Int
+  sha256      String
+  createdAt   DateTime @default(now())
+
+  @@index([deliveryId, createdAt])
+  @@index([actorUserId, createdAt])
+}
+
+model DeliveryEvent {
+  id          String            @id @default(uuid())
+  deliveryId  String
+  delivery    Delivery          @relation(fields: [deliveryId], references: [id])
+  type        DeliveryEventType
+  actorUserId String?
+  actorUser   User?             @relation("DeliveryEventActor", fields: [actorUserId], references: [id])
+  notes       String?
+  metadata    Json?
+  createdAt   DateTime          @default(now())
+
+  @@index([deliveryId, createdAt])
+  @@index([type, createdAt])
+}
+
+model CourierRoute {
+  id             String      @id @default(uuid())
+  courierId      String
+  courier        Courier     @relation(fields: [courierId], references: [id])
+  status         RouteStatus @default(ABERTA)
+  startedAt      DateTime?
+  finishedAt     DateTime?
+  recalculatedAt DateTime?
+  stops          RouteStop[]
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+}
+
+model RouteStop {
+  id          String          @id @default(uuid())
+  routeId     String
+  route       CourierRoute    @relation(fields: [routeId], references: [id])
+  deliveryId  String?
+  delivery    Delivery?       @relation(fields: [deliveryId], references: [id])
+  storeId     String?
+  store       Store?          @relation(fields: [storeId], references: [id])
+  type        RouteStopType
+  status      RouteStopStatus @default(PENDENTE)
+  sequence    Int
+  address     String
+  latitude    Decimal?        @db.Decimal(10, 7)
+  longitude   Decimal?        @db.Decimal(10, 7)
+  earliestAt  DateTime?
+  completedAt DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@unique([routeId, sequence])
+  @@index([routeId, status])
+}

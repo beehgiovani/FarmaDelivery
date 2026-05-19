@@ -1,0 +1,5 @@
+# Android Studio normally creates local.properties with sdk.dir.
+# Do not commit real local.properties.
+#
+# Optional local API override used by the Android Gradle build:
+# farmadelivery.apiUrl=http://10.0.2.2:3333

@@ -1,0 +1,27 @@
+package com.drogsantoantonio.farmadelivery.presentation.ui.screens
+
+import kotlin.test.Test
+import kotlin.test.assertEquals
+
+class MotoboyOperationalStatusTest {
+  @Test
+  fun `shows paused status when courier is unavailable`() {
+    val status = motoboyOperationalStatus(available = false, trackingEnabled = true)
+
+    assertEquals("Pausado", status.title)
+  }
+
+  @Test
+  fun `shows available status when courier can accept deliveries`() {
+    val status = motoboyOperationalStatus(available = true, trackingEnabled = false)
+
+    assertEquals("Disponivel para corridas", status.title)
+  }
+
+  @Test
+  fun `shows automatic GPS status when background tracking is active`() {
+    val status = motoboyOperationalStatus(available = true, trackingEnabled = true)
+
+    assertEquals("Disponivel com GPS automatico", status.title)
+  }
+}
