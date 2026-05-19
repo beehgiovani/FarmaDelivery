@@ -342,11 +342,12 @@ Atualizado em 2026-05-19.
 - Validacao pos-limpeza confirmou que arquivos sensiveis locais (`.env`, `google-services.json`, `local.properties`, logs e caches) permanecem ignorados e fora do versionamento.
 - Documentacao publica/canonica foi revisada para nao expor dados reais de loja, project id, targets Firebase, package Android especifico, chaves, tokens ou credenciais.
 - Validacao geral apos restaurar nomes/configuracoes funcionais da aplicacao passou em `npm test`, `npm run build` e `:app:testDebugUnitTest`.
+- Auditoria estatica `npm run db:rls:check` criada para validar `database/schema-full.sql`, garantindo RLS e comentarios em todas as tabelas e policy anon apenas nas tabelas publicas de catalogo.
 
 ## Em andamento
     
 - Revisar filtros finos nos fallbacks Supabase REST quando surgirem novos endpoints.
-- Revisar RLS final por perfil no Supabase antes de producao, mantendo o arquivo canonico como fonte unica.
+- Revisar no Supabase SQL Editor se o RLS aplicado no banco confere com a auditoria estatica `npm run db:rls:check`, mantendo o arquivo canonico como fonte unica.
 - Evoluir relatorios para filtros avancados adicionais e, se necessario em producao, exportacao assincrona por fila/worker.
 
 ## Falta

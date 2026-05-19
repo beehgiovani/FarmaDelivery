@@ -81,9 +81,17 @@ WHERE n.nspname = 'public'
 ORDER BY c.relname;
 ```
 
+Auditoria estatica do SQL canonico:
+
+```powershell
+npm run db:rls:check
+```
+
+Essa checagem valida se toda tabela criada em `database/schema-full.sql` tem RLS habilitada, `COMMENT ON TABLE` e se apenas as tabelas publicas de catalogo possuem policy `TO anon`.
+
 ## Proximas Conferencias Recomendadas
 
-1. Revisar RLS operacional por perfil antes de producao.
+1. Revisar no Supabase SQL Editor se o resultado de `npm run db:rls:check` tambem confere com o banco aplicado antes de producao.
 2. Confirmar `DATABASE_URL` da API com Transaction pooler.
 3. Configurar credenciais reais do Firebase Admin para push server-side.
 4. Configurar VAPID key e testar Web Push real no PWA instalado no iOS.
