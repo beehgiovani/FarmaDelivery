@@ -76,6 +76,12 @@ Configurar em `.env` local, `env/*.env` ou no provedor de deploy, sem versionar 
 - `DELIVERY_PROOF_STORAGE_DIR`: diretorio local de comprovantes.
 - Variaveis Firebase Admin para push server-side.
 
+Gerar segredo de sessao:
+
+```bash
+npm run secret:session
+```
+
 ## Comandos
 
 Rodar em desenvolvimento:

@@ -120,6 +120,12 @@ Checar variaveis antes de deploy, sem imprimir valores sensiveis:
 npm run env:production:check -- file=env/api.env file=env/admin.env
 ```
 
+Gerar um `API_SESSION_SECRET` seguro para ambiente local/deploy:
+
+```bash
+npm run secret:session
+```
+
 Rodar testes do admin:
 
 ```bash
