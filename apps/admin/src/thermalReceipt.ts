@@ -53,19 +53,24 @@ export function buildThermalReceiptHtml(delivery: Delivery, options: ThermalRece
   const paperWidthMm = options.paperWidthMm ?? 80;
   const layout = thermalReceiptLayouts[paperWidthMm];
   const deliveryCode = delivery.publicCode ?? delivery.id;
-  const rows = [
+  const identityRows = [
     ["Entrega", deliveryCode],
     ...(delivery.storeDailyNumber ? [["N. do dia", formatStoreDailyNumber(delivery.storeDailyNumber)]] : []),
     ["Loja", delivery.store],
+    ["Criada", delivery.createdAt],
+  ];
+  const customerRows = [
     ["Cliente", delivery.customer],
     ["Telefone", delivery.phone],
     ["Endereco", delivery.address],
+  ];
+  const operationRows = [
     ["Agendado", delivery.scheduledFor],
     ["Status", delivery.status],
     ["Prioridade", delivery.priority],
     ["Prazo", delivery.deadlineTier],
+    ...(delivery.notes?.trim() ? [["Pagamento/obs.", delivery.notes.trim()]] : []),
     ["Motoboy", delivery.courier],
-    ["Criada", delivery.createdAt],
     ...(delivery.dispatchedAt ? [["Aceite", delivery.dispatchedAt]] : []),
     ...(delivery.collectedAt ? [["Coleta", delivery.collectedAt]] : []),
     ...(delivery.deliveredAt ? [["Entrega", delivery.deliveredAt]] : []),
@@ -98,6 +103,7 @@ export function buildThermalReceiptHtml(delivery: Delivery, options: ThermalRece
 
       .receipt {
         width: 100%;
+        padding-bottom: 6mm;
       }
 
       .center {
@@ -126,6 +132,13 @@ export function buildThermalReceiptHtml(delivery: Delivery, options: ThermalRece
         margin: 7px 0;
       }
 
+      .receiptBlock {
+        border: 1px solid #000;
+        padding: 2mm;
+        margin: 2mm 0;
+        break-inside: avoid;
+      }
+
       .row {
         display: grid;
         grid-template-columns: ${layout.labelWidthMm}mm 1fr;
@@ -140,6 +153,7 @@ export function buildThermalReceiptHtml(delivery: Delivery, options: ThermalRece
 
       .value {
         overflow-wrap: anywhere;
+        white-space: pre-wrap;
       }
 
       .address {
@@ -157,11 +171,13 @@ export function buildThermalReceiptHtml(delivery: Delivery, options: ThermalRece
     <main class="receipt">
       <header class="center">
         <h1>Drogaria Santo Antonio</h1>
-        <h2>FarmaDelivery - Comanda de entrega</h2>
+        <h2>Drogaria Santo Antonio - Comanda de entrega</h2>
         <p>Impresso em ${escapeHtml(formatReceiptDate(printedAt))}</p>
       </header>
       <div class="line"></div>
-      ${rows.map(([label, value]) => receiptRow(label, value, label === "Endereco")).join("")}
+      ${receiptBlock(identityRows)}
+      ${receiptBlock(customerRows)}
+      ${receiptBlock(operationRows)}
       <div class="line"></div>
       <p><strong>Produtos:</strong> conferir na comanda fiscal/manual da loja.</p>
       <p><strong>Recebedor:</strong> __________________________</p>
@@ -187,7 +203,7 @@ export function printThermalReceipt(delivery: Delivery, options: ThermalReceiptO
   printWindow.document.write(
     buildThermalReceiptHtml(delivery, {
       ...options,
-      paperWidthMm: options.paperWidthMm ?? readThermalReceiptPaperWidthPreference(),
+      paperWidthMm: options.paperWidthMm ?? 80,
     }),
   );
   printWindow.document.close();
@@ -219,6 +235,10 @@ function receiptRow(label: string, value: string, important = false) {
     <span class="label">${escapeHtml(label)}</span>
     <span class="value">${escapeHtml(value || "-")}</span>
   </div>`;
+}
+
+function receiptBlock(rows: string[][]) {
+  return `<section class="receiptBlock">${rows.map(([label, value]) => receiptRow(label, value, label === "Endereco")).join("")}</section>`;
 }
 
 /** Formata o numero sequencial do dia no mesmo padrao visual usado no codigo publico. */

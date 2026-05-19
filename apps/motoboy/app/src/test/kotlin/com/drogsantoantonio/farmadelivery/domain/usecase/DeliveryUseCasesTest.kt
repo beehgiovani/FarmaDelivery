@@ -64,7 +64,7 @@ class DeliveryUseCasesTest {
     var accepted: AcceptDeliveryRequest? = null
     var delivered: DeliveryActionRequest? = null
 
-    override suspend fun listDeliveries(): List<DeliveryDto> {
+    override suspend fun listDeliveries(serviceArea: String?): List<DeliveryDto> {
       listDeliveriesCalls += 1
       return deliveries
     }
@@ -74,7 +74,7 @@ class DeliveryUseCasesTest {
       return mutationResponse(status = "ACEITA_PELO_MOTOBOY")
     }
 
-    override suspend fun listEvents(deliveryId: String): List<DeliveryEventDto> = emptyList()
+    override suspend fun listEvents(deliveryId: String, serviceArea: String?): List<DeliveryEventDto> = emptyList()
 
     override suspend fun uploadProof(
       deliveryId: String,

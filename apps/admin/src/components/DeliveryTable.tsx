@@ -99,6 +99,7 @@ export function DeliveryTable({
             <div className="addressCell">
               {delivery.address}
               <small>Agendado: {delivery.scheduledFor}</small>
+              {delivery.notes?.trim() ? <small className="paymentNotesLine">{delivery.notes.trim()}</small> : null}
             </div>
             <div className="statusStack">
               <span className={`statusPill ${statusClass[delivery.status]}`}>{delivery.status}</span>

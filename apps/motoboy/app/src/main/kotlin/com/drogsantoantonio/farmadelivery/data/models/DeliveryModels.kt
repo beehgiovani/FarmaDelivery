@@ -14,6 +14,7 @@ data class DeliveryDto(
   val address: String,
   val status: String,
   val courier: String,
+  val notes: String? = null,
   val createdAt: String,
   val acceptedAt: String? = null,
   val collectedAt: String? = null,
@@ -35,6 +36,7 @@ data class CoordinatesDto(
 data class AcceptDeliveryRequest(
   val deliveryId: String,
   val courierId: String,
+  val serviceArea: String? = null,
 )
 
 @Serializable

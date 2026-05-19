@@ -51,7 +51,7 @@ fun LoginScreen(
         modifier = Modifier.size(110.dp),
       )
       Spacer(Modifier.height(18.dp))
-      Text("FarmaDelivery", style = MaterialTheme.typography.headlineMedium)
+      Text("Drogaria Santo Antonio", style = MaterialTheme.typography.headlineMedium)
       Text("Motoboy", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
       Spacer(Modifier.height(28.dp))
 

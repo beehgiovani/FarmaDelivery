@@ -5,6 +5,7 @@ import {
   DELIVERY_DEADLINE_WINDOWS_MINUTES,
   DELIVERY_PROOF_BASE64_MAX_LENGTH,
   DELIVERY_PROOF_UPLOAD_BODY_LIMIT_BYTES,
+  acceptDeliverySchema,
   createDeliveryWithCustomerSchema,
   createUserSchema,
   deliveryStatusTransitionSchema,
@@ -51,6 +52,19 @@ test("validates manual delivery deadline tier on creation", () => {
   );
 });
 
+test("keeps payment details as operational delivery notes during creation", () => {
+  const parsed = createDeliveryWithCustomerSchema.parse({
+    storeId: courierId,
+    customerName: "Cliente Teste",
+    phone: "(13) 99999-0000",
+    street: "Rua Teste",
+    number: "123",
+    notes: "Valor: R$ 37,50\nPagamento: Dinheiro - troco para R$ 50,00",
+  });
+
+  assert.equal(parsed.notes, "Valor: R$ 37,50\nPagamento: Dinheiro - troco para R$ 50,00");
+});
+
 test("validates courier availability updates without requiring location", () => {
   const parsed = updateCourierAvailabilitySchema.parse({
     courierId,
@@ -61,6 +75,29 @@ test("validates courier availability updates without requiring location", () => 
     courierId,
     available: false,
   });
+});
+
+test("accepts an optional courier service area when accepting a delivery", () => {
+  assert.deepEqual(
+    acceptDeliverySchema.parse({
+      courierId,
+      deliveryId: courierId,
+      serviceArea: "PEREQUE",
+    }),
+    {
+      courierId,
+      deliveryId: courierId,
+      serviceArea: "PEREQUE",
+    },
+  );
+
+  assert.throws(() =>
+    acceptDeliverySchema.parse({
+      courierId,
+      deliveryId: courierId,
+      serviceArea: "OUTRA",
+    }),
+  );
 });
 
 test("keeps location availability optional so GPS does not change availability accidentally", () => {

@@ -25,7 +25,7 @@ class FarmaMessagingService : FirebaseMessagingService() {
   private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
   override fun onMessageReceived(message: RemoteMessage) {
-    val title = message.notification?.title ?: message.data["title"] ?: "FarmaDelivery"
+    val title = message.notification?.title ?: message.data["title"] ?: "Drogaria Santo Antonio"
     val body = message.notification?.body ?: resolveBody(message.data["type"])
     showDeliveryNotification(title = title, body = body)
   }

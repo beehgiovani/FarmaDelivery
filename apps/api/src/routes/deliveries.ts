@@ -13,10 +13,12 @@ import {
   DELIVERY_PROOF_UPLOAD_BODY_LIMIT_BYTES,
   createDeliverySchema,
   createDeliveryWithCustomerSchema,
+  deliveryListQuerySchema,
   deliveryReportQuerySchema,
   deliveryStatusTransitionSchema,
   registerDeliveryProblemSchema,
   uploadDeliveryProofSchema,
+  uuidSchema,
 } from "../contracts";
 import { validationError } from "../http";
 import { prisma } from "../prisma";
@@ -31,8 +33,10 @@ import {
   deliveryScopeWhere,
   hasStoreAccess,
   isStoreLoginRole,
+  resolveCourierServiceAreaStoreScope,
   resolveCourierStoreScope,
   resolveUserStoreScope,
+  type CourierServiceArea,
 } from "../accessScope";
 import {
   canUseSupabaseRest,
@@ -56,8 +60,13 @@ export async function deliveryRoutes(app: FastifyInstance) {
   app.get("/deliveries", async (request, reply) => {
     const session = await requireAuth(request, reply, ["ADMIN", "GERENTE", "MOTOBOY"]);
     if (!session) return;
+    const parsedQuery = deliveryListQuerySchema.safeParse(request.query);
+    if (!parsedQuery.success) return validationError(reply, parsedQuery.error);
     const storeScope = await resolveUserStoreScope(session);
-    const courierStoreScope = await resolveCourierStoreScope(session);
+    const courierStoreScope =
+      session.role === "MOTOBOY" && parsedQuery.data.serviceArea
+        ? await resolveCourierServiceAreaStoreScope(parsedQuery.data.serviceArea)
+        : await resolveCourierStoreScope(session);
     const courierAvailable = await resolveCourierAvailability(session);
 
     try {
@@ -94,8 +103,9 @@ export async function deliveryRoutes(app: FastifyInstance) {
           storeDailyNumber: delivery.storeDailyNumber,
           store: delivery.store.name,
         customer: delivery.customer.name,
-        phone: delivery.customer.phone,
-        address: formatAddress({
+          phone: delivery.customer.phone,
+          notes: delivery.notes,
+          address: formatAddress({
           street: delivery.customerAddress.street,
           number: delivery.customerAddress.number,
           complement: delivery.customerAddress.complement,
@@ -137,6 +147,7 @@ export async function deliveryRoutes(app: FastifyInstance) {
           store: delivery.Store?.name ?? "Loja",
           customer: delivery.Customer?.name ?? "Cliente",
           phone: delivery.Customer?.phone ?? "",
+          notes: delivery.notes ?? null,
           address: formatAddress({
             street: delivery.CustomerAddress?.street ?? "",
             number: delivery.CustomerAddress?.number ?? "",
@@ -405,17 +416,16 @@ export async function deliveryRoutes(app: FastifyInstance) {
     if (!session) return;
 
     const params = request.params as { deliveryId: string };
-    if (!params.deliveryId) {
-      return reply.status(400).send({
-        error: "VALIDATION_ERROR",
-        message: "Informe a entrega.",
-      });
-    }
-    if (!(await canViewDelivery(session, params.deliveryId, reply))) return;
+    const parsedDeliveryId = uuidSchema.safeParse(params.deliveryId);
+    const parsedQuery = deliveryListQuerySchema.safeParse(request.query);
+    if (!parsedDeliveryId.success) return validationError(reply, parsedDeliveryId.error);
+    if (!parsedQuery.success) return validationError(reply, parsedQuery.error);
+    const deliveryId = parsedDeliveryId.data;
+    if (!(await canViewDelivery(session, deliveryId, reply, parsedQuery.data.serviceArea))) return;
 
     try {
       const events = await prisma.deliveryEvent.findMany({
-        where: { deliveryId: params.deliveryId },
+        where: { deliveryId },
         orderBy: { createdAt: "asc" },
         include: {
           actorUser: true,
@@ -441,7 +451,7 @@ export async function deliveryRoutes(app: FastifyInstance) {
       app.log.error({ error }, "delivery events list error");
       if (canUseSupabaseRest()) {
         const events = await supabaseRest<SupabaseDeliveryEvent[]>("DeliveryEvent", {
-          query: `select=*,User:actorUserId(id,name,role)&deliveryId=eq.${params.deliveryId}&order=createdAt.asc`,
+          query: `select=*,User:actorUserId(id,name,role)&deliveryId=eq.${deliveryId}&order=createdAt.asc`,
         });
 
         return events.map((event) => ({
@@ -883,6 +893,7 @@ export async function deliveryRoutes(app: FastifyInstance) {
         status: result.status,
         priority: result.priority,
         deadlineTier: result.deadlineTier,
+        notes: result.notes,
         createdAt: result.createdAt.toISOString(),
         earliestDispatchAt: result.earliestDispatchAt?.toISOString() ?? null,
         store: {
@@ -954,7 +965,7 @@ export async function deliveryRoutes(app: FastifyInstance) {
         message: "Motoboy so pode aceitar entregas para o proprio usuario.",
       });
     }
-    if (!(await canViewDelivery(session, parsed.data.deliveryId, reply))) return;
+    if (!(await canViewDelivery(session, parsed.data.deliveryId, reply, parsed.data.serviceArea))) return;
 
     try {
       const result = await prisma.$transaction(async (tx) => {
@@ -1155,7 +1166,9 @@ export async function deliveryRoutes(app: FastifyInstance) {
     if (!session) return;
 
     const params = request.params as { deliveryId: string };
-    if (!(await canViewDelivery(session, params.deliveryId, reply))) return;
+    const parsedQuery = deliveryListQuerySchema.safeParse(request.query);
+    if (!parsedQuery.success) return validationError(reply, parsedQuery.error);
+    if (!(await canViewDelivery(session, params.deliveryId, reply, parsedQuery.data.serviceArea))) return;
 
     try {
       const proofs = await prisma.deliveryProof.findMany({
@@ -1220,7 +1233,9 @@ export async function deliveryRoutes(app: FastifyInstance) {
     if (!session) return;
 
     const params = request.params as { deliveryId: string; proofId: string };
-    if (!(await canViewDelivery(session, params.deliveryId, reply))) return;
+    const parsedQuery = deliveryListQuerySchema.safeParse(request.query);
+    if (!parsedQuery.success) return validationError(reply, parsedQuery.error);
+    if (!(await canViewDelivery(session, params.deliveryId, reply, parsedQuery.data.serviceArea))) return;
 
     try {
       const proof = await prisma.deliveryProof.findFirst({
@@ -1614,6 +1629,7 @@ async function canViewDelivery(
   session: { sub: string; role: string; storeId?: string | null; courierId?: string | null },
   deliveryId: string,
   reply: FastifyReply,
+  serviceArea?: CourierServiceArea,
 ) {
   if (session.role === "ADMIN") return true;
 
@@ -1637,7 +1653,10 @@ async function canViewDelivery(
     (session.courierId === delivery.courierId ||
       (delivery.status === "AGUARDANDO_MOTOBOY" &&
         (await resolveCourierAvailability(session)) &&
-        (await resolveCourierStoreScope(session))?.includes(delivery.storeId)))
+        (serviceArea
+          ? await resolveCourierServiceAreaStoreScope(serviceArea)
+          : await resolveCourierStoreScope(session)
+        )?.includes(delivery.storeId)))
   ) {
     return true;
   }
@@ -2209,6 +2228,7 @@ function formatCreatedDelivery(delivery: {
   status: string;
   priority: string;
   deadlineTier: string;
+  notes: string | null;
   createdAt: Date;
   earliestDispatchAt: Date | null;
   store: {
@@ -2240,6 +2260,7 @@ function formatCreatedDelivery(delivery: {
     status: delivery.status,
     priority: delivery.priority,
     deadlineTier: delivery.deadlineTier,
+    notes: delivery.notes,
     createdAt: delivery.createdAt.toISOString(),
     earliestDispatchAt: delivery.earliestDispatchAt?.toISOString() ?? null,
     store: {
@@ -2387,6 +2408,7 @@ async function createDeliveryFromExistingRecordsWithSupabaseRest(
     status: delivery.status,
     priority: delivery.priority,
     deadlineTier: delivery.deadlineTier ?? data.deadlineTier,
+    notes: delivery.notes ?? null,
     createdAt: delivery.createdAt,
     earliestDispatchAt: delivery.earliestDispatchAt,
     store: {
@@ -2537,6 +2559,7 @@ async function createDeliveryWithSupabaseRest(data: typeof createDeliveryWithCus
     status: delivery.status,
     priority: delivery.priority,
     deadlineTier: delivery.deadlineTier ?? data.deadlineTier,
+    notes: delivery.notes ?? null,
     createdAt: delivery.createdAt,
     earliestDispatchAt: delivery.earliestDispatchAt,
     store: {

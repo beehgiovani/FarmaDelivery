@@ -167,18 +167,18 @@ test("filters notification events by problem state", () => {
 });
 
 test("filters notification events by store and problem state together", () => {
-  const asturiasOk = makeEvent({ id: "asturias-ok", store: "Asturias" });
-  const asturiasFailed = makeEvent({ id: "asturias-failed", store: "Asturias", failed: 1 });
-  const perequeFailed = makeEvent({ id: "pereque-failed", store: "Pereque", failed: 1 });
-  const events = [asturiasOk, asturiasFailed, perequeFailed];
+  const centralOk = makeEvent({ id: "central-ok", store: "Asturias" });
+  const centralFailed = makeEvent({ id: "central-failed", store: "Asturias", failed: 1 });
+  const perequeFailed = makeEvent({ id: "pereque-failed", store: "Loja Pereque", failed: 1 });
+  const events = [centralOk, centralFailed, perequeFailed];
 
   assert.deepEqual(
     filterNotificationEvents(events, "todos", "Asturias").map((event) => event.id),
-    ["asturias-ok", "asturias-failed"],
+    ["central-ok", "central-failed"],
   );
   assert.deepEqual(
     filterNotificationEvents(events, "problemas", "Asturias").map((event) => event.id),
-    ["asturias-failed"],
+    ["central-failed"],
   );
 });
 

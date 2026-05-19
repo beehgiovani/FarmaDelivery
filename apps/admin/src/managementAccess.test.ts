@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  accessFlowForRole,
   activeStoreAccessUsers,
+  buildAccessFormForFlow,
   buildCreatedAccessCard,
+  buildStoreLoginAccessForm,
   buildStoreAccessRows,
   formatStoreHours,
   generateInitialPassword,
@@ -56,11 +59,49 @@ test("requires login credentials only for real access roles", () => {
   assert.equal(requiresLoginCredentialsForRole("BALCONISTA_CAIXA"), false);
 });
 
-test("merges freshly created stores without duplicating stores already reloaded", () => {
-  const asturias = makeStore("store-1", "Asturias");
-  const santaRosa = makeStore("store-2", "Santa Rosa");
+test("keeps counter staff in a reference-only access flow", () => {
+  const form = buildAccessFormForFlow({
+    flow: "counterReference",
+    current: makeAccessForm({ role: "GERENTE", storeId: "store-1", phone: "(13) 99999-0000", password: "FarmaSenha123" }),
+    defaultStoreId: "store-1",
+    initialPassword: "FarmaNova123",
+  });
 
-  assert.deepEqual(mergeStoreUnits([asturias, santaRosa], [santaRosa, makeStore("store-3", "Centro")]).map((store) => store.name), [
+  assert.equal(accessFlowForRole("BALCONISTA_CAIXA"), "counterReference");
+  assert.deepEqual(form, makeAccessForm({ role: "BALCONISTA_CAIXA", storeId: "", phone: "", password: "" }));
+});
+
+test("prepares store login as a credentialed store access", () => {
+  const store = makeStore("store-1", "Loja Operacional");
+
+  assert.equal(accessFlowForRole("GERENTE"), "systemAccess");
+  assert.deepEqual(
+    buildStoreLoginAccessForm({
+      current: makeAccessForm({ role: "BALCONISTA_CAIXA", name: "Maria" }),
+      store,
+      initialPassword: "FarmaNova123",
+    }),
+    makeAccessForm({ name: "Loja Operacional", role: "GERENTE", storeId: "store-1", password: "FarmaNova123" }),
+  );
+});
+
+test("system access flow defaults to store login without offering counter reference as login", () => {
+  assert.deepEqual(
+    buildAccessFormForFlow({
+      flow: "systemAccess",
+      current: makeAccessForm({ role: "BALCONISTA_CAIXA", storeId: "", password: "" }),
+      defaultStoreId: "store-1",
+      initialPassword: "FarmaNova123",
+    }),
+    makeAccessForm({ role: "GERENTE", storeId: "store-1", password: "FarmaNova123" }),
+  );
+});
+
+test("merges freshly created stores without duplicating stores already reloaded", () => {
+  const storeCentral = makeStore("store-1", "Asturias");
+  const storeSul = makeStore("store-2", "Santa Rosa");
+
+  assert.deepEqual(mergeStoreUnits([storeCentral, storeSul], [storeSul, makeStore("store-3", "Centro")]).map((store) => store.name), [
     "Asturias",
     "Santa Rosa",
     "Centro",
@@ -147,5 +188,16 @@ function makeUser(input: {
       : null,
     courier: null,
     createdAt: "2026-05-17T12:00:00.000Z",
+  };
+}
+
+function makeAccessForm(input: Partial<ReturnType<typeof buildAccessFormForFlow> & { role: TeamUser["role"] }> = {}) {
+  return {
+    name: input.name ?? "",
+    phone: input.phone ?? "",
+    email: input.email ?? "",
+    password: input.password ?? "",
+    role: input.role ?? "GERENTE",
+    storeId: input.storeId ?? "",
   };
 }

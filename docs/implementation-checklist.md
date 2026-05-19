@@ -17,7 +17,9 @@ Atualizado em 2026-05-19.
 - Criacao de entrega localiza o endereco automaticamente pelo backend antes de lancar, sem exigir latitude/longitude no preenchimento da loja.
 - Formulario de criacao de entrega formata telefone local sem travar clientes de outros DDDs/paises, valida por digitos e facilita busca/criacao de cliente no balcao.
 - Mascara de telefone do painel preserva a digitacao parcial sem inserir DDD antes da hora; telefones locais completos recebem DDD 13 ao normalizar.
+- Mascara de telefone do painel foi refinada para nao forcar DDD enquanto o atendente ainda digita um celular local, mantendo a validacao por digitos.
 - Se a localizacao automatica falhar, o painel permite lancar a entrega sem ponto no mapa por acao explicita, evitando travar o atendimento no balcao.
+- Formulario de nova entrega permite definir ou ajustar manualmente o ponto no mapa por modal Leaflet, salvando latitude/longitude escolhidas antes do lancamento.
 - Fila de entregas no painel sinaliza entregas sem ponto no mapa, deixando claro quando o endereco precisa ser conferido para rota otimizada.
 - Mapa operacional separa o total filtrado entre entregas visiveis no mapa e entregas sem ponto, evitando confusao quando uma entrega existe mas ainda nao possui coordenadas.
 - Resumo de entregas do mapa operacional foi isolado em helper testavel, cobrindo entregas localizadas, sem ponto e contagens inconsistentes.
@@ -55,6 +57,7 @@ Atualizado em 2026-05-19.
 - Testes HTTP da API cobrem bloqueio do login de loja em localizacao, disponibilidade e token de dispositivo de motoboy antes de acessar banco.
 - Testes HTTP e helpers de escopo da API cobrem `BALCONISTA_CAIXA` como referencia operacional/autocomplete, sem acesso autenticado a entregas, rotas ou geocodificacao.
 - Testes HTTP da API cobrem validacao de query dos relatorios autenticados antes de resolver escopo ou acessar banco.
+- Testes HTTP da API cobrem validacao do identificador no historico auditavel da entrega antes de resolver escopo ou acessar banco.
 - Testes HTTP da API cobrem validacao de entrada de pre-rota e recalculo de rota antes de resolver escopo ou acessar banco.
 - Testes HTTP da API cobrem validacao de payload de cliente, endereco e criacao de entrega antes de acessar banco.
 - Testes HTTP da API cobrem validacao de payload das acoes operacionais de entrega e upload de comprovante antes de acessar banco/arquivo.
@@ -81,7 +84,8 @@ Atualizado em 2026-05-19.
 - Exportacoes CSV neutralizam valores iniciados por `=`, `+`, `-`, `@`, tab ou carriage return para evitar interpretacao como formula em planilhas.
 - Teste unitario direto do helper CSV do admin cobre neutralizacao de formulas e escape de aspas.
 - Mapeamento frontend de status/prioridade entre API e UI centralizado em helper puro com testes unitarios.
-- Contrato operacional entre API, admin, PWA e Android documentado em `docs/operational-contracts.md`, com valores compartilhados para status, prioridade, rota, parada e eventos.
+- Contrato operacional entre API, admin, PWA e Android documentado em `operational-contracts.md`, com valores compartilhados para status, prioridade, rota, parada e eventos.
+- Contrato operacional documenta o uso temporario de `notes` para valor, forma de pagamento e troco da entrega, preservado por API, admin, PWA, Android e comanda ate haver campos estruturados.
 - Painel admin centraliza labels operacionais de rotas, paradas e eventos em `apps/admin/src/apiMappers.ts`, reduzindo mapas locais divergentes entre componentes.
 - Painel admin centraliza titulo/detalhe de paradas de rota em `apps/admin/src/routeStopDisplay.ts`, usando codigo publico, cliente e status quando disponiveis e fallback seguro para tipo da parada.
 - Painel admin usa nomes unicos por assinatura Realtime do Supabase, evitando erro ao reinscrever callbacks `postgres_changes` depois de remount/reload da UI.
@@ -95,9 +99,17 @@ Atualizado em 2026-05-19.
 - Mapa operacional foi separado em categorias internas dedicadas para mapa e motoboys, mantendo filtros visiveis por afetarem diretamente a visualizacao.
 - Tela de nova entrega foi separada em categorias internas dedicadas para cliente, endereco, dados da entrega e impressao da comanda.
 - Criacao de entrega permite informar o atendente/balconista que conferiu o pedido, com autocomplete a partir da equipe cadastrada, sem depender do login individual do funcionario.
+- Criacao de entrega registra valor e forma de pagamento (`Cartao`, `QR Code`, `Pix pago`, `Dinheiro` com troco ou `Conta`) nas observacoes operacionais, com mascara monetaria BRL no painel.
+- Fila admin, PWA iPhone, app Android motoboy e comanda termica exibem os dados operacionais de pagamento da entrega para conferencia em campo.
+- Teste de contrato da API garante que os detalhes de pagamento em `notes` sejam preservados ao validar a criacao de entrega.
+- Motoboy escolhe a praca de atendimento no PWA e no app Android, sem criar fluxo administrativo de emprestimo ocasional.
+- API reconhece `serviceArea` em listagem, aceite, historico e comprovantes de entrega, mantendo a visao do motoboy alinhada a praca escolhida.
+- Praca `GERAL` atende todas as lojas exceto Loja Dedicada; praca `DEDICADA` atende apenas Loja Dedicada, usando normalizacao do nome da loja no backend.
+- Fluxo de nova entrega preserva o atendente/balconista como referencia por nome no autocomplete global, sem transformar funcionario de balcao em login.
 - Cadastro de `BALCONISTA_CAIXA` no admin ficou como referencia operacional global por padrao, sem exigir loja base; `GERENTE` segue como login operacional da unidade.
 - Cadastro de `BALCONISTA_CAIXA` nao exige telefone, email ou senha, pois serve como referencia/autocomplete; o backend gera hash interno apenas para compatibilidade com o modelo atual.
-- Login operacional de loja, como Asturias, fica limitado a propria unidade; admin permanece como unico acesso de visao geral.
+- UI de acessos possui fluxos separados para funcionario de conferencia (`BALCONISTA_CAIXA`, sem login) e logins do sistema (`GERENTE`, `ADMIN` e `MOTOBOY`, com credenciais), evitando misturar balconista/caixa com login da loja.
+- Login operacional de loja, como Loja Central, fica limitado a propria unidade; admin permanece como unico acesso de visao geral.
 - Listagem e CSV de relatorios preservam o balconista de lancamento/conferencia e o motoboy que entregou, mantendo os demais dados operacionais da entrega.
 - Relatorio operacional tambem distribui entregas por balconista/atendente informado, alem de loja, motoboy, status e prioridade.
 - Painel de relatorios permite filtrar a visao carregada por balconista/atendente, com autocomplete, busca sem diferenciar acentos e exportacao local preservando o filtro.
@@ -156,6 +168,7 @@ Atualizado em 2026-05-19.
 - Filtro inicial de escopo no backend por perfil: login de loja limitado a loja vinculada; motoboy limitado a propria rota/localizacao e entregas disponiveis/vinculadas.
 - Regras de escrita por escopo: login de loja so altera entregas da propria loja; motoboy so atualiza a propria localizacao, aceita para o proprio `courierId`, altera entregas aceitas por ele e recalcula a propria rota.
 - Fallback REST revisado para manter escopo em leituras de usuarios, motoboys e rotas de motoboy, alem das principais rotas de entregas.
+- Filtro REST de motoboys por alocacao ativa usa `CourierStoreAssignment.or` para tratar corretamente alocacoes sem fim ou ainda vigentes.
 - Fallback REST da listagem de rotas normaliza `CourierRoute`/`RouteStop` para o contrato `courier`/`stops` usado por admin, PWA e Android, incluindo codigo publico, cliente e status da entrega quando disponiveis.
 - Validacao de permissao de entrega com fallback REST quando Prisma nao alcanca o Postgres direto.
 - Fallback REST de transicao de entrega corrigido para nao cancelar paradas indevidamente.
@@ -177,8 +190,8 @@ Atualizado em 2026-05-19.
 - Escopo backend de login de loja agora considera alocacoes ativas em listagem de lojas, entregas, relatorios, criacao e alteracao de entregas.
 - Listagem de usuarios considera o escopo ativo do login de loja no Prisma e no fallback Supabase REST, mantendo balconistas/caixas globais disponiveis para autocomplete operacional.
 - Listagem de motoboys considera alocacoes ativas de loja para login de loja no Prisma e no fallback Supabase REST, mantendo motoboy restrito ao proprio cadastro.
-- Escopo backend de motoboy agora considera `CourierStoreAssignment` ativa para listar entregas aguardando, visualizar entregas disponiveis e montar pre-rotas.
-- Motoboy continua podendo ver/alterar entregas ja aceitas por ele, mas entregas livres aguardando ficam restritas as lojas em cobertura/rodizio/dedicacao ativa.
+- Escopo backend de motoboy pode usar `CourierStoreAssignment` ativa como fallback legado, mas listagem/aceite operacional dos apps passa a preferir a praca escolhida pelo motoboy.
+- Motoboy continua podendo ver/alterar entregas ja aceitas por ele; entregas livres aguardando nos apps ficam restritas a praca de atendimento selecionada.
 - Listagem de rotas compartilhadas filtra as paradas visiveis para login de loja conforme o escopo ativo, evitando expor paradas de outras unidades.
 - Fallback Supabase REST de eventos operacionais autenticados exige `actorUserId` antes de gravar criacao, agendamento, redirecionamento, transicao ou cancelamento de entrega.
 - Logs estruturados da API com `request_id`, `timestamp_utc`, status e tempo de resposta por requisicao.
@@ -189,12 +202,12 @@ Atualizado em 2026-05-19.
 - API possui builders testaveis de patches LGPD para anonimizar cliente/endereco, limpar localizacao, revogar token e preparar exclusao de binario de comprovante.
 - API possui CLI local `lgpd:dry-run` para gerar relatorio LGPD agregado em JSON/CSV a partir de arquivo ou stdin, sem conectar ao banco.
 - Loading, empty, error, fatal state e toast global.
-- Logo e cores da Drogaria Santo Antonio aplicados no painel.
-- Logo real da Drogaria Santo Antonio aplicado no PWA motoboy e no app Android motoboy, substituindo marca/desenho `FD` e vetor manual; PWA tambem usa o logo real em favicon/manifest icons.
+- Logo e cores da FarmaDelivery aplicados no painel.
+- Logo real da FarmaDelivery aplicado no PWA motoboy e no app Android motoboy, substituindo marca/desenho `FD` e vetor manual; PWA tambem usa o logo real em favicon/manifest icons.
 - Code splitting inicial do admin separando mapa, Supabase e icones em chunks proprios.
 - Arquivos SQL/migrations iniciais e SQL consolidado existentes.
-- Firebase Android preparado: package `com.drogsantoantonio.farmadelivery`, Project ID `farmadelivery-d40a9` e `google-services.json` recebido na raiz.
-- Modulo Android inicial criado em `apps/motoboy` com Gradle Kotlin DSL, package `com.drogsantoantonio.farmadelivery`, tema Compose com cores do logo, cliente Retrofit, modelos, repositorios, use cases e telas base de login/lista de entregas.
+- Firebase Android preparado por ambiente local; `google-services.json` e Project ID reais nao devem ser versionados.
+- Modulo Android inicial criado em `apps/motoboy` com Gradle Kotlin DSL, package `com.farmadelivery.farmadelivery`, tema Compose com cores do logo, cliente Retrofit, modelos, repositorios, use cases e telas base de login/lista de entregas.
 - Gradle Wrapper do modulo Android configurado com Gradle 9.5.1, JBR do Android Studio, compile/target SDK 36 e `local.properties` local apontando para o Android SDK.
 - Build Android `:app:assembleDebug` executado com sucesso.
 - Lint Android `:app:lintDebug` executado sem issues.
@@ -241,7 +254,7 @@ Atualizado em 2026-05-19.
 - App Android motoboy possui rotulos testados para acoes de disponibilidade e GPS, evitando botoes ambiguos como dois "Pausar" no mesmo painel.
 - Base de notificacoes FCM iniciada: tabela `CourierDeviceToken`, endpoint protegido de cadastro de token e registro automatico do token pelo app Android ao entrar como motoboy.
 - App motoboy atualiza o token FCM no backend quando o Firebase gera um novo token.
-- API possui servico server-side de push FCM com Firebase Admin SDK, desativacao de tokens invalidos, envio no cancelamento quando `notifyCourier` estiver ativo e aviso de nova entrega disponivel para motoboys disponiveis com alocacao ativa na loja.
+- API possui servico server-side de push FCM com Firebase Admin SDK, desativacao de tokens invalidos, envio no cancelamento quando `notifyCourier` estiver ativo e aviso de nova entrega disponivel para motoboys disponiveis com alocacao ativa na loja; a escolha de praca feita no app ainda nao persiste no banco para direcionar push server-side apos reinicio da API.
 - Scheduler interno da API processa entregas agendadas cujo `earliestDispatchAt` chegou, dispara notificacao de nova entrega e registra evento `NOTIFICACAO_ENVIADA` para evitar duplicidade.
 - Endpoint administrativo `GET /notifications/summary` consolida configuracao push, tokens ativos/inativos e envios recentes auditados.
 - Painel admin possui monitoramento de notificacoes push com status do Firebase Admin, worker, tokens e falhas recentes.
@@ -256,6 +269,7 @@ Atualizado em 2026-05-19.
 - Monitoramento de notificacoes push mostra contagem de eventos visiveis/carregados e possui acao para limpar filtros.
 - Monitoramento de notificacoes push exibe tokens por plataforma de forma agregada, sem expor valores de token.
 - Monitoramento de notificacoes push exibe dispositivos por motoboy com plataforma, base, status e ultimo contato, sem retornar token FCM/Web Push.
+- Registro de token FCM/Web Push sanitiza erros antes de logar, evitando vazar token, query, body, stack ou mensagem sensivel em logs.
 - CSV do monitoramento de notificacoes registra contexto de exportacao com horario, filtros aplicados e contagem visivel/carregada.
 - CSV do monitoramento de notificacoes inclui dispositivos por motoboy sem expor token de dispositivo.
 - App motoboy possui canal Android `deliveries`, `FirebaseMessagingService` e exibicao local de notificacao de nova entrega/cancelamento/atualizacao.
@@ -279,9 +293,10 @@ Atualizado em 2026-05-19.
 - Funcoes criticas e helpers compartilhados de API, admin, PWA e Android receberam comentarios claros de regra/contrato para orientar manutencao sem poluir logica trivial.
 - Rotas grandes da API receberam comentarios de manutencao em escopo de lojas, notificacoes, relatorios de entrega, permissoes, transicoes, rotas e comprovantes.
 - Rotas de usuarios, alocacoes, motoboys, dispositivos, geocodificacao e pre-rotas tambem receberam comentarios de regra e contrato, mantendo validacao automatizada verde.
-- Painel admin/loja permite imprimir comanda operacional de entrega em formato termico 80mm ou 58mm pelo dialogo de impressao do navegador, aproveitando impressoras termicas USB ou de rede instaladas no Windows.
+- Painel admin/loja permite imprimir comanda operacional de entrega em formato termico 80mm fixo pelo dialogo de impressao do navegador, aproveitando impressoras termicas USB ou de rede instaladas no Windows.
+- Comanda operacional foi fixada em 80mm, com blocos leves e sobra pequena inferior para reduzir risco de corte sobre o conteudo.
 - Formulario de criacao de entrega permite marcar impressao automatica da comanda logo apos lancar, usando o `publicCode` retornado pela API.
-- Preferencia de impressao automatica e largura da comanda ficam salvas no navegador da maquina da loja, com aviso quando pop-up de impressao for bloqueado.
+- Preferencia de impressao automatica fica salva no navegador da maquina da loja, com aviso quando pop-up de impressao for bloqueado.
 - Numeracao diaria por loja modelada no backend: cada entrega passa a guardar data/numero da loja no dia e usar codigo publico no formato `LOJA-AAAAMMDD-001`.
 - Fila do admin/loja e comanda termica exibem o numero diario da loja separado do codigo completo, facilitando chamada e conferencia no balcao.
 - PWA iPhone e app Android do motoboy tambem exibem o numero diario da loja nas entregas e paradas de rota quando a API envia `storeDailyNumber`, mantendo o codigo completo como detalhe/fallback.
@@ -290,8 +305,10 @@ Atualizado em 2026-05-19.
 - Testes da API cobrem o normalizador de respostas de acoes operacionais com numeracao diaria por loja, preservando `publicCode`, `storeDailyDate` e `storeDailyNumber`.
 - Validacao geral apos o contrato da numeracao diaria passou em admin, API, PWA motoboy e Android motoboy.
 - Exportacao CSV server-side e fallback local do relatorio operacional incluem codigo completo, data da numeracao e numero diario da loja.
-- Migration local `supabase/migrations/20260517143000_delivery_daily_sequence.sql` criada para adicionar contador diario por loja, backfill dos registros existentes e indices de unicidade.
-- SQL consolidado `database/full-setup.sql` e snapshot `docs/database-schema.sql` regenerados apos a numeracao diaria por loja, mantendo os arquivos locais de schema atualizados.
+- Bloco de numeracao diaria por loja incorporado ao `database/schema-full.sql`, adicionando contador diario por loja, backfill dos registros existentes e indices de unicidade.
+- SQL consolidado `database/schema-full.sql` e snapshot `docs/database-schema.sql` regenerados apos a numeracao diaria por loja, mantendo os arquivos locais de schema atualizados.
+- `database/schema-full.sql` contem schema, migrations, seeds, policies, realtime e comentarios SQL em um unico arquivo; nao e necessario rodar seeds/policies/realtime separados logo apos ele.
+- Comentarios SQL das tabelas centralizados em `database/schema-full.sql`, documentando finalidade, uso no codigo, RLS e cuidados operacionais.
 - PWA iPhone abre a rota no Google Maps seguindo a sequencia de paradas pendentes, com origem na localizacao atual, ultima parada como destino e paradas anteriores como waypoints.
 - PWA iPhone limita waypoints enviados ao Google Maps e mantem URL segura quando nao ha paradas pendentes.
 - PWA iPhone divide rotas longas em um trecho continuo compativel com o limite de waypoints do Google Maps, monta a URL a partir do trecho ja calculado e informa quantas paradas ficam para depois com texto gerado por helper testado.
@@ -305,12 +322,13 @@ Atualizado em 2026-05-19.
 - PWA iPhone possui toggle de GPS automatico enquanto o app estiver aberto, com envio limitado por tempo/deslocamento para reduzir uso de bateria e chamadas.
 - PWA iPhone possui atualizacao automatica a cada 30 segundos enquanto aberto e notificacao local para nova entrega disponivel ou alteracao de entrega em atendimento.
 - PWA iPhone preparado para registrar token Web Push do Firebase Messaging quando `VITE_FIREBASE_WEB_PUSH_VAPID_KEY` estiver configurada e o navegador suportar.
+- PWA iPhone le a configuracao Firebase Web por variaveis `VITE_FIREBASE_*`, sem chave hardcoded no codigo, e so tenta registrar Web Push quando VAPID e config minima estao completas.
 - PWA iPhone limpa token local de Web Push, GPS automatico e dados operacionais ao sair ou quando a sessao expira, permitindo recadastro correto se outro motoboy usar o mesmo aparelho.
 - PWA iPhone tambem exige disponibilidade ativa para receber notificacoes locais de novas corridas, aceitar entregas e ligar GPS automatico.
 - PWA iPhone bloqueia retomada automatica do GPS salvo localmente quando o motoboy entra indisponivel.
-- `google-services.json` copiado para `apps/motoboy/app/google-services.json`.
+- `google-services.json` deve existir apenas localmente em `apps/motoboy/app/google-services.json` e nao deve ser versionado.
 - JDK 26 localizado em `C:\Program Files\Microsoft\jdk-26.0.1`, mas nao adotado no Gradle porque falhou no `jlink` com Android SDK 36; build validado com JBR do Android Studio.
-- Firebase Hosting web preparado para o painel admin com target `drogstoantonio`.
+- Firebase Hosting web preparado para o painel admin com target `farmadelivery-admin`.
 - Docker de desenvolvimento criado e validado para subir API, admin e PWA motoboy juntos via `docker compose`, mantendo secrets fora da imagem e usando `env/*.env` em runtime.
 - Ambiente Docker validado com API, admin e PWA motoboy `healthy`, URLs locais respondendo `200 OK` e testes de API/admin/PWA executados dentro dos containers.
 
@@ -338,9 +356,7 @@ Atualizado em 2026-05-19.
 - Envio FCM server-side depende de credencial Firebase Admin no backend (`FIREBASE_SERVICE_ACCOUNT_JSON`, `FIREBASE_SERVICE_ACCOUNT_BASE64`, trio `FIREBASE_PROJECT_ID`/`FIREBASE_CLIENT_EMAIL`/`FIREBASE_PRIVATE_KEY`, ou `GOOGLE_APPLICATION_CREDENTIALS`).
 - Realtime no browser depende de policies RLS compativeis.
 - A conexao direta Prisma ainda deve preferir o Supabase pooler no `DATABASE_URL`; no estado atual, a API esta operando via fallback REST para o banco remoto.
-- O SQL consolidado deve ser regenerado com `npm run db:sql:full` quando houver mudanca de schema/migration.
-- A migration `supabase/migrations/20260515041000_assignments.sql` deve ser aplicada no Supabase antes de usar alocacoes temporarias.
-- A migration `supabase/migrations/20260515052000_courier_device_tokens.sql` deve ser aplicada no Supabase antes de registrar tokens FCM dos motoboys.
-- A migration `supabase/migrations/20260515054000_delivery_notification_event.sql` deve ser aplicada no Supabase antes de auditar notificacoes com `NOTIFICACAO_ENVIADA`.
-- A migration `supabase/migrations/20260515193000_delivery_proofs.sql` deve ser aplicada no Supabase antes de usar comprovantes fotograficos de entrega.
-- A migration `supabase/migrations/20260517120000_delivery_deadline_tier.sql` deve ser aplicada no Supabase antes de usar prazo manual por entrega no painel.
+- `database/schema-full.sql` deve ser mantido como arquivo canonico unificado, contendo schema, dados iniciais, policies, realtime e comentarios.
+- O SQL unificado deve prevenir duplicidades/erros por existencia com `IF NOT EXISTS`, `DROP POLICY IF EXISTS`, `CREATE OR REPLACE` ou blocos `DO $$`, mantendo os nomes existentes usados pelo Prisma/API.
+- Toda nova tabela ou mudanca relevante de acesso deve atualizar os `COMMENT ON TABLE` em `database/schema-full.sql` com finalidade, uso no codigo, RLS e cuidados operacionais.
+- Os SQLs incrementais antigos foram incorporados ao `database/schema-full.sql` e removidos para evitar duplicidade operacional.

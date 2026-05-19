@@ -5,6 +5,7 @@ export const DELIVERY_PROOF_BASE64_MAX_LENGTH = Math.ceil(DELIVERY_PROOF_MAX_BYT
 export const DELIVERY_PROOF_UPLOAD_BODY_LIMIT_BYTES = 6 * 1024 * 1024;
 
 export const DELIVERY_DEADLINE_TIERS = ["PERTO", "MEDIO", "LONGE"] as const;
+export const COURIER_SERVICE_AREAS = ["ASTURIAS", "PEREQUE"] as const;
 export const DELIVERY_DEADLINE_WINDOWS_MINUTES = {
   PERTO: { warning: 60, critical: 90 },
   MEDIO: { warning: 90, critical: 120 },
@@ -146,9 +147,16 @@ export const createDeliveryWithCustomerSchema = z.object({
   earliestDispatchAt: z.string().datetime().optional(),
 });
 
+export const courierServiceAreaSchema = z.enum(COURIER_SERVICE_AREAS);
+
+export const deliveryListQuerySchema = z.object({
+  serviceArea: courierServiceAreaSchema.optional(),
+});
+
 export const acceptDeliverySchema = z.object({
   deliveryId: uuidSchema,
   courierId: uuidSchema,
+  serviceArea: courierServiceAreaSchema.optional(),
 });
 
 // Contrato unico para coletar, sair em rota e entregar.

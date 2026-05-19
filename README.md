@@ -30,7 +30,7 @@ No fluxo operacional, o computador da loja usa um login da propria unidade. Ao c
 - `apps/api`: API HTTP, autenticacao, permissoes, entregas, relatorios, geocodificacao, rotas e integracoes com Supabase.
 - `apps/admin`: painel administrativo web para operacao, cadastros, relatorios, lojas, usuarios e acompanhamento.
 - `apps/motoboy`: aplicativo Android/Gradle para fluxo do motoboy, entregas, eventos de localizacao e push.
-- `packages/shared`: tipos, schemas, validacoes e contratos compartilhados entre API, admin e mobile.
+- `apps/motoboy-pwa`: PWA React/Vite para fluxo do motoboy em iPhone/browser.
 
 ## Perfis e permissoes
 
@@ -52,7 +52,7 @@ O cadastro de balconistas/caixas serve para registrar quem criou ou conferiu uma
 
 ## Banco e dados
 
-O projeto usa Supabase/PostgreSQL com Prisma como camada de schema e acesso. Migrations, scripts e documentacao tecnica ficam no repositorio, mas dados reais de lojas, coordenadas, enderecos, chaves e credenciais devem permanecer fora do README.
+O projeto usa Supabase/PostgreSQL com Prisma como camada de schema e acesso. O SQL canonico para preparar ou realinhar o banco fica em `database/schema-full.sql`; dados reais de lojas, coordenadas, enderecos, chaves e credenciais devem permanecer fora do README.
 
 Coordenadas de loja, quando necessarias, devem ser tratadas como dados de cadastro ou ambiente operacional, nao como informacao publica de documentacao.
 
@@ -78,12 +78,10 @@ FarmaDelivery/
     api/        API Fastify, Prisma, Supabase e regras de negocio
     admin/      Painel web React/Vite para administracao e operacao
     motoboy/    Aplicativo Android/Kotlin do motoboy
-  packages/
-    shared/     Tipos, schemas e contratos compartilhados
+    motoboy-pwa/ PWA React/Vite do motoboy
   docs/         Documentacao tecnica, checklists e guias de implementacao
-  database/     Scripts SQL e referencias de banco
+  database/     SQL canonico e referencias de banco
   scripts/      Automacoes e utilitarios do projeto
-  supabase/     Configuracao local e migrations do Supabase
 ```
 
 ## Comandos principais
@@ -122,10 +120,12 @@ npm run build -w apps/admin
 
 ## Documentacao complementar
 
+- `docs/README.md`: indice canonico da documentacao tecnica.
+- `docs/engineering-guidelines.md`: regras de engenharia, seguranca, Supabase e manutencao.
+- `docs/architecture.md`: arquitetura atual do monorepo.
+- `docs/supabase.md`: setup Supabase e uso do SQL canonico.
 - `docs/implementation-checklist.md`: checklist de implementacao e validacao.
-- `README_TECNICO.md`: detalhes tecnicos e operacionais.
-- `ESTRUTURA.md`: mapa expandido do repositorio.
-- `MOBILE_SUMMARY.md`: resumo do aplicativo Android.
-- `SUPABASE_REST.md`: notas de integracao Supabase REST.
+- `docs/operational-contracts.md`: contratos entre API, admin, Android e PWA.
+- `docs/lgpd.md`: privacidade, retencao e cuidados com dados pessoais.
 
 Ao atualizar a documentacao, mantenha o README como visao publica e objetiva do projeto. Detalhes sensiveis ou operacionais devem ficar em arquivos locais, ambiente seguro ou documentacao interna controlada.

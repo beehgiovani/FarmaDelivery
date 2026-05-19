@@ -13,7 +13,7 @@ test("builds an 80mm thermal receipt with delivery data", () => {
   assert.match(html, /ENT-0001/);
   assert.doesNotMatch(html, /uuid-1/);
   assert.match(html, /Maria/);
-  assert.match(html, /Av dos Caicaras, 1171/);
+  assert.match(html, /Av. dos Caicaras, 1171 - Asturias/);
   assert.match(html, /Produtos:/);
   assert.match(html, /window\.print/);
 });
@@ -36,6 +36,21 @@ test("shows store daily number when delivery already has the daily sequence", ()
   assert.match(html, /009/);
 });
 
+test("prints payment and operational notes on the receipt", () => {
+  const html = buildThermalReceiptHtml(
+    makeDelivery({
+      notes: "Pagamento: Dinheiro - troco para R$ 100\nLigar ao chegar",
+    }),
+  );
+
+  assert.match(html, /Pagamento\/obs\./);
+  assert.match(html, /Pagamento: Dinheiro - troco para R\$ 100/);
+  assert.match(html, /Ligar ao chegar/);
+  assert.match(html, /white-space: pre-wrap/);
+  assert.match(html, /receiptBlock/);
+  assert.match(html, /padding-bottom: 6mm/);
+});
+
 test("escapes receipt values before writing printable html", () => {
   const html = buildThermalReceiptHtml(
     makeDelivery({
@@ -56,7 +71,7 @@ function makeDelivery(overrides: Partial<Delivery> = {}): Delivery {
     store: "Asturias",
     customer: "Maria",
     phone: "(13) 99999-0000",
-    address: "Av dos Caicaras, 1171",
+    address: "Av. dos Caicaras, 1171 - Asturias",
     status: "Aguardando",
     courier: "Sem motoboy",
     createdAt: "17/05, 09:00",

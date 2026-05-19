@@ -9,7 +9,20 @@ export function normalizeDeliveryPhoneInput(value: string) {
   const digits = value.replace(/\D/g, "").slice(0, 11);
   if (digits.length < 8) return digits;
 
-  const fullDigits = digits.length <= 9 ? `${defaultAreaCode}${digits}` : digits;
+  let fullDigits = digits;
+
+  if (digits.length === 8) {
+    if (digits.startsWith("9")) {
+      return digits;
+    } else if (!digits.startsWith("0") && !digits.startsWith("1") && digits[2] !== "9") {
+      fullDigits = `${defaultAreaCode}${digits}`;
+    }
+  } else if (digits.length === 9) {
+    if (digits.startsWith("9")) {
+      fullDigits = `${defaultAreaCode}${digits}`;
+    }
+  }
+
   const areaCode = fullDigits.slice(0, 2);
   const localNumber = fullDigits.slice(2);
 

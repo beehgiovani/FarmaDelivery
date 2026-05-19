@@ -54,7 +54,7 @@ function makeDelivery(overrides: Partial<Delivery> = {}): Delivery {
     store: "Asturias",
     customer: "Maria",
     phone: "(13) 99999-0000",
-    address: "Av dos Caicaras, 1171",
+    address: "Av. dos Caicaras, 1171 - Asturias",
     status: "Entregue",
     courier: "Joao",
     createdAt: "16/05, 10:00",

@@ -12,7 +12,6 @@
     "test": "npm run test -w apps/admin && npm run test -w apps/api && npm run test -w apps/motoboy-pwa",
     "admin:reset-password": "npm run admin:reset-password -w apps/api --",
     "db:schema:snapshot": "node scripts/snapshot-db-schema.mjs",
-    "db:sql:full": "node scripts/build-full-sql.mjs",
     "deploy:admin": "npm run build -w apps/admin && firebase deploy --only hosting:drogstoantonio",
     "dev:admin": "npm run dev -w apps/admin",
     "dev:api": "npm run dev -w apps/api",

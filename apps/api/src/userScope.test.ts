@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   courierListScopeRestFilter,
   courierListScopeWhere,
+  safeDeviceTokenLogError,
   userListScopeRestFilter,
   userListScopeWhere,
 } from "./routes/users";
@@ -58,7 +59,7 @@ test("builds courier list scope for store logins with active store assignments",
       "&CourierStoreAssignment.storeId=in.(store-1,store-2)" +
       "&CourierStoreAssignment.active=eq.true" +
       "&CourierStoreAssignment.startsAt=lte.2026-05-16T12:00:00.000Z" +
-      "&or=(CourierStoreAssignment.endsAt.is.null,CourierStoreAssignment.endsAt.gte.2026-05-16T12:00:00.000Z)",
+      "&CourierStoreAssignment.or=(endsAt.is.null,endsAt.gte.2026-05-16T12:00:00.000Z)",
   });
 });
 
@@ -89,5 +90,32 @@ test("uses a no-courier sentinel for store logins without active store scope", (
   assert.deepEqual(courierListScopeRestFilter({ role: "GERENTE" }, [], now), {
     select: "",
     filter: "&id=eq.__no_courier_scope__",
+  });
+});
+
+test("sanitizes courier device token registration errors before logging", () => {
+  const rawToken = "fcm-token-that-must-not-appear-in-logs";
+  const safe = safeDeviceTokenLogError({
+    name: "SupabaseRestError",
+    code: "PGRST000",
+    status: 400,
+    message: `request failed for token ${rawToken}`,
+    query: `token=eq.${rawToken}`,
+    body: {
+      token: rawToken,
+    },
+    stack: `Error: ${rawToken}`,
+  });
+
+  const serialized = JSON.stringify(safe);
+  assert.equal(serialized.includes(rawToken), false);
+  assert.equal(serialized.includes("message"), false);
+  assert.equal(serialized.includes("query"), false);
+  assert.equal(serialized.includes("body"), false);
+  assert.equal(serialized.includes("stack"), false);
+  assert.deepEqual(safe, {
+    name: "SupabaseRestError",
+    code: "PGRST000",
+    status: 400,
   });
 });

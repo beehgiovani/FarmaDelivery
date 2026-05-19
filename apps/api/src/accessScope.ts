@@ -1,5 +1,6 @@
 import { prisma } from "./prisma";
 import type { Prisma } from "@prisma/client";
+import type { COURIER_SERVICE_AREAS } from "./contracts";
 import { canUseSupabaseRest, supabaseRest } from "./supabaseRest";
 
 export type StoreScopedSession = {
@@ -14,6 +15,8 @@ export type DeliveryScopedSession = {
   storeId?: string | null;
   courierId?: string | null;
 };
+
+export type CourierServiceArea = (typeof COURIER_SERVICE_AREAS)[number];
 
 /** Identifica o login operacional da loja. Admin permanece como visao geral. */
 export function isStoreLoginRole(role: string) {
@@ -90,6 +93,43 @@ export async function resolveCourierStoreScope(session: StoreScopedSession) {
   }
 
   return [...storeIds];
+}
+
+/** Resolve a praca escolhida pelo motoboy no app, sem depender de alocacao administrativa. */
+export async function resolveCourierServiceAreaStoreScope(serviceArea?: CourierServiceArea | null) {
+  if (!serviceArea) return null;
+
+  try {
+    const stores = await prisma.store.findMany({
+      select: {
+        id: true,
+        name: true,
+      },
+    });
+    return stores.filter((store) => storeMatchesCourierServiceArea(store.name, serviceArea)).map((store) => store.id);
+  } catch {
+    if (canUseSupabaseRest()) {
+      const stores = await supabaseRest<Array<{ id: string; name: string }>>("Store", {
+        query: "select=id,name",
+      });
+      return stores.filter((store) => storeMatchesCourierServiceArea(store.name, serviceArea)).map((store) => store.id);
+    }
+  }
+
+  return [];
+}
+
+export function storeMatchesCourierServiceArea(storeName: string, serviceArea: CourierServiceArea) {
+  const normalized = normalizeStoreName(storeName);
+  const isDedicatedStore = normalized.includes("pereque");
+  return serviceArea === "PEREQUE" ? isDedicatedStore : !isDedicatedStore;
+}
+
+function normalizeStoreName(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
 }
 
 /** Confere acesso quando null significa perfil sem restricao de loja. */

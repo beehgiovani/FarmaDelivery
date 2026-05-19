@@ -54,6 +54,11 @@ private enum class DeliveryListSection {
   Active,
 }
 
+private enum class CourierServiceArea(val value: String, val label: String, val summary: String) {
+    Asturias("ASTURIAS", "Praca Asturias", "Todas as lojas, exceto Pereque"),
+    Pereque("PEREQUE", "Praca Pereque", "Somente Pereque"),
+}
+
 @Composable
 fun DeliveriesScreen(
   session: AuthSession,
@@ -67,6 +72,7 @@ fun DeliveriesScreen(
   var loading by remember { mutableStateOf(true) }
   var error by remember { mutableStateOf<String?>(null) }
   var selectedSection by remember { mutableStateOf(DeliveryListSection.Available) }
+  var serviceArea by remember { mutableStateOf(CourierServiceArea.Asturias) }
   var lastSyncedAt by remember { mutableStateOf<Instant?>(null) }
 
   fun refresh() {
@@ -74,7 +80,7 @@ fun DeliveriesScreen(
       loading = true
       error = null
       try {
-        deliveries = deliveryRepository.list()
+        deliveries = deliveryRepository.list(serviceArea.value)
         lastSyncedAt = Instant.now()
       } catch (failure: Exception) {
         error = failure.message ?: "Nao foi possivel carregar entregas."
@@ -84,7 +90,7 @@ fun DeliveriesScreen(
     }
   }
 
-  LaunchedEffect(Unit) {
+  LaunchedEffect(serviceArea) {
     refresh()
   }
 
@@ -116,6 +122,16 @@ fun DeliveriesScreen(
 
       Spacer(Modifier.height(16.dp))
 
+      ServiceAreaSelector(
+        serviceArea = serviceArea,
+        onSelected = { nextArea ->
+          serviceArea = nextArea
+          deliveries = emptyList()
+        },
+      )
+
+      Spacer(Modifier.height(16.dp))
+
       when {
         loading -> LoadingState("Carregando entregas...")
         error != null -> ErrorState(
@@ -143,6 +159,7 @@ fun DeliveriesScreen(
                 deliveries = sections.available,
                 courierId = session.courier?.id,
                 available = available,
+                serviceArea = serviceArea.value,
                 onAvailabilityChanged = onAvailabilityChanged,
                 onAccepted = { refresh() },
                 repository = deliveryRepository,
@@ -154,10 +171,43 @@ fun DeliveriesScreen(
                 deliveries = sections.active,
                 courierId = session.courier?.id,
                 available = available,
+                serviceArea = serviceArea.value,
                 onAvailabilityChanged = onAvailabilityChanged,
                 onAccepted = { refresh() },
                 repository = deliveryRepository,
               )
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+@Composable
+private fun ServiceAreaSelector(
+  serviceArea: CourierServiceArea,
+  onSelected: (CourierServiceArea) -> Unit,
+) {
+  Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+    Column(
+      verticalArrangement = Arrangement.spacedBy(8.dp),
+      modifier = Modifier
+        .fillMaxWidth()
+        .padding(12.dp),
+    ) {
+      Text("Praca de atendimento", style = MaterialTheme.typography.titleSmall)
+      Text(serviceArea.label, style = MaterialTheme.typography.bodyLarge)
+      Text(serviceArea.summary, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+      Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+        CourierServiceArea.entries.forEach { area ->
+          if (serviceArea == area) {
+            Button(modifier = Modifier.weight(1f), onClick = { onSelected(area) }) {
+              Text(area.label.removePrefix("Praca "))
+            }
+          } else {
+            OutlinedButton(modifier = Modifier.weight(1f), onClick = { onSelected(area) }) {
+              Text(area.label.removePrefix("Praca "))
             }
           }
         }
@@ -203,6 +253,7 @@ private fun DeliverySectionList(
   deliveries: List<DeliveryDto>,
   courierId: String?,
   available: Boolean,
+  serviceArea: String,
   onAvailabilityChanged: (Boolean) -> Unit,
   repository: DeliveryRepository,
   onAccepted: () -> Unit,
@@ -221,6 +272,7 @@ private fun DeliverySectionList(
         delivery = delivery,
         courierId = courierId,
         available = available,
+        serviceArea = serviceArea,
         onAvailabilityChanged = onAvailabilityChanged,
         onAccepted = onAccepted,
         repository = repository,
@@ -265,6 +317,7 @@ private fun DeliveryCard(
   delivery: DeliveryDto,
   courierId: String?,
   available: Boolean,
+  serviceArea: String,
   onAvailabilityChanged: (Boolean) -> Unit,
   repository: DeliveryRepository,
   onAccepted: () -> Unit,
@@ -302,7 +355,7 @@ private fun DeliveryCard(
       historyLoading = true
       historyError = null
       try {
-        events = repository.events(delivery.id)
+        events = repository.events(delivery.id, serviceArea)
         historyLoaded = true
       } catch (failure: Exception) {
         historyError = failure.message ?: "Nao foi possivel carregar o historico."
@@ -333,6 +386,21 @@ private fun DeliveryCard(
       Text(delivery.customer, style = MaterialTheme.typography.bodyLarge)
       Text(delivery.phone, style = MaterialTheme.typography.bodySmall)
       Text(delivery.address, style = MaterialTheme.typography.bodyMedium)
+      delivery.notes?.trim()?.takeIf { it.isNotEmpty() }?.let { notes ->
+        Surface(
+          color = MaterialTheme.colorScheme.secondaryContainer,
+          contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+          modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 6.dp),
+        ) {
+          Text(
+            text = notes,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(8.dp),
+          )
+        }
+      }
       Text("${delivery.store} - ${deliveryStatusLabel(delivery.status)}", style = MaterialTheme.typography.bodySmall)
       Text(deliveryCardDateLabel(delivery.earliestDispatchAt ?: delivery.createdAt), style = MaterialTheme.typography.bodySmall)
 
@@ -407,7 +475,7 @@ private fun DeliveryCard(
               submitting = true
               actionError = null
               try {
-                repository.accept(delivery.id, acceptingCourierId)
+                repository.accept(delivery.id, acceptingCourierId, serviceArea)
                 markHistoryStale()
                 onAvailabilityChanged(false)
                 onAccepted()

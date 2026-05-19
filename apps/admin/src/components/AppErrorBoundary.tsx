@@ -19,7 +19,7 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error("FarmaDelivery UI error", error, info.componentStack);
+    console.error("Drogaria Santo Antonio UI error", error, info.componentStack);
   }
 
   render() {

@@ -1,4 +1,5 @@
 import type { AuthSession, CourierRoute, Delivery, DeliveryEvent, DeliveryMutationResponse, DeliveryProof } from "./types";
+import type { CourierServiceArea } from "./serviceAreas";
 
 const API_URL = import.meta.env.VITE_API_URL ?? defaultApiUrl();
 
@@ -39,8 +40,9 @@ export async function fetchCurrentSession(token: string): Promise<AuthSession> {
   return readPayload(response) as Promise<AuthSession>;
 }
 
-export async function fetchDeliveries(): Promise<Delivery[]> {
-  const response = await fetch(`${API_URL}/deliveries`, {
+export async function fetchDeliveries(serviceArea?: CourierServiceArea): Promise<Delivery[]> {
+  const query = serviceArea ? `?serviceArea=${encodeURIComponent(serviceArea)}` : "";
+  const response = await fetch(`${API_URL}/deliveries${query}`, {
     headers: authHeaders(),
   });
   return readPayload(response) as Promise<Delivery[]>;
@@ -53,14 +55,19 @@ export async function fetchCourierRoutes(): Promise<CourierRoute[]> {
   return readPayload(response) as Promise<CourierRoute[]>;
 }
 
-export async function fetchDeliveryEvents(deliveryId: string): Promise<DeliveryEvent[]> {
-  const response = await fetch(`${API_URL}/deliveries/${deliveryId}/events`, {
+export async function fetchDeliveryEvents(deliveryId: string, serviceArea?: CourierServiceArea): Promise<DeliveryEvent[]> {
+  const query = serviceArea ? `?serviceArea=${encodeURIComponent(serviceArea)}` : "";
+  const response = await fetch(`${API_URL}/deliveries/${deliveryId}/events${query}`, {
     headers: authHeaders(),
   });
   return readPayload(response) as Promise<DeliveryEvent[]>;
 }
 
-export async function acceptDelivery(input: { deliveryId: string; courierId: string }): Promise<DeliveryMutationResponse> {
+export async function acceptDelivery(input: {
+  deliveryId: string;
+  courierId: string;
+  serviceArea?: CourierServiceArea;
+}): Promise<DeliveryMutationResponse> {
   return postDeliveryAction("accept", input);
 }
 

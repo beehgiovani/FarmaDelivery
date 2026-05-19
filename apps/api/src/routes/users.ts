@@ -385,7 +385,7 @@ export async function userRoutes(app: FastifyInstance) {
 
       return mapCourierDeviceToken(deviceToken);
     } catch (error) {
-      app.log.error({ error }, "courier device token register error");
+      app.log.error({ error: safeDeviceTokenLogError(error) }, "courier device token register error");
       if (canUseSupabaseRest()) {
         try {
           const existingTokens = await supabaseRest<any[]>("CourierDeviceToken", {
@@ -419,7 +419,7 @@ export async function userRoutes(app: FastifyInstance) {
           if (!token) throw new Error("Courier device token was not returned.");
           return mapSupabaseCourierDeviceToken(token);
         } catch (restError) {
-          app.log.error({ error: restError }, "courier device token register supabase rest error");
+          app.log.error({ error: safeDeviceTokenLogError(restError) }, "courier device token register supabase rest error");
         }
       }
 
@@ -785,7 +785,7 @@ export async function userRoutes(app: FastifyInstance) {
             data: {
               courierId: courier.id,
               storeId: user.storeId,
-              kind: user.store?.baseType === "DEDICADA" ? "DEDICADA" : "COBERTURA",
+          kind: user.store?.baseType === "DEDICADA" ? "DEDICADA" : "COBERTURA",
               reason: "Vinculo inicial definido no cadastro do motoboy.",
             },
           });
@@ -1060,6 +1060,23 @@ function mapSupabaseCourierDeviceToken(token: any) {
   };
 }
 
+/** Reduz erros de registro FCM/Web Push a metadados seguros, sem token, query, body, stack ou message. */
+export function safeDeviceTokenLogError(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return { type: typeof error };
+  }
+
+  const record = error as Record<string, unknown>;
+  const safe: Record<string, string | number> = {};
+
+  if (typeof record.name === "string") safe.name = record.name;
+  if (typeof record.code === "string" || typeof record.code === "number") safe.code = record.code;
+  if (typeof record.statusCode === "number") safe.statusCode = record.statusCode;
+  if (typeof record.status === "number") safe.status = record.status;
+
+  return Object.keys(safe).length > 0 ? safe : { type: "object" };
+}
+
 /** Completa usuario e loja depois de criar alocacao via REST, que nem sempre retorna relacionamentos. */
 async function hydrateUserAssignment(assignment: any) {
   const [users, stores] = await Promise.all([
@@ -1205,7 +1222,7 @@ async function createUserWithSupabaseRest(data: typeof createUserSchema._output)
         body: {
           courierId: courier.id,
           storeId: store.id,
-          kind: store.baseType === "DEDICADA" ? "DEDICADA" : "COBERTURA",
+    kind: store.baseType === "DEDICADA" ? "DEDICADA" : "COBERTURA",
           reason: "Vinculo inicial definido no cadastro do motoboy.",
         },
       });
@@ -1283,7 +1300,7 @@ export function courierListScopeRestFilter(
       `&${storeFilter}` +
       "&CourierStoreAssignment.active=eq.true" +
       `&CourierStoreAssignment.startsAt=lte.${now.toISOString()}` +
-      `&or=(CourierStoreAssignment.endsAt.is.null,CourierStoreAssignment.endsAt.gte.${now.toISOString()})`,
+      `&CourierStoreAssignment.or=(endsAt.is.null,endsAt.gte.${now.toISOString()})`,
   };
 }
 

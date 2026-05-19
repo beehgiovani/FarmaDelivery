@@ -1,17 +1,19 @@
 import type { FormEvent, ReactNode } from "react";
 import { useMemo, useState } from "react";
-import { LocateFixed, MapPin, Phone, Printer, Search, UserRound } from "lucide-react";
+import { LocateFixed, MapPin, MapPinned, Phone, Printer, Search, UserRound } from "lucide-react";
 import { createDelivery, geocodeAddress, lookupCustomerByPhone, type CreatedDeliveryResult } from "../api";
 import { apiDeadlineTierFromDeliveryDeadlineTier, mapDeliveryDeadlineTier, mapDeliveryPriority, mapDeliveryStatus } from "../apiMappers";
 import { hasEnoughDeliveryPhoneDigits, normalizeDeliveryPhoneInput } from "../deliveryPhone";
+import {
+  buildDeliveryNotesWithPayment,
+  formatBrazilianMoneyInput,
+  type CashChangeMode,
+  type DeliveryPaymentMethod,
+} from "../deliveryPaymentNotes";
 import { buildDeliveryScheduleSuggestion, type DeliveryScheduleMode } from "../deliverySchedule";
 import { userFacingError } from "../userMessages";
-import {
-  printThermalReceipt,
-  readThermalReceiptPaperWidthPreference,
-  saveThermalReceiptPaperWidthPreference,
-  type ThermalReceiptPaperWidth,
-} from "../thermalReceipt";
+import { MapPicker } from "./MapPicker";
+import { printThermalReceipt } from "../thermalReceipt";
 import type { CustomerAddress, CustomerLookup, Delivery, DeliveryDeadlineTier, GeocodeResult, StoreUnit, TeamUser } from "../types";
 
 type DeliveryFormProps = {
@@ -33,6 +35,10 @@ type FormState = {
   scheduleMode: DeliveryScheduleMode;
   earliestDispatchAt: string;
   deadlineTier: DeliveryDeadlineTier;
+  orderValue: string;
+  paymentMethod: DeliveryPaymentMethod;
+  cashChangeMode: CashChangeMode;
+  cashChangeFor: string;
   attendantName: string;
   storeName: string;
   redirectTo: string;
@@ -53,6 +59,10 @@ const initialForm: FormState = {
   scheduleMode: "agora",
   earliestDispatchAt: "",
   deadlineTier: "Medio",
+  orderValue: "",
+  paymentMethod: "CARTAO",
+  cashChangeMode: "SEM_TROCO",
+  cashChangeFor: "",
   attendantName: "",
   storeName: "",
   redirectTo: "Manter loja origem",
@@ -71,9 +81,9 @@ export function DeliveryForm({ stores, redirectStores = stores, attendants = [],
   const [geocodeState, setGeocodeState] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [submitState, setSubmitState] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [printAfterCreate, setPrintAfterCreate] = useState(() => readPrintAfterCreatePreference());
-  const [receiptPaperWidth, setReceiptPaperWidth] = useState<ThermalReceiptPaperWidth>(() => readThermalReceiptPaperWidthPreference());
   const [scheduleEdited, setScheduleEdited] = useState(false);
   const [feedback, setFeedback] = useState<string>("");
+  const [showMapPicker, setShowMapPicker] = useState(false);
 
   const selectedStore = useMemo(
     () => stores.find((store) => store.name === (form.storeName || stores[0]?.name)),
@@ -106,8 +116,15 @@ export function DeliveryForm({ stores, redirectStores = stores, attendants = [],
 
   async function submitDelivery({ skipGeocode }: { skipGeocode: boolean }) {
     if (!selectedStore?.id || !canSubmit) {
+      const missing = [];
+      if (!hasEnoughDeliveryPhoneDigits(form.phone)) missing.push("telefone");
+      if (!form.customerName.trim()) missing.push("nome do cliente");
+      if (!form.street.trim()) missing.push("endereco");
+      if (!form.number.trim()) missing.push("numero");
+      if (!selectedStore?.id) missing.push("loja de origem");
+
       setSubmitState("error");
-      setFeedback("Preencha telefone, nome, endereco, numero e a loja de origem.");
+      setFeedback(`Preencha os campos obrigatorios: ${missing.join(", ")}.`);
       return;
     }
 
@@ -133,7 +150,13 @@ export function DeliveryForm({ stores, redirectStores = stores, attendants = [],
         coordinates: deliveryCoordinates,
         priority: "NORMAL",
         deadlineTier: apiDeadlineTierFromDeliveryDeadlineTier(form.deadlineTier),
-        notes: form.notes.trim() || undefined,
+        notes: buildDeliveryNotesWithPayment({
+          amount: form.orderValue,
+          paymentMethod: form.paymentMethod,
+          cashChangeMode: form.cashChangeMode,
+          cashChangeFor: form.cashChangeFor,
+          notes: form.notes,
+        }),
         earliestDispatchAt:
           form.scheduleMode === "agora" || !form.earliestDispatchAt
             ? undefined
@@ -146,7 +169,7 @@ export function DeliveryForm({ stores, redirectStores = stores, attendants = [],
         successFeedback += " Ela ficou sem ponto no mapa ate o endereco ser conferido.";
       }
       if (printAfterCreate) {
-        const printed = printThermalReceipt(createdDeliveryToReceiptDelivery(result), { paperWidthMm: receiptPaperWidth });
+        const printed = printThermalReceipt(createdDeliveryToReceiptDelivery(result));
         if (!printed) {
           successFeedback += " O navegador bloqueou a janela de impressao; libere pop-ups para imprimir automaticamente.";
         }
@@ -172,6 +195,10 @@ export function DeliveryForm({ stores, redirectStores = stores, attendants = [],
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     const nextValue = key === "phone" ? normalizeDeliveryPhoneInput(String(value)) : value;
+    if (key === "orderValue" || key === "cashChangeFor") {
+      setForm((current) => ({ ...current, [key]: formatBrazilianMoneyInput(String(value)) }));
+      return;
+    }
     if (["street", "number", "complement", "neighborhood", "latitude", "longitude"].includes(key)) {
       setSelectedAddressId("");
     }
@@ -421,7 +448,17 @@ export function DeliveryForm({ stores, redirectStores = stores, attendants = [],
                   <LocateFixed size={16} />
                   {geocodeState === "loading" ? "Localizando..." : parsedCoordinates ? "Localizacao pronta" : "Localizar endereco"}
                 </button>
-                <span>{parsedCoordinates ? "A entrega entrara no mapa e na rota." : "Se nao clicar aqui, o sistema localiza automaticamente ao lancar."}</span>
+                <button
+                  className="secondaryButton"
+                  type="button"
+                  onClick={() => setShowMapPicker(true)}
+                  disabled={formBusy}
+                  title="Ajustar ponto manualmente no mapa"
+                >
+                  <MapPinned size={16} />
+                  {parsedCoordinates ? "Ajustar no mapa" : "Definir no mapa"}
+                </button>
+                <span>{parsedCoordinates ? "A entrega entrara no mapa e na rota." : "Localize automaticamente ou clique em Definir no mapa para posicionar manualmente."}</span>
               </div>
               {geocodeOptions.length ? (
                 <div className="geocodeOptions">
@@ -494,6 +531,57 @@ export function DeliveryForm({ stores, redirectStores = stores, attendants = [],
                 />
               </label>
               <label className="inputGroup">
+                <span>Pagamento</span>
+                <select
+                  value={form.paymentMethod}
+                  disabled={formBusy}
+                  onChange={(event) => update("paymentMethod", event.target.value as DeliveryPaymentMethod)}
+                >
+                  <option value="CARTAO">Cartao</option>
+                  <option value="QRCODE">QR Code</option>
+                  <option value="PIX_PAGO">Pix pago</option>
+                  <option value="DINHEIRO">Dinheiro</option>
+                  <option value="CONTA">Conta</option>
+                </select>
+              </label>
+              <label className="inputGroup">
+                <span>Valor</span>
+                <input
+                  className="plainInput"
+                  value={form.orderValue}
+                  disabled={formBusy}
+                  inputMode="decimal"
+                  placeholder="R$ 0,00"
+                  onChange={(event) => update("orderValue", event.target.value)}
+                />
+              </label>
+              {form.paymentMethod === "DINHEIRO" ? (
+                <>
+                  <label className="inputGroup">
+                    <span>Troco</span>
+                    <select
+                      value={form.cashChangeMode}
+                      disabled={formBusy}
+                      onChange={(event) => update("cashChangeMode", event.target.value as CashChangeMode)}
+                    >
+                      <option value="SEM_TROCO">Sem troco</option>
+                      <option value="COM_TROCO">Precisa troco</option>
+                    </select>
+                  </label>
+                  <label className="inputGroup">
+                    <span>Troco para</span>
+                    <input
+                      className="plainInput"
+                      value={form.cashChangeFor}
+                      disabled={formBusy || form.cashChangeMode !== "COM_TROCO"}
+                      inputMode="decimal"
+                      placeholder="Ex.: R$ 100,00"
+                      onChange={(event) => update("cashChangeFor", event.target.value)}
+                    />
+                  </label>
+                </>
+              ) : null}
+              <label className="inputGroup">
                 <span>Loja origem</span>
                 <select
                   value={form.storeName || (stores[0]?.name ?? "")}
@@ -538,17 +626,7 @@ export function DeliveryForm({ stores, redirectStores = stores, attendants = [],
                 <Printer size={16} />
                 Imprimir comanda apos lancar
               </label>
-              <label className="inputGroup">
-                <span>Papel da comanda</span>
-                <select
-                  value={receiptPaperWidth}
-                  disabled={formBusy}
-                  onChange={(event) => updateReceiptPaperWidthPreference(Number(event.target.value) as ThermalReceiptPaperWidth, setReceiptPaperWidth)}
-                >
-                  <option value={80}>80mm</option>
-                  <option value={58}>58mm</option>
-                </select>
-              </label>
+              <div className="fieldHint wideHint">Comanda fixa em 80mm para economizar papel e manter o corte seguro.</div>
             </>
           ) : null}
         </div>
@@ -556,14 +634,14 @@ export function DeliveryForm({ stores, redirectStores = stores, attendants = [],
         {feedback ? <div className={`formFeedback ${submitState}`}>{feedback}</div> : null}
 
         <div className="formActions">
-          <button className="primaryButton" type="submit" disabled={!canSubmit || submitState === "loading" || geocodeState === "loading"}>
+          <button className="primaryButton" type="submit" disabled={submitState === "loading" || geocodeState === "loading"}>
             {submitState === "loading" || geocodeState === "loading" ? "Lancando..." : "Lancar entrega"}
           </button>
           {geocodeState === "error" ? (
             <button
               className="secondaryButton"
               type="button"
-              disabled={!canSubmit || submitState === "loading"}
+              disabled={submitState === "loading"}
               onClick={() => void submitDelivery({ skipGeocode: true })}
             >
               Lancar sem mapa
@@ -571,6 +649,26 @@ export function DeliveryForm({ stores, redirectStores = stores, attendants = [],
           ) : null}
         </div>
       </form>
+
+      {showMapPicker ? (
+        <MapPicker
+          latitude={parsedCoordinates?.latitude}
+          longitude={parsedCoordinates?.longitude}
+          label={[form.street, form.number, form.neighborhood].filter(Boolean).join(", ") || undefined}
+          onConfirm={(lat, lng) => {
+            setForm((current) => ({
+              ...current,
+              latitude: String(lat),
+              longitude: String(lng),
+            }));
+            setSelectedAddressId("");
+            setGeocodeState("success");
+            setFeedback("Coordenadas selecionadas no mapa.");
+            setShowMapPicker(false);
+          }}
+          onClose={() => setShowMapPicker(false)}
+        />
+      ) : null}
     </section>
   );
 }
@@ -598,13 +696,6 @@ function updatePrintAfterCreatePreference(value: boolean, setValue: (value: bool
   }
 }
 
-/** Atualiza a largura da comanda para esta maquina e reaproveita a mesma preferencia no botao da fila. */
-function updateReceiptPaperWidthPreference(value: ThermalReceiptPaperWidth, setValue: (value: ThermalReceiptPaperWidth) => void) {
-  const safeValue = value === 58 ? 58 : 80;
-  setValue(safeValue);
-  saveThermalReceiptPaperWidthPreference(safeValue);
-}
-
 /** Converte o retorno real da API em dados suficientes para a comanda termica. */
 function createdDeliveryToReceiptDelivery(result: CreatedDeliveryResult): Delivery {
   return {
@@ -625,6 +716,7 @@ function createdDeliveryToReceiptDelivery(result: CreatedDeliveryResult): Delive
     priority: mapDeliveryPriority(result.priority),
     deadlineTier: mapDeliveryDeadlineTier(result.deadlineTier ?? "MEDIO"),
     distanceHint: "Aguardando rota",
+    notes: result.notes ?? null,
     proofCount: 0,
   };
 }

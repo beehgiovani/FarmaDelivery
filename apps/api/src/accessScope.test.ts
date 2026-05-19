@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { deliveryScopeRestFilter, deliveryScopeWhere } from "./accessScope";
+import { deliveryScopeRestFilter, deliveryScopeWhere, storeMatchesCourierServiceArea } from "./accessScope";
 
 const courierId = "courier-1";
 
@@ -47,4 +47,11 @@ test("scopes store logins to their active store list", () => {
     storeId: { in: ["store-1"] },
   });
   assert.equal(deliveryScopeRestFilter(session, ["store-1"], null, true), "&storeId=eq.store-1");
+});
+
+test("maps courier service areas by store name", () => {
+  assert.equal(storeMatchesCourierServiceArea("Loja Pereque", "PEREQUE"), true);
+  assert.equal(storeMatchesCourierServiceArea("Loja Pereque", "ASTURIAS"), false);
+  assert.equal(storeMatchesCourierServiceArea("Asturias", "ASTURIAS"), true);
+  assert.equal(storeMatchesCourierServiceArea("Loja Centro", "ASTURIAS"), true);
 });

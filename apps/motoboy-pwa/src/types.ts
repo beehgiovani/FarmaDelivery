@@ -39,6 +39,7 @@ export type Delivery = {
   address: string;
   status: DeliveryStatus;
   courier: string;
+  notes?: string | null;
   createdAt: string;
   acceptedAt: string | null;
   collectedAt: string | null;

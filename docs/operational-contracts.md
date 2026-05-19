@@ -1,6 +1,6 @@
 # Contratos operacionais entre apps
 
-Atualizado em 2026-05-17.
+Atualizado em 2026-05-19.
 
 Este documento registra a "lingua comum" entre API, painel admin/loja, PWA motoboy e app Android motoboy. A API continua sendo a fonte do dado operacional; os clientes devem somente traduzir valores tecnicos para exibicao, mantendo fallback seguro para valores novos.
 
@@ -9,7 +9,7 @@ Este documento registra a "lingua comum" entre API, painel admin/loja, PWA motob
 - API valida payloads, filtros e transicoes em `apps/api/src/contracts.ts` e nas rotas de `apps/api/src/routes`.
 - Painel admin centraliza conversoes em `apps/admin/src/apiMappers.ts`.
 - PWA motoboy centraliza exibicao em helpers `apps/motoboy-pwa/src/*Labels.ts`, `deliverySections.ts` e `routeNavigation.ts`.
-- Android motoboy centraliza exibicao em helpers `apps/motoboy/app/src/main/kotlin/com/drogsantoantonio/farmadelivery/presentation/ui/screens/*Labels.kt`, `DeliverySections.kt` e `RouteNavigation.kt`.
+- Android motoboy centraliza exibicao em helpers `apps/motoboy/app/src/main/kotlin/com/farmadelivery/farmadelivery/presentation/ui/screens/*Labels.kt`, `DeliverySections.kt` e `RouteNavigation.kt`.
 
 ## Valores compartilhados
 
@@ -77,6 +77,23 @@ Numeracao diaria da entrega:
 - `storeDailyNumber` deve trafegar como numero inteiro; clientes formatam para exibicao com 3 digitos (`001`, `002`, `003`).
 - Listagem, criacao, relatorio/exportacao e respostas de transicao de entrega devem preservar `publicCode`, `storeDailyDate` e `storeDailyNumber` para evitar perda visual do "N. dia" apos aceitar, coletar, sair em rota, entregar, registrar problema ou cancelar.
 
+Detalhes operacionais de pagamento:
+
+- Enquanto nao houver campo/tabela propria de pagamento, a criacao de entrega envia os detalhes em `notes`.
+- O painel deve montar `notes` com linhas padronizadas: `Valor: R$ 00,00`, `Pagamento: Cartao|QR Code|Pix pago|Conta` ou `Pagamento: Dinheiro - sem troco|troco para R$ 00,00`.
+- API, admin, PWA motoboy, Android motoboy e comanda termica devem preservar e exibir `notes` como texto operacional de conferencia, mantendo quebras de linha.
+- O motoboy deve conseguir ver valor, forma de pagamento e troco antes e durante o atendimento da entrega.
+- Quando o schema evoluir, esses dados devem migrar para campos estruturados sem quebrar a leitura de entregas antigas que ainda tenham pagamento em `notes`.
+
+Praca de atendimento do motoboy:
+
+- Emprestimos ocasionais de motoboy nao dependem de UI administrativa nem de nova tabela.
+- O motoboy escolhe a praca no app/PWA ao operar: `GERAL` ou `DEDICADA`.
+- `GERAL` lista entregas aguardando de todas as lojas exceto lojas cujo nome normalize para `dedicada`; `DEDICADA` lista apenas essas lojas.
+- A API aceita `serviceArea` em `GET /deliveries`, `POST /deliveries/accept`, historico e comprovantes para manter listagem, aceite e leitura alinhados.
+- Entregas ja aceitas pelo proprio motoboy continuam visiveis independentemente da praca escolhida.
+- A escolha de praca e operacional e local ao app; sem persistencia no banco, push server-side de nova entrega ainda pode depender da alocacao ativa existente. Notificacao local do PWA continua funcionando enquanto o app esta aberto.
+
 Conclusao de entrega e comprovante:
 
 - Para concluir uma entrega em rota, o app deve enviar `deliveryId` e uma confirmacao textual em `notes`.
@@ -105,9 +122,9 @@ Quando adicionar novo status, prioridade, evento, tipo de parada ou acao operaci
 2. Atualizar mapeadores do admin em `apps/admin/src/apiMappers.ts`.
 3. Atualizar helpers equivalentes do PWA e do Android quando o valor aparecer para motoboy.
 4. Adicionar ou ajustar testes de contrato nos tres clientes afetados.
-5. Atualizar este documento e `docs/implementation-checklist.md`.
+5. Atualizar este documento e `implementation-checklist.md`.
 6. Se houver mudanca de schema, criar migration/SQL e entregar para aplicacao manual no Supabase SQL Editor.
 
 ## Observacao sobre banco
 
-A feature de prazo manual altera banco de dados com a coluna `Delivery.deadlineTier`. A migration `supabase/migrations/20260517120000_delivery_deadline_tier.sql` ja foi aplicada no Supabase. Migrations futuras que alterem o schema devem continuar sendo aplicadas manualmente no Supabase SQL Editor.
+A feature de prazo manual altera banco de dados com a coluna `Delivery.deadlineTier`. O bloco correspondente fica incorporado em `database/schema-full.sql`, que e o arquivo canonico para aplicacao manual no Supabase SQL Editor.

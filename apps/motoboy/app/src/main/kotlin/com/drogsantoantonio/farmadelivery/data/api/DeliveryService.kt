@@ -11,13 +11,17 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Path
 import retrofit2.http.POST
+import retrofit2.http.Query
 
 interface DeliveryService {
   @GET("deliveries")
-  suspend fun listDeliveries(): List<DeliveryDto>
+  suspend fun listDeliveries(@Query("serviceArea") serviceArea: String? = null): List<DeliveryDto>
 
   @GET("deliveries/{deliveryId}/events")
-  suspend fun listEvents(@Path("deliveryId") deliveryId: String): List<DeliveryEventDto>
+  suspend fun listEvents(
+    @Path("deliveryId") deliveryId: String,
+    @Query("serviceArea") serviceArea: String? = null,
+  ): List<DeliveryEventDto>
 
   @POST("deliveries/{deliveryId}/proofs")
   suspend fun uploadProof(

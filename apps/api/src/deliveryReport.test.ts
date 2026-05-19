@@ -183,7 +183,7 @@ test("exports delivery report csv with masked phone and distributions", () => {
   assert.doesNotMatch(csv, /"PROBLEMA","1"/);
   assert.match(csv, /"status","balconista_lancamento","motoboy","entregue_por","prioridade"/);
   assert.match(csv, /"ENTREGUE","Ana Balcao","Joao","Joao","NORMAL"/);
-  assert.match(csv, /"AST-20260516-001","2026-05-16","001","Asturias","Maria","\(13\) \*\*\*\*-1234","Av dos Caicaras, 1171","nao"/);
+  assert.match(csv, /"AST-20260516-001","2026-05-16","001","Asturias","Maria","\(13\) \*\*\*\*-1234","Av. dos Caicaras, 1171 - Asturias","nao"/);
   assert.doesNotMatch(csv, /98888|97777/);
 });
 
@@ -201,8 +201,8 @@ test("exports map point state in server-side delivery report csv", () => {
   );
 
   assert.match(csv, /"endereco","ponto_mapa","status"/);
-  assert.match(csv, /"with-map"[\s\S]*"Av dos Caicaras, 1171","sim","AGUARDANDO_MOTOBOY"/);
-  assert.match(csv, /"without-map"[\s\S]*"Av dos Caicaras, 1171","nao","AGUARDANDO_MOTOBOY"/);
+  assert.match(csv, /"with-map"[\s\S]*"Av. dos Caicaras, 1171 - Asturias","sim","AGUARDANDO_MOTOBOY"/);
+  assert.match(csv, /"without-map"[\s\S]*"Av. dos Caicaras, 1171 - Asturias","nao","AGUARDANDO_MOTOBOY"/);
 });
 
 test("marks server-side delivery report csv when export limit is reached", () => {
@@ -307,7 +307,7 @@ function makeExportDelivery(overrides: Partial<ReportDeliveryExportRow> = {}): R
     publicCode: "FD-000",
     customer: "Cliente",
     phone: "(13) 99999-0000",
-    address: "Av dos Caicaras, 1171",
+    address: "Av. dos Caicaras, 1171 - Asturias",
     ...overrides,
   };
 }

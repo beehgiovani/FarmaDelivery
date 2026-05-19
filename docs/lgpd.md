@@ -2,7 +2,7 @@
 
 Atualizado em 2026-05-15.
 
-Este documento define as politicas iniciais de privacidade para dados pessoais usados pelo FarmaDelivery. Ele complementa `docs/codex/01_REGRAS_AGENTE.md` e deve ser revisado antes de novas features que exponham cliente, telefone, endereco, localizacao ou auditoria operacional.
+Este documento define as politicas iniciais de privacidade para dados pessoais usados pelo FarmaDelivery. Ele complementa `engineering-guidelines.md` e deve ser revisado antes de novas features que exponham cliente, telefone, endereco, localizacao ou auditoria operacional.
 
 ## Dados pessoais tratados
 

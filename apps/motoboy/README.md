@@ -1,75 +1,128 @@
-# FarmaDelivery Motoboy
+# FarmaDelivery Motoboy Android
 
-Aplicativo Android nativo para motoboys da Drogaria Santo Antonio.
+Aplicativo Android nativo para motoboys. Ele consome a mesma API do painel e do PWA, com foco em operacao de campo, entregas, rotas, localizacao, comprovante e notificacoes.
 
-## Escopo inicial
+Este app nao deve documentar nomes reais de lojas, enderecos, coordenadas, chaves Firebase, tokens ou dados de ambiente.
 
-- Login usando a API existente.
-- Persistencia local do token com DataStore.
-- Listagem de entregas disponiveis/aceitas pelo motoboy autenticado.
-- Loading, empty, retry e atualizacao manual nas telas principais.
-- Aceite de entrega via `POST /deliveries/accept`.
-- Coleta, inicio de rota, entrega e registro de problema usando os endpoints existentes.
-- Confirmacao textual obrigatoria antes de concluir entrega em rota.
-- Foto opcional como comprovante antes de concluir entrega em rota.
-- Compressao local da foto de comprovante antes do upload para respeitar o limite de tamanho da API.
-- Consulta do historico auditavel da entrega, incluindo problemas, cancelamentos e observacoes.
-- Acoes rapidas no card para abrir o discador do cliente e o endereco no app de mapas do aparelho.
-- Tela de rota atual consumindo `GET /courier-routes`, exibindo paradas pendentes e abrindo a sequencia no app de mapas do aparelho, com fallback visual se nao houver app compativel.
-- Envio manual da localizacao atual para `POST /couriers/location`.
-- Envio automatico de localizacao por `ForegroundService` a cada 60 segundos enquanto ativado pelo motoboy, com estado persistido localmente.
-- Registro automatico do token Firebase Cloud Messaging em `POST /couriers/{courierId}/device-token`.
-- Canal Android `deliveries` e `FirebaseMessagingService` para exibir notificacoes de nova entrega, cancelamento e atualizacoes operacionais.
-- Base pronta para localizacao, mapa, notificacoes e offline.
+## Stack
+
+- Kotlin.
+- Android Gradle Plugin.
+- Gradle Kotlin DSL.
+- Jetpack Compose.
+- DataStore para sessao/preferencias locais.
+- Retrofit/OkHttp para HTTP.
+- Firebase Cloud Messaging.
+- Foreground Service para localizacao periodica.
+- Testes unitarios Kotlin/JUnit.
 
 ## Package
 
-`com.drogsantoantonio.farmadelivery`
+```text
+Configurado no projeto Android local.
+```
+
+## Escopo atual
+
+- Login usando a API.
+- Persistencia local da sessao com DataStore.
+- Logout com tentativa de marcar motoboy como indisponivel.
+- Escolha da praca de atendimento configurada no app na tela de entregas para filtrar corridas disponiveis.
+- Lista de entregas disponiveis e entregas em atendimento.
+- Loading, vazio, erro/retry e refresh manual.
+- Disponibilidade operacional antes de receber/aceitar novas corridas.
+- Acoes de entrega: aceitar, coletar, sair em rota, concluir e registrar problema.
+- Confirmacao textual obrigatoria antes de concluir entrega em rota.
+- Foto opcional como comprovante antes de concluir entrega.
+- Compressao local da foto de comprovante antes do upload.
+- Historico auditavel da entrega, incluindo ator, tipo, horario e observacoes.
+- Atalhos para ligar para o cliente e abrir endereco/rota no app de mapas.
+- Tela de rota atual consumindo `GET /courier-routes`, com paradas pendentes agrupadas e ordenadas.
+- Protecao para rotas sem parada navegavel, omitindo botao de mapas e mostrando aviso.
+- Envio manual da localizacao atual para `POST /couriers/location`.
+- Envio automatico de localizacao por `ForegroundService` a cada 60 segundos enquanto ativado.
+- Registro automatico do token FCM em `POST /couriers/{courierId}/device-token`.
+- Atualizacao do token FCM quando o Firebase gera um novo token.
+- Canal Android `deliveries` e `FirebaseMessagingService` para notificacoes de nova entrega, cancelamento e atualizacoes.
+- Regras XML bloqueando backup/transferencia de dados locais sensiveis.
+- Exibicao de numero diario da loja quando a API enviar `storeDailyNumber`.
+
+## Estrutura
+
+```text
+app/src/main/kotlin/.../farmadelivery/
+  data/
+    api/          Servicos HTTP
+    location/     Provedor de localizacao do aparelho
+    models/       Modelos da API
+    preferences/  Sessao e preferencias locais
+    repository/   Repositorios do app
+  domain/usecase/ Casos de uso principais
+  location/       Foreground service de GPS
+  notifications/  FirebaseMessagingService
+  presentation/   Navegacao, telas e tema Compose
+```
 
 ## API local
 
-No emulador Android, `localhost` aponta para o proprio emulador. Use:
+No emulador Android, `localhost` aponta para o proprio emulador. Use a URL especial do host:
 
 ```properties
 farmadelivery.apiUrl=http://10.0.2.2:3333
 ```
 
-em `local.properties`.
-
-## Build local
-
-O modulo possui Gradle Wrapper com Gradle 9.5.1, compile/target SDK 36 e JBR do Android Studio:
-
-```powershell
-.\gradlew.bat :app:assembleDebug
-```
-
-O `gradle.properties` aponta para o JBR do Android Studio. O JDK 26 esta instalado na maquina, mas falhou no `jlink` ao transformar o `core-for-system-modules.jar` do Android 36; por isso o build local permanece no runtime Java embarcado e compativel do Android Studio.
-
-Validacoes usadas:
-
-```powershell
-.\gradlew.bat :app:assembleDebug
-.\gradlew.bat :app:lintDebug
-.\gradlew.bat :app:testDebugUnitTest
-```
+Esse valor deve ficar em `local.properties`, que e arquivo local ignorado pelo Git.
 
 ## Firebase
 
-O arquivo `google-services.json` deve ficar em:
+O arquivo local do Firebase deve ficar em:
 
 ```text
 apps/motoboy/app/google-services.json
 ```
 
-## Regras
+Esse arquivo e sensivel ao ambiente e nao deve ser versionado.
+
+## Build local
+
+Entrar na pasta do app Android:
+
+```powershell
+cd apps\motoboy
+```
+
+Build debug:
+
+```powershell
+.\gradlew.bat :app:assembleDebug
+```
+
+Lint:
+
+```powershell
+.\gradlew.bat :app:lintDebug
+```
+
+Testes unitarios:
+
+```powershell
+.\gradlew.bat :app:testDebugUnitTest
+```
+
+## Ambiente Android
+
+- `compileSdk` e `targetSdk` seguem a configuracao atual do Gradle.
+- O build local foi validado usando o JBR do Android Studio.
+- `local.properties` deve apontar para o Android SDK da maquina.
+- `google-services.json`, `local.properties`, `.gradle/`, `.kotlin/` e `build/` ficam fora do versionamento.
+
+## Cuidados
 
 - Nao colocar secrets no app.
 - O app usa apenas token recebido da API.
-- Permissao final continua no backend.
+- A permissao final continua no backend.
 - Token FCM e dado sensivel: nao registrar em log, tela ou documentacao.
-- Rotacao de token FCM e reenviada ao backend quando ha sessao de motoboy salva.
-- Backup e transferencia de dados locais estao bloqueados por regras XML.
-- Android 13+ exige permissao `POST_NOTIFICATIONS`; a home do motoboy solicita essa permissao.
+- Android 13+ exige permissao `POST_NOTIFICATIONS`.
 - O servico automatico usa notificacao persistente e para no logout.
-- Foto de comprovante e enviada ao backend somente quando o motoboy confirma a entrega; nao fica documentada em logs.
+- Foto de comprovante e enviada ao backend somente quando o motoboy confirma a entrega.
+- Manter paridade de contrato com `apps/motoboy-pwa` e com os tipos/respostas da API.

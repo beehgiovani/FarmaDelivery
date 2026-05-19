@@ -15,6 +15,17 @@ export type CreatedAccessCard = {
   storeName: string;
 };
 
+export type AccessFlow = "counterReference" | "systemAccess";
+
+export type AccessFormState = {
+  name: string;
+  phone: string;
+  email: string;
+  password: string;
+  role: TeamRole;
+  storeId: string;
+};
+
 export function activeStoreAccessUsers(users: TeamUser[]) {
   return users.filter((user) => user.active && user.role === "GERENTE" && user.store?.id);
 }
@@ -25,6 +36,51 @@ export function requiresBaseStoreForRole(role: TeamRole) {
 
 export function requiresLoginCredentialsForRole(role: TeamRole) {
   return role !== "BALCONISTA_CAIXA";
+}
+
+export function accessFlowForRole(role: TeamRole): AccessFlow {
+  return role === "BALCONISTA_CAIXA" ? "counterReference" : "systemAccess";
+}
+
+export function buildAccessFormForFlow(input: {
+  flow: AccessFlow;
+  current: AccessFormState;
+  defaultStoreId?: string;
+  initialPassword?: string;
+}): AccessFormState {
+  if (input.flow === "counterReference") {
+    return {
+      ...input.current,
+      name: "",
+      phone: "",
+      email: "",
+      password: "",
+      role: "BALCONISTA_CAIXA",
+      storeId: "",
+    };
+  }
+
+  return {
+    ...input.current,
+    name: "",
+    phone: "",
+    email: "",
+    password: input.current.password || input.initialPassword || "",
+    role: "GERENTE",
+    storeId: input.current.storeId || input.defaultStoreId || "",
+  };
+}
+
+export function buildStoreLoginAccessForm(input: { current: AccessFormState; store: StoreUnit; initialPassword: string }): AccessFormState {
+  return {
+    ...input.current,
+    name: input.store.name,
+    phone: "",
+    email: "",
+    password: input.initialPassword,
+    role: "GERENTE",
+    storeId: input.store.id ?? "",
+  };
 }
 
 export function buildStoreAccessRows(stores: StoreUnit[], users: TeamUser[]): StoreAccessRow[] {

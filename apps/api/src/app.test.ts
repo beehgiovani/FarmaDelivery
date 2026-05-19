@@ -109,7 +109,7 @@ test("store login cannot manage admin registers before database work", async () 
         payload: {
           code: "TESTE",
           name: "Loja Teste",
-          address: "Av dos Caicaras, 1171",
+          address: "Av. dos Caicaras, 1171 - Asturias",
           baseType: "COMPARTILHADA",
         },
       }),
@@ -627,6 +627,25 @@ test("authenticated delivery report routes validate query before database work",
   }
 });
 
+test("authenticated delivery event history validates delivery id before database work", async () => {
+  const app = await createApp({ logger: false });
+  try {
+    const response = await app.inject({
+      method: "GET",
+      url: "/deliveries/entrega-invalida/events",
+      headers: {
+        authorization: `Bearer ${adminToken()}`,
+      },
+    });
+    const payload = response.json() as { error: string };
+
+    assert.equal(response.statusCode, 400);
+    assert.equal(payload.error, "VALIDATION_ERROR");
+  } finally {
+    await app.close();
+  }
+});
+
 test("authenticated courier route endpoints validate input before database work", async () => {
   const app = await createApp({ logger: false });
   try {
@@ -905,7 +924,7 @@ test("courier cannot manage stores before database work", async () => {
         payload: {
           code: "TESTE",
           name: "Loja Teste",
-          address: "Av dos Caicaras, 1171",
+          address: "Av. dos Caicaras, 1171 - Asturias",
           baseType: "COMPARTILHADA",
         },
       }),

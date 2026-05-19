@@ -10,14 +10,15 @@ import com.drogsantoantonio.farmadelivery.data.models.UploadDeliveryProofRequest
 
 class DeliveryRepository(private val service: DeliveryService) {
   /** Lista as entregas visiveis para o motoboy logado. */
-  suspend fun list(): List<DeliveryDto> = service.listDeliveries()
+  suspend fun list(serviceArea: String? = null): List<DeliveryDto> = service.listDeliveries(serviceArea)
 
   /** Carrega o historico auditavel de uma entrega especifica. */
-  suspend fun events(deliveryId: String): List<DeliveryEventDto> = service.listEvents(deliveryId)
+  suspend fun events(deliveryId: String, serviceArea: String? = null): List<DeliveryEventDto> =
+    service.listEvents(deliveryId, serviceArea)
 
   /** Aceita uma entrega para o motoboy informado. */
-  suspend fun accept(deliveryId: String, courierId: String) {
-    service.accept(AcceptDeliveryRequest(deliveryId = deliveryId, courierId = courierId))
+  suspend fun accept(deliveryId: String, courierId: String, serviceArea: String? = null) {
+    service.accept(AcceptDeliveryRequest(deliveryId = deliveryId, courierId = courierId, serviceArea = serviceArea))
   }
 
   /** Marca que a entrega foi coletada na loja. */

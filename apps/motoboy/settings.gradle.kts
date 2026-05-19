@@ -17,5 +17,5 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "FarmaDeliveryMotoboy"
+rootProject.name = "Drogaria Santo AntonioMotoboy"
 include(":app")

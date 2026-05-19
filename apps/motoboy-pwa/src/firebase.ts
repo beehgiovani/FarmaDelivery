@@ -1,22 +1,32 @@
 import { getAnalytics, isSupported as isAnalyticsSupported } from "firebase/analytics";
-import { initializeApp } from "firebase/app";
+import { getApps, initializeApp, type FirebaseApp, type FirebaseOptions } from "firebase/app";
 import { getMessaging, getToken, isSupported as isMessagingSupported } from "firebase/messaging";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyAjj_qFZ88se-_AmiNeI-CBbtnsaZ9jeiI",
-  authDomain: "farmadelivery-d40a9.firebaseapp.com",
-  projectId: "farmadelivery-d40a9",
-  storageBucket: "farmadelivery-d40a9.firebasestorage.app",
-  messagingSenderId: "289634919670",
-  appId: "1:289634919670:web:f2b8b6bd7a9622f07db8d7",
-  measurementId: "G-BM5XQ8NZQW",
+type FirebaseEnv = ImportMeta & {
+  env?: Record<string, string | undefined>;
 };
 
-export const firebaseApp = initializeApp(firebaseConfig);
+const env = (import.meta as FirebaseEnv).env ?? {};
+
+function readFirebaseConfig(): FirebaseOptions {
+  return {
+    apiKey: env.VITE_FIREBASE_API_KEY,
+    authDomain: env.VITE_FIREBASE_AUTH_DOMAIN,
+    projectId: env.VITE_FIREBASE_PROJECT_ID,
+    storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+    appId: env.VITE_FIREBASE_APP_ID,
+    measurementId: env.VITE_FIREBASE_MEASUREMENT_ID,
+  };
+}
+
+function getFirebaseApp(): FirebaseApp {
+  return getApps()[0] ?? initializeApp(readFirebaseConfig());
+}
 
 export async function initializeFirebaseAnalytics() {
-  if (await isAnalyticsSupported()) {
-    getAnalytics(firebaseApp);
+  if (isFirebaseWebConfigComplete() && (await isAnalyticsSupported())) {
+    getAnalytics(getFirebaseApp());
   }
 }
 
@@ -24,8 +34,21 @@ export function hasFirebaseWebPushBrowserSupport(): boolean {
   return typeof window !== "undefined" && typeof navigator !== "undefined" && "Notification" in window && "serviceWorker" in navigator;
 }
 
-export function canRequestFirebaseWebPushToken(vapidKey: string | null | undefined, browserSupported = hasFirebaseWebPushBrowserSupport()): boolean {
-  return Boolean(vapidKey?.trim()) && browserSupported;
+export function isFirebaseWebConfigComplete(config = readFirebaseConfig()): boolean {
+  return Boolean(
+    config.apiKey?.trim() &&
+      config.projectId?.trim() &&
+      config.messagingSenderId?.trim() &&
+      config.appId?.trim(),
+  );
+}
+
+export function canRequestFirebaseWebPushToken(
+  vapidKey: string | null | undefined,
+  browserSupported = hasFirebaseWebPushBrowserSupport(),
+  firebaseConfigured = isFirebaseWebConfigComplete(),
+): boolean {
+  return Boolean(vapidKey?.trim()) && browserSupported && firebaseConfigured;
 }
 
 export async function getFirebaseWebPushToken(vapidKey: string): Promise<string | null> {
@@ -35,10 +58,20 @@ export async function getFirebaseWebPushToken(vapidKey: string): Promise<string 
   const permission = await Notification.requestPermission();
   if (permission !== "granted") return null;
 
-  const serviceWorkerRegistration = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
-  const messaging = getMessaging(firebaseApp);
+  const serviceWorkerRegistration = await navigator.serviceWorker.register(buildFirebaseMessagingServiceWorkerUrl(readFirebaseConfig()));
+  const messaging = getMessaging(getFirebaseApp());
   return getToken(messaging, {
     vapidKey,
     serviceWorkerRegistration,
   });
+}
+
+function buildFirebaseMessagingServiceWorkerUrl(config: FirebaseOptions) {
+  const params = new URLSearchParams();
+  Object.entries(config).forEach(([key, value]) => {
+    if (typeof value === "string" && value.trim()) {
+      params.set(key, value);
+    }
+  });
+  return `/firebase-messaging-sw.js?${params.toString()}`;
 }

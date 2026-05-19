@@ -77,6 +77,7 @@ type ApiDelivery = {
   status: ApiDeliveryStatus;
   courier: string;
   attendantName?: string | null;
+  notes?: string | null;
   createdAt: string;
   acceptedAt: string | null;
   collectedAt: string | null;
@@ -97,6 +98,7 @@ export type CreatedDeliveryResult = {
   status: ApiDeliveryStatus;
   priority: ApiDeliveryPriority;
   deadlineTier?: ApiDeliveryDeadlineTier;
+  notes?: string | null;
   createdAt: string;
   earliestDispatchAt: string | null;
   store: {
@@ -386,6 +388,7 @@ function mapDelivery(delivery: ApiDelivery): Delivery {
     status: mapDeliveryStatus(delivery.status),
     courier: delivery.courier,
     attendantName: delivery.attendantName ?? null,
+    notes: delivery.notes ?? null,
     createdAt: formatDateTime(delivery.createdAt),
     dispatchedAt: delivery.acceptedAt ? formatDateTime(delivery.acceptedAt) : undefined,
     collectedAt: delivery.collectedAt ? formatDateTime(delivery.collectedAt) : undefined,

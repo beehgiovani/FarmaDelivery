@@ -114,7 +114,7 @@ async function searchNominatim(query: string): Promise<GeocodePlace[]> {
 
   const response = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
     headers: {
-      "User-Agent": "FarmaDelivery/0.1 (Drogaria Santo Antonio)",
+      "User-Agent": "Drogaria Santo Antonio/0.1 (Drogaria Santo Antonio)",
       Accept: "application/json",
     },
   });

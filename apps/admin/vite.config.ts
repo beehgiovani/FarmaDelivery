@@ -3,7 +3,7 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
   plugins: [react()],
-  cacheDir: "../../node_modules/.vite/farmadelivery-admin",
+  cacheDir: "../../node_modules/.vite/drogstoantonio",
   build: {
     rollupOptions: {
       output: {

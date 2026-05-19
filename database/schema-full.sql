@@ -1,67 +1,108 @@
--- FarmaDelivery consolidated database setup
--- Generated from current SQL files in /supabase
--- Use this as a full bootstrap/reference file.
--- Incremental migration files remain the source of chronological change history.
--- Regenerate with: npm run db:sql:full
+-- Drogaria Santo Antonio consolidated database setup
+-- Canonical Supabase SQL file.
+-- Use this as the single full bootstrap/reference file.
+-- Maintain this file directly when schema, seed, RLS, realtime, or table comments change.
+-- The generated output is normalized for re-runs: existing types, tables,
+-- indexes, constraints and policies should not fail only because they already exist.
 
 
 -- ============================================================================
--- Source: supabase/migrations/20260514011500_init_farmadelivery.sql
+-- Section: base schema, enums, tables, indexes, and constraints
 -- ============================================================================
 
-﻿-- CreateSchema
+-- CreateSchema
 CREATE SCHEMA IF NOT EXISTS "public";
 
 -- CreateEnum
-CREATE TYPE "UserRole" AS ENUM ('ADMIN', 'GERENTE', 'BALCONISTA_CAIXA', 'MOTOBOY');
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'UserRole') THEN
+    CREATE TYPE "UserRole" AS ENUM ('ADMIN', 'GERENTE', 'BALCONISTA_CAIXA', 'MOTOBOY');
+  END IF;
+END $$;
 
 -- CreateEnum
-CREATE TYPE "StoreBaseType" AS ENUM ('COMPARTILHADA', 'DEDICADA');
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'StoreBaseType') THEN
+    CREATE TYPE "StoreBaseType" AS ENUM ('COMPARTILHADA', 'DEDICADA');
+  END IF;
+END $$;
 
 -- CreateEnum
-CREATE TYPE "DeliveryStatus" AS ENUM (
-    'RASCUNHO',
-    'AGUARDANDO_MOTOBOY',
-    'ACEITA_PELO_MOTOBOY',
-    'COLETADA',
-    'EM_ROTA',
-    'ENTREGUE',
-    'PROBLEMA',
-    'CANCELADA'
-);
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'DeliveryStatus') THEN
+    CREATE TYPE "DeliveryStatus" AS ENUM (
+        'RASCUNHO',
+        'AGUARDANDO_MOTOBOY',
+        'ACEITA_PELO_MOTOBOY',
+        'COLETADA',
+        'EM_ROTA',
+        'ENTREGUE',
+        'PROBLEMA',
+        'CANCELADA'
+    );
+  END IF;
+END $$;
 
 -- CreateEnum
-CREATE TYPE "DeliveryPriority" AS ENUM ('NORMAL', 'URGENTE', 'RETORNO');
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'DeliveryPriority') THEN
+    CREATE TYPE "DeliveryPriority" AS ENUM ('NORMAL', 'URGENTE', 'RETORNO');
+  END IF;
+END $$;
 
 -- CreateEnum
-CREATE TYPE "DeliveryEventType" AS ENUM (
-    'CRIADA',
-    'AGENDADA',
-    'REDIRECIONADA',
-    'ACEITA',
-    'COLETADA',
-    'ROTA_RECALCULADA',
-    'OCORRENCIA_REGISTRADA',
-    'ENTREGUE',
-    'CANCELADA'
-);
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'DeliveryEventType') THEN
+    CREATE TYPE "DeliveryEventType" AS ENUM (
+        'CRIADA',
+        'AGENDADA',
+        'REDIRECIONADA',
+        'ACEITA',
+        'COLETADA',
+        'ROTA_RECALCULADA',
+        'OCORRENCIA_REGISTRADA',
+        'ENTREGUE',
+        'CANCELADA'
+    );
+  END IF;
+END $$;
 
 -- CreateEnum
-CREATE TYPE "RouteStatus" AS ENUM (
-    'ABERTA',
-    'EM_ANDAMENTO',
-    'FINALIZADA',
-    'CANCELADA'
-);
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'RouteStatus') THEN
+    CREATE TYPE "RouteStatus" AS ENUM (
+        'ABERTA',
+        'EM_ANDAMENTO',
+        'FINALIZADA',
+        'CANCELADA'
+    );
+  END IF;
+END $$;
 
 -- CreateEnum
-CREATE TYPE "RouteStopType" AS ENUM ('COLETA', 'ENTREGA');
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'RouteStopType') THEN
+    CREATE TYPE "RouteStopType" AS ENUM ('COLETA', 'ENTREGA');
+  END IF;
+END $$;
 
 -- CreateEnum
-CREATE TYPE "RouteStopStatus" AS ENUM ('PENDENTE', 'CONCLUIDA', 'PULADA', 'CANCELADA');
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'RouteStopStatus') THEN
+    CREATE TYPE "RouteStopStatus" AS ENUM ('PENDENTE', 'CONCLUIDA', 'PULADA', 'CANCELADA');
+  END IF;
+END $$;
 
 -- CreateTable
-CREATE TABLE
+CREATE TABLE IF NOT EXISTS
     "Store" (
         "id" TEXT NOT NULL,
         "code" TEXT NOT NULL,
@@ -77,7 +118,7 @@ CREATE TABLE
     );
 
 -- CreateTable
-CREATE TABLE
+CREATE TABLE IF NOT EXISTS
     "User" (
         "id" TEXT NOT NULL,
         "name" TEXT NOT NULL,
@@ -93,7 +134,7 @@ CREATE TABLE
     );
 
 -- CreateTable
-CREATE TABLE
+CREATE TABLE IF NOT EXISTS
     "Courier" (
         "id" TEXT NOT NULL,
         "userId" TEXT NOT NULL,
@@ -108,7 +149,7 @@ CREATE TABLE
     );
 
 -- CreateTable
-CREATE TABLE
+CREATE TABLE IF NOT EXISTS
     "Customer" (
         "id" TEXT NOT NULL,
         "name" TEXT NOT NULL,
@@ -119,7 +160,7 @@ CREATE TABLE
     );
 
 -- CreateTable
-CREATE TABLE
+CREATE TABLE IF NOT EXISTS
     "CustomerAddress" (
         "id" TEXT NOT NULL,
         "customerId" TEXT NOT NULL,
@@ -137,7 +178,7 @@ CREATE TABLE
     );
 
 -- CreateTable
-CREATE TABLE
+CREATE TABLE IF NOT EXISTS
     "Delivery" (
         "id" TEXT NOT NULL,
         "publicCode" TEXT NOT NULL,
@@ -159,7 +200,7 @@ CREATE TABLE
     );
 
 -- CreateTable
-CREATE TABLE
+CREATE TABLE IF NOT EXISTS
     "DeliveryEvent" (
         "id" TEXT NOT NULL,
         "deliveryId" TEXT NOT NULL,
@@ -172,7 +213,7 @@ CREATE TABLE
     );
 
 -- CreateTable
-CREATE TABLE
+CREATE TABLE IF NOT EXISTS
     "CourierRoute" (
         "id" TEXT NOT NULL,
         "courierId" TEXT NOT NULL,
@@ -186,7 +227,7 @@ CREATE TABLE
     );
 
 -- CreateTable
-CREATE TABLE
+CREATE TABLE IF NOT EXISTS
     "RouteStop" (
         "id" TEXT NOT NULL,
         "routeId" TEXT NOT NULL,
@@ -206,82 +247,148 @@ CREATE TABLE
     );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Store_code_key" ON "Store" ("code");
+CREATE UNIQUE INDEX IF NOT EXISTS "Store_code_key" ON "Store" ("code");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "User_email_key" ON "User" ("email");
+CREATE UNIQUE INDEX IF NOT EXISTS "User_email_key" ON "User" ("email");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Courier_userId_key" ON "Courier" ("userId");
+CREATE UNIQUE INDEX IF NOT EXISTS "Courier_userId_key" ON "Courier" ("userId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Customer_phone_key" ON "Customer" ("phone");
+CREATE UNIQUE INDEX IF NOT EXISTS "Customer_phone_key" ON "Customer" ("phone");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Delivery_publicCode_key" ON "Delivery" ("publicCode");
+CREATE UNIQUE INDEX IF NOT EXISTS "Delivery_publicCode_key" ON "Delivery" ("publicCode");
 
 -- CreateIndex
-CREATE INDEX "Delivery_storeId_status_idx" ON "Delivery" ("storeId", "status");
+CREATE INDEX IF NOT EXISTS "Delivery_storeId_status_idx" ON "Delivery" ("storeId", "status");
 
 -- CreateIndex
-CREATE INDEX "Delivery_courierId_status_idx" ON "Delivery" ("courierId", "status");
+CREATE INDEX IF NOT EXISTS "Delivery_courierId_status_idx" ON "Delivery" ("courierId", "status");
 
 -- CreateIndex
-CREATE INDEX "Delivery_createdAt_idx" ON "Delivery" ("createdAt");
+CREATE INDEX IF NOT EXISTS "Delivery_createdAt_idx" ON "Delivery" ("createdAt");
 
 -- CreateIndex
-CREATE INDEX "DeliveryEvent_deliveryId_createdAt_idx" ON "DeliveryEvent" ("deliveryId", "createdAt");
+CREATE INDEX IF NOT EXISTS "DeliveryEvent_deliveryId_createdAt_idx" ON "DeliveryEvent" ("deliveryId", "createdAt");
 
 -- CreateIndex
-CREATE INDEX "DeliveryEvent_type_createdAt_idx" ON "DeliveryEvent" ("type", "createdAt");
+CREATE INDEX IF NOT EXISTS "DeliveryEvent_type_createdAt_idx" ON "DeliveryEvent" ("type", "createdAt");
 
 -- CreateIndex
-CREATE INDEX "RouteStop_routeId_status_idx" ON "RouteStop" ("routeId", "status");
+CREATE INDEX IF NOT EXISTS "RouteStop_routeId_status_idx" ON "RouteStop" ("routeId", "status");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "RouteStop_routeId_sequence_key" ON "RouteStop" ("routeId", "sequence");
+CREATE UNIQUE INDEX IF NOT EXISTS "RouteStop_routeId_sequence_key" ON "RouteStop" ("routeId", "sequence");
 
 -- AddForeignKey
-ALTER TABLE "User" ADD CONSTRAINT "User_storeId_fkey" FOREIGN KEY ("storeId") REFERENCES "Store" ("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'User_storeId_fkey') THEN
+    ALTER TABLE "User" ADD CONSTRAINT "User_storeId_fkey" FOREIGN KEY ("storeId") REFERENCES "Store" ("id") ON DELETE SET NULL ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "Courier" ADD CONSTRAINT "Courier_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Courier_userId_fkey') THEN
+    ALTER TABLE "Courier" ADD CONSTRAINT "Courier_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "CustomerAddress" ADD CONSTRAINT "CustomerAddress_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES "Customer" ("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'CustomerAddress_customerId_fkey') THEN
+    ALTER TABLE "CustomerAddress" ADD CONSTRAINT "CustomerAddress_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES "Customer" ("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "Delivery" ADD CONSTRAINT "Delivery_storeId_fkey" FOREIGN KEY ("storeId") REFERENCES "Store" ("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Delivery_storeId_fkey') THEN
+    ALTER TABLE "Delivery" ADD CONSTRAINT "Delivery_storeId_fkey" FOREIGN KEY ("storeId") REFERENCES "Store" ("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "Delivery" ADD CONSTRAINT "Delivery_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES "Customer" ("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Delivery_customerId_fkey') THEN
+    ALTER TABLE "Delivery" ADD CONSTRAINT "Delivery_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES "Customer" ("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "Delivery" ADD CONSTRAINT "Delivery_customerAddressId_fkey" FOREIGN KEY ("customerAddressId") REFERENCES "CustomerAddress" ("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Delivery_customerAddressId_fkey') THEN
+    ALTER TABLE "Delivery" ADD CONSTRAINT "Delivery_customerAddressId_fkey" FOREIGN KEY ("customerAddressId") REFERENCES "CustomerAddress" ("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "Delivery" ADD CONSTRAINT "Delivery_courierId_fkey" FOREIGN KEY ("courierId") REFERENCES "Courier" ("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Delivery_courierId_fkey') THEN
+    ALTER TABLE "Delivery" ADD CONSTRAINT "Delivery_courierId_fkey" FOREIGN KEY ("courierId") REFERENCES "Courier" ("id") ON DELETE SET NULL ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "DeliveryEvent" ADD CONSTRAINT "DeliveryEvent_deliveryId_fkey" FOREIGN KEY ("deliveryId") REFERENCES "Delivery" ("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'DeliveryEvent_deliveryId_fkey') THEN
+    ALTER TABLE "DeliveryEvent" ADD CONSTRAINT "DeliveryEvent_deliveryId_fkey" FOREIGN KEY ("deliveryId") REFERENCES "Delivery" ("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "DeliveryEvent" ADD CONSTRAINT "DeliveryEvent_actorUserId_fkey" FOREIGN KEY ("actorUserId") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'DeliveryEvent_actorUserId_fkey') THEN
+    ALTER TABLE "DeliveryEvent" ADD CONSTRAINT "DeliveryEvent_actorUserId_fkey" FOREIGN KEY ("actorUserId") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "CourierRoute" ADD CONSTRAINT "CourierRoute_courierId_fkey" FOREIGN KEY ("courierId") REFERENCES "Courier" ("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'CourierRoute_courierId_fkey') THEN
+    ALTER TABLE "CourierRoute" ADD CONSTRAINT "CourierRoute_courierId_fkey" FOREIGN KEY ("courierId") REFERENCES "Courier" ("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "RouteStop" ADD CONSTRAINT "RouteStop_routeId_fkey" FOREIGN KEY ("routeId") REFERENCES "CourierRoute" ("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'RouteStop_routeId_fkey') THEN
+    ALTER TABLE "RouteStop" ADD CONSTRAINT "RouteStop_routeId_fkey" FOREIGN KEY ("routeId") REFERENCES "CourierRoute" ("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "RouteStop" ADD CONSTRAINT "RouteStop_deliveryId_fkey" FOREIGN KEY ("deliveryId") REFERENCES "Delivery" ("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'RouteStop_deliveryId_fkey') THEN
+    ALTER TABLE "RouteStop" ADD CONSTRAINT "RouteStop_deliveryId_fkey" FOREIGN KEY ("deliveryId") REFERENCES "Delivery" ("id") ON DELETE SET NULL ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "RouteStop" ADD CONSTRAINT "RouteStop_storeId_fkey" FOREIGN KEY ("storeId") REFERENCES "Store" ("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'RouteStop_storeId_fkey') THEN
+    ALTER TABLE "RouteStop" ADD CONSTRAINT "RouteStop_storeId_fkey" FOREIGN KEY ("storeId") REFERENCES "Store" ("id") ON DELETE SET NULL ON UPDATE CASCADE;
+  END IF;
+END $$;
+
 
 -- ============================================================================
--- Source: supabase/migrations/20260514013000_store_hours.sql
+-- Section: store weekly hours and date overrides
 -- ============================================================================
 
 CREATE TABLE
@@ -319,18 +426,23 @@ CREATE UNIQUE INDEX IF NOT EXISTS "StoreDateOverride_storeId_date_key" ON "Store
 
 CREATE INDEX IF NOT EXISTS "StoreDateOverride_date_idx" ON "StoreDateOverride" ("date");
 
-ALTER TABLE "StoreWeeklyHours"
-DROP CONSTRAINT IF EXISTS "StoreWeeklyHours_storeId_fkey";
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'StoreWeeklyHours_storeId_fkey') THEN
+    ALTER TABLE "StoreWeeklyHours" ADD CONSTRAINT "StoreWeeklyHours_storeId_fkey" FOREIGN KEY ("storeId") REFERENCES "Store" ("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 
-ALTER TABLE "StoreWeeklyHours" ADD CONSTRAINT "StoreWeeklyHours_storeId_fkey" FOREIGN KEY ("storeId") REFERENCES "Store" ("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'StoreDateOverride_storeId_fkey') THEN
+    ALTER TABLE "StoreDateOverride" ADD CONSTRAINT "StoreDateOverride_storeId_fkey" FOREIGN KEY ("storeId") REFERENCES "Store" ("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 
-ALTER TABLE "StoreDateOverride"
-DROP CONSTRAINT IF EXISTS "StoreDateOverride_storeId_fkey";
-
-ALTER TABLE "StoreDateOverride" ADD CONSTRAINT "StoreDateOverride_storeId_fkey" FOREIGN KEY ("storeId") REFERENCES "Store" ("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- ============================================================================
--- Source: supabase/migrations/20260515041000_assignments.sql
+-- Section: user and courier store assignments
 -- ============================================================================
 
 -- Adds operational assignments for borrowed store staff and rotating couriers.
@@ -435,7 +547,7 @@ SELECT
   c."id",
   s."id",
   CASE
-    WHEN lower(s."name") LIKE '%pereque%' OR lower(s."name") LIKE '%perequ%' THEN 'DEDICADA'::"AssignmentKind"
+    WHEN lower(s."name") LIKE '%pereque%' THEN 'DEDICADA'::"AssignmentKind"
     ELSE 'COBERTURA'::"AssignmentKind"
   END,
   'Vinculo inicial importado de Courier.baseStoreName',
@@ -455,7 +567,7 @@ ALTER TABLE "CourierStoreAssignment" ENABLE ROW LEVEL SECURITY;
 
 
 -- ============================================================================
--- Source: supabase/migrations/20260515052000_courier_device_tokens.sql
+-- Section: courier device tokens
 -- ============================================================================
 
 CREATE TABLE IF NOT EXISTS "CourierDeviceToken" (
@@ -479,14 +591,14 @@ ALTER TABLE "CourierDeviceToken" ENABLE ROW LEVEL SECURITY;
 
 
 -- ============================================================================
--- Source: supabase/migrations/20260515054000_delivery_notification_event.sql
+-- Section: delivery notification event metadata
 -- ============================================================================
 
 ALTER TYPE "DeliveryEventType" ADD VALUE IF NOT EXISTS 'NOTIFICACAO_ENVIADA';
 
 
 -- ============================================================================
--- Source: supabase/migrations/20260515193000_delivery_proofs.sql
+-- Section: delivery proof storage metadata
 -- ============================================================================
 
 create extension if not exists pgcrypto;
@@ -528,7 +640,7 @@ end $$;
 
 
 -- ============================================================================
--- Source: supabase/migrations/20260517120000_delivery_deadline_tier.sql
+-- Section: delivery deadline tier
 -- ============================================================================
 
 do $$
@@ -543,7 +655,7 @@ alter table public."Delivery"
 
 
 -- ============================================================================
--- Source: supabase/migrations/20260517143000_delivery_daily_sequence.sql
+-- Section: delivery daily sequence
 -- ============================================================================
 
 -- Numeracao diaria por loja para entregas.
@@ -624,7 +736,7 @@ CREATE INDEX IF NOT EXISTS "DeliveryDailySequence_sequenceDate_idx"
 
 
 -- ============================================================================
--- Source: supabase/seed.sql
+-- Section: initial production stores and admin seed
 -- ============================================================================
 
 INSERT INTO
@@ -712,7 +824,7 @@ SET
     "updatedAt" = now ();
 
 -- ============================================================================
--- Source: supabase/store-hours-seed.sql
+-- Section: store hours seed
 -- ============================================================================
 
 WITH
@@ -777,7 +889,7 @@ ORDER BY
   s."code";
 
 -- ============================================================================
--- Source: supabase/policies.sql
+-- Section: row level security policies
 -- ============================================================================
 
 ALTER TABLE "Store" ENABLE ROW LEVEL SECURITY;
@@ -844,6 +956,8 @@ ALTER TABLE "DeliveryEvent" ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE "DeliveryProof" ENABLE ROW LEVEL SECURITY;
 
+ALTER TABLE "DeliveryDailySequence" ENABLE ROW LEVEL SECURITY;
+
 ALTER TABLE "Courier" ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE "CourierRoute" ENABLE ROW LEVEL SECURITY;
@@ -861,7 +975,7 @@ ALTER TABLE "User" ENABLE ROW LEVEL SECURITY;
 
 
 -- ============================================================================
--- Source: supabase/realtime.sql
+-- Section: realtime publication configuration
 -- ============================================================================
 
 -- Enable Supabase Realtime for operational tables.
@@ -903,9 +1017,63 @@ BEGIN
 END $$;
 
 -- Current public realtime access:
--- Store rows can be received by anon/authenticated users because supabase/policies.sql
+-- Store rows can be received by anon/authenticated users because read-only RLS policies allow public store lookup.
 -- allows SELECT on active stores and their public opening hours.
 --
 -- Sensitive tables are published for Realtime, but RLS remains enabled and no public
 -- SELECT policies exist yet. Add authenticated role policies before exposing them
 -- to browser/mobile clients.
+
+
+-- ============================================================================
+-- Section: table documentation comments
+-- ============================================================================
+
+COMMENT ON TABLE public."Store" IS
+'Drogaria Santo Antonio stores/units. Public operational catalog for active stores, origin scope, opening hours, delivery numbering and map markers. RLS is enabled; anon/authenticated can SELECT only active rows through policies.sql. Writes must go through the API/service role.';
+
+COMMENT ON TABLE public."StoreWeeklyHours" IS
+'Default weekly opening hours per store and weekday. Used by the admin delivery form to suggest scheduling and by operational store context. RLS is enabled; anon/authenticated can SELECT rows only when the parent Store is active. Writes must go through the API/service role.';
+
+COMMENT ON TABLE public."StoreDateOverride" IS
+'Date-specific opening hour exceptions for holidays, inventory, special closing or special shifts. RLS is enabled; anon/authenticated can SELECT rows only when the parent Store is active. Writes must go through the API/service role.';
+
+COMMENT ON TABLE public."User" IS
+'System users and operational references. ADMIN/GERENTE/MOTOBOY are login roles; BALCONISTA_CAIXA is used as an operational reference/autocomplete and may not have login credentials. RLS is enabled with no public SELECT policy; the API applies auth, store scope and service-role access. Never expose passwordHash.';
+
+COMMENT ON TABLE public."Courier" IS
+'Courier profile linked one-to-one to a MOTOBOY user. Stores availability, last known location and base label used by admin, PWA and Android. RLS is enabled with no public SELECT policy; clients read/update through API endpoints that enforce role, courier ownership and store/service-area scope.';
+
+COMMENT ON TABLE public."CourierDeviceToken" IS
+'FCM/Web Push device tokens for couriers. Tokens are sensitive and are only registered/used by server-side API code for notifications. RLS is enabled with no public SELECT policy; monitor/export endpoints must expose only aggregate or sanitized device metadata, never token values.';
+
+COMMENT ON TABLE public."UserStoreAssignment" IS
+'Active and historical store assignments for users such as store logins and operational staff references. Supports base/temporary/rotation coverage and store-scope calculations. RLS is enabled with no public SELECT policy; admin screens use API/service-role routes that enforce ADMIN permission.';
+
+COMMENT ON TABLE public."CourierStoreAssignment" IS
+'Active and historical store assignments for couriers, including base, coverage, dedicated and rotation rules. Used as legacy/fallback store scope while courier apps prefer selected service area for available deliveries. RLS is enabled with no public SELECT policy; admin writes and scoped reads go through the API/service role.';
+
+COMMENT ON TABLE public."Customer" IS
+'Delivery customer identity keyed by phone. Contains personal data and supports phone lookup/reuse at the counter. RLS is enabled with no public SELECT policy; all reads/writes must go through API routes that apply login/store scope and LGPD rules.';
+
+COMMENT ON TABLE public."CustomerAddress" IS
+'Customer delivery addresses, optional coordinates, references and active flag. Feeds geocoding, maps, route planning and delivery creation. RLS is enabled with no public SELECT policy; all reads/writes must go through API routes that apply login/store scope and LGPD rules.';
+
+COMMENT ON TABLE public."Delivery" IS
+'Main operational delivery record. Stores public code, daily store number, store/customer/address/courier links, status, priority, deadline tier, payment/operational notes and lifecycle timestamps. RLS is enabled with no public SELECT policy; API enforces admin/store/courier scope, service area, availability and transition permissions.';
+
+COMMENT ON TABLE public."DeliveryDailySequence" IS
+'Per-store per-day counter used to generate storeDailyNumber and public delivery codes in LOJA-AAAAMMDD-001 format. Composite primary key is storeId plus sequenceDate. RLS is enabled with no public SELECT policy; only API/service-role code should increment or reconcile counters.';
+
+COMMENT ON TABLE public."DeliveryProof" IS
+'Optional photographic proof metadata for deliveries. Binary files live in configured local/API storage; this table stores filename, MIME, storage path, size, hash and actor. RLS is enabled with no public SELECT policy; API validates image signatures, size, ownership/scope and authenticated downloads.';
+
+COMMENT ON TABLE public."DeliveryEvent" IS
+'Append-only operational audit trail for deliveries: creation, scheduling, redirects, transitions, route recalculation, problems, cancellation and notification audit. Metadata is JSONB and actorUserId should be present for authenticated operational fallback events. RLS is enabled with no public SELECT policy; event history is exposed through scoped API routes.';
+
+COMMENT ON TABLE public."CourierRoute" IS
+'Persisted courier route header for active and historical route planning. Groups ordered RouteStop rows for a courier and tracks route status, start, finish and recalculation timestamps. RLS is enabled with no public SELECT policy; API exposes only routes allowed by admin/store/courier scope.';
+
+COMMENT ON TABLE public."RouteStop" IS
+'Ordered stops inside a CourierRoute, linked to delivery and/or store when available. Stores stop type, status, sequence, address, coordinates, scheduled time and completion time for admin, PWA and Android route views. RLS is enabled with no public SELECT policy; API filters stops by visible store scope and courier ownership.';
+

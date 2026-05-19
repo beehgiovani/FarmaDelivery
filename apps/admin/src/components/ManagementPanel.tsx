@@ -1,5 +1,5 @@
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { Building2, Clock3, Copy, Download, KeyRound, ShieldCheck, UserRoundCog } from "lucide-react";
+import { Building2, Clock3, Copy, Download, Info, KeyRound, ShieldCheck, UserRoundCog } from "lucide-react";
 import {
   assignmentLabel,
   buildAssignmentsCsv,
@@ -23,13 +23,17 @@ import {
 } from "../api";
 import {
   buildCreatedAccessCard,
+  buildAccessFormForFlow,
   buildStoreAccessRows,
+  buildStoreLoginAccessForm,
   formatStoreHours,
   generateInitialPassword,
   mergeStoreUnits,
+  accessFlowForRole,
   requiresBaseStoreForRole,
   requiresLoginCredentialsForRole,
   storeBaseLabel,
+  type AccessFlow,
   type CreatedAccessCard,
 } from "../managementAccess";
 import { hasEnoughDeliveryPhoneDigits, normalizeDeliveryPhoneInput } from "../deliveryPhone";
@@ -85,7 +89,7 @@ export function ManagementPanel({
     address: "",
     latitude: "",
     longitude: "",
-    baseType: "COMPARTILHADA" as "COMPARTILHADA" | "DEDICADA",
+  baseType: "COMPARTILHADA" as "COMPARTILHADA" | "DEDICADA",
     opensAt: "08:00",
     closesAt: "22:00",
   });
@@ -126,6 +130,7 @@ export function ManagementPanel({
   const [createdAccess, setCreatedAccess] = useState<CreatedAccessCard | null>(null);
   const [passwordResetUserId, setPasswordResetUserId] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<ManagementSection>("acessos");
+  const [accessFlow, setAccessFlow] = useState<AccessFlow>("systemAccess");
   const [optimisticStores, setOptimisticStores] = useState<StoreUnit[]>([]);
   const accessFormRef = useRef<HTMLFormElement | null>(null);
   const managedStores = useMemo(() => mergeStoreUnits(stores, optimisticStores), [stores, optimisticStores]);
@@ -135,6 +140,9 @@ export function ManagementPanel({
   const activeStoreUsersCount = useMemo(() => storeAccessRows.reduce((total, row) => total + row.users.length, 0), [storeAccessRows]);
   const storesWithCoordinates = useMemo(() => managedStores.filter((store) => store.coordinates).length, [managedStores]);
   const storesWithDefaultHours = useMemo(() => managedStores.filter((store) => store.weeklyHours?.length).length, [managedStores]);
+  const currentRoleRequiresLogin = requiresLoginCredentialsForRole(form.role);
+  const isCounterReference = accessFlow === "counterReference";
+  const isStoreLogin = accessFlow === "systemAccess" && form.role === "GERENTE";
 
   useEffect(() => {
     if (form.role !== "BALCONISTA_CAIXA" && !form.storeId && managedStores[0]?.id) {
@@ -204,25 +212,34 @@ export function ManagementPanel({
 
   function prepareStoreLogin(store: StoreUnit) {
     setActiveSection("acessos");
-    setForm((current) => ({
-      ...current,
-      name: "",
-      phone: "",
-      email: "",
-      password: generateInitialPassword(),
-      role: "GERENTE",
-      storeId: store.id ?? "",
-    }));
+    setAccessFlow("systemAccess");
+    setForm((current) => buildStoreLoginAccessForm({ current, store, initialPassword: generateInitialPassword() }));
     setSubmitState("idle");
     setCreatedAccess(null);
-    setFeedback(`Formulario preparado para criar o login da loja ${store.name}. Informe o identificador e telefone/email da unidade.`);
+    setFeedback(`Formulario preparado para criar o login operacional da loja ${store.name}. Use um telefone ou email da unidade como identificador.`);
     window.setTimeout(() => {
       accessFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       accessFormRef.current?.querySelector<HTMLInputElement>("input[name='team-user-name']")?.focus();
     }, 0);
   }
 
+  function selectAccessFlow(flow: AccessFlow) {
+    setAccessFlow(flow);
+    setSubmitState("idle");
+    setCreatedAccess(null);
+    setFeedback("");
+    setForm((current) =>
+      buildAccessFormForFlow({
+        flow,
+        current,
+        defaultStoreId: managedStores[0]?.id,
+        initialPassword: generateInitialPassword(),
+      }),
+    );
+  }
+
   function setFormForRole(role: TeamRole) {
+    setAccessFlow(accessFlowForRole(role));
     setForm((current) => ({
       ...current,
       role,
@@ -620,9 +637,9 @@ export function ManagementPanel({
               </label>
               <label className="inputGroup">
                 <span>Operacao dos motoboys</span>
-                <select value={storeForm.baseType} onChange={(event) => setStoreForm({ ...storeForm, baseType: event.target.value as "COMPARTILHADA" | "DEDICADA" })}>
+        <select value={storeForm.baseType} onChange={(event) => setStoreForm({ ...storeForm, baseType: event.target.value as "COMPARTILHADA" | "DEDICADA" })}>
                   <option value="COMPARTILHADA">Base compartilhada</option>
-                  <option value="DEDICADA">Base dedicada</option>
+          <option value="DEDICADA">Base dedicada</option>
                 </select>
               </label>
               <label className="inputGroup">
@@ -692,52 +709,102 @@ export function ManagementPanel({
         ) : null}
 
         {activeSection === "acessos" ? (
-        <form className="teamForm" ref={accessFormRef} onSubmit={handleSubmit}>
+        <>
+        <div className="accessFlowGrid" aria-label="Escolha o tipo de cadastro">
+          <button
+            className={`accessFlowCard ${accessFlow === "counterReference" ? "selected" : ""}`}
+            type="button"
+            onClick={() => selectAccessFlow("counterReference")}
+          >
+            <Info size={18} />
+            <strong>Funcionario de conferencia</strong>
+            <small>Somente nome para autocomplete da entrega. Nao cria login.</small>
+          </button>
+          <button
+            className={`accessFlowCard ${accessFlow === "systemAccess" ? "selected" : ""}`}
+            type="button"
+            onClick={() => selectAccessFlow("systemAccess")}
+          >
+            <KeyRound size={18} />
+            <strong>Logins do sistema</strong>
+            <small>Login da loja, admin ou motoboy. Todos entram com credenciais.</small>
+          </button>
+        </div>
+
+        <form className={`teamForm ${isStoreLogin ? "storeLoginForm" : ""}`} ref={accessFormRef} onSubmit={handleSubmit}>
           <div className="sectionHeader">
             <div>
-              <span className="eyebrow">Equipe</span>
-              <h2>{requiresLoginCredentialsForRole(form.role) ? "Novo acesso" : "Nova referencia"}</h2>
+              <span className="eyebrow">{isCounterReference ? "Fluxo separado" : isStoreLogin ? "Fluxo da unidade" : "Login"}</span>
+              <h2>{isCounterReference ? "Novo funcionario de conferencia" : isStoreLogin ? "Novo login da loja" : "Novo login do sistema"}</h2>
             </div>
           </div>
 
           <div className="accessHelperCard">
             <span>
-              <KeyRound size={18} />
+              {isCounterReference ? <Info size={18} /> : <KeyRound size={18} />}
             </span>
             <div>
-              <strong>{requiresLoginCredentialsForRole(form.role) ? "Login criado pelo admin" : "Referencia para autocomplete"}</strong>
+              <strong>
+                {isCounterReference
+                  ? "Nao e login: e apenas referencia para conferencia"
+                  : isStoreLogin
+                    ? "Acesso usado no computador da loja"
+                    : "Login criado pelo admin"}
+              </strong>
               <small>
-                {requiresLoginCredentialsForRole(form.role)
-                  ? "Use telefone ou email como identificador do acesso. A senha inicial pode ser alterada depois pelo admin."
-                  : "Cadastre somente o nome do balconista/caixa para selecionar ao lancar entregas."}
+                {isCounterReference
+                  ? "Este cadastro alimenta o autocomplete do campo Atendente no lancamento de entrega. Nao gera usuario de entrada no sistema."
+                  : isStoreLogin
+                    ? "Escolha a unidade, defina o identificador do login e entregue a senha inicial para o responsavel da loja."
+                    : "Use telefone ou email como identificador do acesso. A senha inicial pode ser alterada depois pelo admin."}
               </small>
             </div>
           </div>
 
           <div className="teamFormGrid">
             <label className="inputGroup">
-              <span>Nome</span>
+              <span>{isCounterReference ? "Nome do funcionario" : isStoreLogin ? "Nome do acesso da loja" : "Nome"}</span>
               <input
                 className="plainInput"
                 name="team-user-name"
                 value={form.name}
+                placeholder={isCounterReference ? "Nome usado na conferencia" : isStoreLogin ? "Ex.: Loja Centro" : undefined}
                 onChange={(event) => setForm({ ...form, name: event.target.value })}
               />
             </label>
-            <label className="inputGroup">
-              <span>Telefone</span>
-              <input
-                className="plainInput"
-                inputMode="tel"
-                value={form.phone}
-                onChange={(event) => setForm({ ...form, phone: normalizeDeliveryPhoneInput(event.target.value) })}
-              />
-            </label>
-            <label className="inputGroup">
-              <span>Email</span>
-              <input className="plainInput" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} />
-            </label>
-            {requiresLoginCredentialsForRole(form.role) ? (
+            {isCounterReference ? (
+              <label
+                className="inputGroup"
+                title="O codigo do InovaFarma sera salvo em campo proprio quando a estrutura de banco for evoluida. Por enquanto, nao sera usado para login."
+              >
+                <span>Codigo InovaFarma</span>
+                <input className="plainInput" disabled placeholder="Proxima etapa" />
+                <small className="inputHint">Campo planejado para conferencia futura; nao sera salvo agora para evitar dado improvisado.</small>
+              </label>
+            ) : (
+              <>
+                <label className="inputGroup">
+                  <span>{isStoreLogin ? "Telefone do login" : "Telefone"}</span>
+                  <input
+                    className="plainInput"
+                    inputMode="tel"
+                    value={form.phone}
+                    placeholder={isStoreLogin ? "Telefone da unidade" : undefined}
+                    onChange={(event) => setForm({ ...form, phone: normalizeDeliveryPhoneInput(event.target.value) })}
+                  />
+                </label>
+                <label className="inputGroup">
+                  <span>{isStoreLogin ? "Email do login" : "Email"}</span>
+                  <input
+                    className="plainInput"
+                    value={form.email}
+                    placeholder={isStoreLogin ? "Email da unidade" : undefined}
+                    onChange={(event) => setForm({ ...form, email: event.target.value })}
+                  />
+                </label>
+              </>
+            )}
+            {currentRoleRequiresLogin ? (
               <label className="inputGroup">
                 <span>Senha inicial</span>
                 <div className="inputWithButton">
@@ -754,27 +821,43 @@ export function ManagementPanel({
                 </div>
               </label>
             ) : null}
-            <label className="inputGroup">
-              <span>Funcao</span>
-              <select value={form.role} onChange={(event) => setFormForRole(event.target.value as TeamRole)}>
-                {roles.map((role) => (
-                  <option key={role.value} value={role.value}>
-                    {role.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="inputGroup">
-              <span>{form.role === "BALCONISTA_CAIXA" ? "Loja base opcional" : "Loja base"}</span>
-              <select value={form.storeId} onChange={(event) => setForm({ ...form, storeId: event.target.value })}>
-                <option value="">Sem loja fixa</option>
-                {managedStores.map((store) => (
-                  <option key={store.id ?? store.name} value={store.id ?? ""}>
-                    {store.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+            {accessFlow === "systemAccess" ? (
+              <label className="inputGroup">
+                <span>Funcao</span>
+                <select value={form.role} onChange={(event) => setFormForRole(event.target.value as TeamRole)}>
+                  {roles
+                    .filter((role) => role.value !== "BALCONISTA_CAIXA")
+                    .map((role) => (
+                      <option key={role.value} value={role.value}>
+                        {role.label}
+                      </option>
+                    ))}
+                </select>
+              </label>
+            ) : (
+              <div className="referenceNotice">
+                <strong>{isCounterReference ? "Tipo fixo: referencia" : "Tipo fixo: login da loja"}</strong>
+                <small>{isCounterReference ? "Sera salvo como Balconista / caixa (referencia)." : "Sera salvo como Acesso da loja."}</small>
+              </div>
+            )}
+            {isCounterReference ? (
+              <div className="referenceNotice">
+                <strong>Uso na entrega</strong>
+                <small>O nome cadastrado aparece no autocomplete do campo Atendente, independente da loja do computador.</small>
+              </div>
+            ) : (
+              <label className="inputGroup">
+                <span>{isStoreLogin ? "Loja deste login" : "Loja base"}</span>
+                <select value={form.storeId} onChange={(event) => setForm({ ...form, storeId: event.target.value })}>
+                  <option value="">Sem loja fixa</option>
+                  {managedStores.map((store) => (
+                    <option key={store.id ?? store.name} value={store.id ?? ""}>
+                      {store.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
           </div>
 
           {feedback ? <div className={`formFeedback ${submitState}`}>{feedback}</div> : null}
@@ -784,12 +867,15 @@ export function ManagementPanel({
             <button className="primaryButton" type="submit" disabled={submitState === "loading"}>
               {submitState === "loading"
                 ? "Cadastrando..."
-                : requiresLoginCredentialsForRole(form.role)
-                  ? "Cadastrar acesso"
+                : currentRoleRequiresLogin
+                  ? isStoreLogin
+                    ? "Criar login da loja"
+                    : "Cadastrar acesso"
                   : "Cadastrar referencia"}
             </button>
           </div>
         </form>
+        </>
         ) : null}
 
         {activeSection === "horarios" ? (

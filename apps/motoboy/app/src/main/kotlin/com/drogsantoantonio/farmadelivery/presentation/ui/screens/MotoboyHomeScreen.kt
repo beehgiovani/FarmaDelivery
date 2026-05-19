@@ -81,7 +81,7 @@ fun MotoboyHomeScreen(
           modifier = Modifier.size(56.dp),
         )
         Column {
-          Text("FarmaDelivery", style = MaterialTheme.typography.titleMedium)
+          Text("Drogaria Santo Antonio", style = MaterialTheme.typography.titleMedium)
           Text(
             session.courier?.baseStoreName ?: "Drogaria Santo Antonio",
             style = MaterialTheme.typography.bodySmall,

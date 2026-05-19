@@ -68,11 +68,19 @@ import {
 import { routeStatusLabel } from "./routeStatusLabels";
 import { routeStopDetails, routeStopTitle } from "./routeStopDisplay";
 import { routeStopScheduleLabel } from "./routeStopScheduleLabels";
+import {
+  COURIER_SERVICE_AREAS,
+  courierServiceAreaLabel,
+  courierServiceAreaSummary,
+  normalizeCourierServiceArea,
+  type CourierServiceArea,
+} from "./serviceAreas";
 import type { AuthSession, CourierRoute, Delivery, DeliveryEvent } from "./types";
 
 const TOKEN_KEY = "farmadelivery.motoboy.token";
 const TRACKING_KEY = "farmadelivery.motoboy.tracking";
 const AUTO_REFRESH_KEY = "farmadelivery.motoboy.autoRefresh";
+const SERVICE_AREA_KEY = "farmadelivery.motoboy.serviceArea";
 const WEB_PUSH_TOKEN_KEY = "farmadelivery.motoboy.webPushToken";
 const FIREBASE_WEB_PUSH_VAPID_KEY = import.meta.env.VITE_FIREBASE_WEB_PUSH_VAPID_KEY;
 
@@ -92,6 +100,9 @@ export function App() {
   const [loading, setLoading] = useState(false);
   const [busyAction, setBusyAction] = useState<BusyAction>(null);
   const [available, setAvailable] = useState(false);
+  const [serviceArea, setServiceArea] = useState<CourierServiceArea>(() =>
+    normalizeCourierServiceArea(localStorage.getItem(SERVICE_AREA_KEY)),
+  );
   const [trackingEnabled, setTrackingEnabled] = useState(() => localStorage.getItem(TRACKING_KEY) === "true");
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(() => localStorage.getItem(AUTO_REFRESH_KEY) !== "false");
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
@@ -108,7 +119,7 @@ export function App() {
       setError(null);
     }
     try {
-      const [nextDeliveries, nextRoutes] = await Promise.all([fetchDeliveries(), fetchCourierRoutes()]);
+      const [nextDeliveries, nextRoutes] = await Promise.all([fetchDeliveries(serviceArea), fetchCourierRoutes()]);
       const notification = summarizeOperationalChangesForAvailability(deliveriesRef.current, nextDeliveries, available);
       if (silent && notification) {
         setNotice(notification.body);
@@ -123,7 +134,7 @@ export function App() {
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [available, session]);
+  }, [available, serviceArea, session]);
 
   useEffect(() => {
     const token = localStorage.getItem(TOKEN_KEY);
@@ -400,6 +411,14 @@ export function App() {
     }
   }
 
+  function selectServiceArea(nextServiceArea: CourierServiceArea) {
+    setServiceArea(nextServiceArea);
+    localStorage.setItem(SERVICE_AREA_KEY, nextServiceArea);
+    deliveriesRef.current = [];
+    setDeliveries([]);
+    setNotice(`${courierServiceAreaLabel(nextServiceArea)} selecionada.`);
+  }
+
   if (checkingSession) {
     return <Splash />;
   }
@@ -444,6 +463,26 @@ export function App() {
           <strong>{operationalStatus.title}</strong>
         </div>
         <p>{operationalStatus.text}</p>
+      </section>
+
+      <section className="serviceAreaSelector" aria-label="Praca de atendimento">
+        <div>
+          <span>Praca de atendimento</span>
+          <strong>{courierServiceAreaLabel(serviceArea)}</strong>
+          <p>{courierServiceAreaSummary(serviceArea)}</p>
+        </div>
+        <div className="serviceAreaButtons">
+          {COURIER_SERVICE_AREAS.map((area) => (
+            <button
+              className={serviceArea === area ? "active" : ""}
+              key={area}
+              type="button"
+              onClick={() => selectServiceArea(area)}
+            >
+              {courierServiceAreaLabel(area).replace("Praca ", "")}
+            </button>
+          ))}
+        </div>
       </section>
 
       <section className="statusActions" aria-label="Acoes de disponibilidade e localizacao">
@@ -511,7 +550,7 @@ export function App() {
           busyAction={busyAction}
           eventsByDelivery={eventsByDelivery}
           onLoadEvents={async (deliveryId) => {
-            const events = await fetchDeliveryEvents(deliveryId);
+            const events = await fetchDeliveryEvents(deliveryId, serviceArea);
             setEventsByDelivery((current) => ({ ...current, [deliveryId]: events }));
           }}
           onAccept={(deliveryId) => {
@@ -520,7 +559,7 @@ export function App() {
               return;
             }
             void runAction(`accept:${deliveryId}`, async () => {
-              await acceptDelivery({ deliveryId, courierId });
+              await acceptDelivery({ deliveryId, courierId, serviceArea });
               setAvailable(false);
               setTrackingEnabled(false);
               localStorage.removeItem(TRACKING_KEY);
@@ -730,6 +769,7 @@ function DeliveryCard({ delivery, children }: { delivery: Delivery; children: Re
       </div>
       <h3>{delivery.customer}</h3>
       <p className="address">{delivery.address}</p>
+      {delivery.notes?.trim() ? <p className="paymentNotes">{delivery.notes.trim()}</p> : null}
       <div className="metaRow">
         <span>{deliveryStatusLabel(delivery.status)}</span>
         <span>{deliveryCardDateLabel(delivery.earliestDispatchAt ?? delivery.createdAt)}</span>

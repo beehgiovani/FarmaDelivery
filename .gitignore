@@ -26,7 +26,6 @@ tmp/
 temp/
 google-services.json
 **/google-services.json
-firebase-messaging-sw.js
 .kotlin/
 local.properties
 *.apk
