@@ -87,6 +87,21 @@ Preview do build:
 npm run preview -w apps/motoboy-pwa
 ```
 
+## Smoke test Web Push no iOS
+
+Use este roteiro somente com deploy HTTPS e Firebase Web Push configurado:
+
+1. Configurar no ambiente do PWA as variaveis Firebase Web e `VITE_FIREBASE_WEB_PUSH_VAPID_KEY`; nao colocar valores reais em `src/`, `public/` ou README.
+2. Configurar na API uma credencial Firebase Admin para FCM HTTP v1; a VAPID key publica do PWA nao envia push server-side sozinha.
+3. Rodar `npm run build -w apps/motoboy-pwa` e publicar em HTTPS.
+4. Abrir a URL no Safari do iPhone e adicionar o PWA pela opcao de compartilhar para a Tela de Inicio.
+5. Abrir o app instalado pela Tela de Inicio, fazer login com usuario `MOTOBOY` e escolher a praca de atendimento.
+6. Permitir notificacoes quando solicitado pelo iOS e conferir no backend se o token do dispositivo foi registrado sem ser exibido na tela ou em logs.
+7. Criar ou atualizar uma entrega elegivel para a praca do motoboy e confirmar que o iPhone recebe a notificacao fora da aba do Safari.
+8. Abrir a notificacao e conferir se a lista de entregas e a entrega em atendimento refletem o estado atual da API.
+9. Repetir com o app aberto para conferir tambem os sinais/notificacoes locais de nova entrega ou mudanca de status.
+10. Fazer logout e confirmar que novos tokens ou notificacoes daquele login nao continuam sendo usados indevidamente.
+
 ## Cuidados
 
 - iOS exige HTTPS e instalacao pela Tela de Inicio para recursos mais proximos de app.

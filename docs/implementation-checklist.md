@@ -347,6 +347,7 @@ Atualizado em 2026-05-19.
 - Gerador `npm run secret:session` criado para produzir `API_SESSION_SECRET` forte sem versionar segredo.
 - Preflight de producao documentado no README e checklist de banco documentado em `docs/supabase.md`, cobrindo segredo de sessao, pooler, comprovantes, Firebase Admin, VAPID, RLS, testes e build.
 - Roteiro de smoke test manual do app Android documentado em `apps/motoboy/README.md`, cobrindo API acessivel, login de motoboy, praca, GPS, rota, pagamento, comprovante, problema, FCM e logout.
+- Roteiro de smoke test Web Push do PWA no iOS documentado em `apps/motoboy-pwa/README.md`, cobrindo deploy HTTPS, app instalado na Tela de Inicio, VAPID, Firebase Admin, registro de token e recebimento de notificacao.
 
 ## Em andamento
     
@@ -358,7 +359,7 @@ Atualizado em 2026-05-19.
 
 - Executar smoke test completo do app Android em emulador/aparelho com API publicada ou API local acessivel pelo dispositivo.
 - Evoluir app Kotlin com mapa nativo/embarcado da rota e offline. 
-- Testar Web Push real do PWA em dispositivo iOS instalado pela Tela de Inicio apos configurar VAPID key e deploy HTTPS.
+- Executar teste real de Web Push do PWA em dispositivo iOS instalado pela Tela de Inicio apos configurar VAPID key e deploy HTTPS.
 - Permissao/background policy final de localizacao para publicacao na Play Store, se o app for publicado externamente.
 - Deploy da API e estrategia final de banco/producao, usando `npm run secret:session` e `npm run env:production:check` como pre-check local.
 
