@@ -343,7 +343,7 @@ Atualizado em 2026-05-19.
 - Documentacao publica/canonica foi revisada para nao expor dados reais de loja, project id, targets Firebase, package Android especifico, chaves, tokens ou credenciais.
 - Validacao geral apos restaurar nomes/configuracoes funcionais da aplicacao passou em `npm test`, `npm run build` e `:app:testDebugUnitTest`.
 - Auditoria estatica `npm run db:rls:check` criada para validar `database/schema-full.sql`, garantindo RLS e comentarios em todas as tabelas e policy anon apenas nas tabelas publicas de catalogo.
-- Checagem `npm run env:production:check -- file=env/api.env file=env/admin.env` criada para revisar variaveis de deploy sem imprimir valores sensiveis.
+- Checagem `npm run env:production:check -- file=env/api.env file=env/admin.env` criada para revisar variaveis de deploy sem imprimir valores sensiveis, incluindo tamanho minimo do `API_SESSION_SECRET`.
 - Gerador `npm run secret:session` criado para produzir `API_SESSION_SECRET` forte sem versionar segredo.
 
 ## Em andamento
@@ -362,7 +362,7 @@ Atualizado em 2026-05-19.
 
 ## Observacoes tecnicas
 
-- O token atual e assinado pela API e deve usar `API_SESSION_SECRET` em producao.
+- O token atual e assinado pela API e deve usar `API_SESSION_SECRET` forte em producao, com pelo menos 43 caracteres; `npm run secret:session` gera um valor maior por padrao.
 - O fallback local usa `SUPABASE_JWT_SECRET` ou uma chave local apenas para desenvolvimento.
 - Envio FCM server-side depende de credencial Firebase Admin no backend (`FIREBASE_SERVICE_ACCOUNT_JSON`, `FIREBASE_SERVICE_ACCOUNT_BASE64`, trio `FIREBASE_PROJECT_ID`/`FIREBASE_CLIENT_EMAIL`/`FIREBASE_PRIVATE_KEY`, ou `GOOGLE_APPLICATION_CREDENTIALS`).
 - Realtime no browser depende de policies RLS compativeis.

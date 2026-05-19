@@ -8,7 +8,7 @@ const env = {
 };
 
 const checks = [
-  requireValue("API_SESSION_SECRET", { placeholderPattern: /troque_por|local-session-secret/i }),
+  requireValue("API_SESSION_SECRET", { placeholderPattern: /troque_por|local-session-secret/i, minLength: 43 }),
   requireValue("SUPABASE_URL", { placeholderPattern: /PROJECT_REF/i }),
   requireOneOf(["SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_JWT"], { placeholderPattern: /xxx|secret_xxx|service_role/i }),
   requireValue("DATABASE_URL", { placeholderPattern: /USER:PASSWORD|POOLER_HOST|localhost/i, warningOnly: true }),
@@ -47,6 +47,9 @@ function requireValue(name, options = {}) {
   if (!value) return { status: options.warningOnly ? "warn" : "fail", name, reason: "missing" };
   if (options.placeholderPattern?.test(value)) {
     return { status: options.warningOnly ? "warn" : "fail", name, reason: "placeholder_or_local_value" };
+  }
+  if (options.minLength && value.length < options.minLength) {
+    return { status: options.warningOnly ? "warn" : "fail", name, reason: `too_short_min_${options.minLength}_characters` };
   }
   return { status: "pass", name };
 }

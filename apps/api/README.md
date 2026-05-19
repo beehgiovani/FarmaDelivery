@@ -72,7 +72,7 @@ Configurar em `.env` local, `env/*.env` ou no provedor de deploy, sem versionar 
 
 - `DATABASE_URL`: conexao Prisma, preferencialmente pooler em producao/Supabase.
 - `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` e variaveis relacionadas ao fallback REST.
-- `API_SESSION_SECRET`: segredo de assinatura da sessao.
+- `API_SESSION_SECRET`: segredo de assinatura da sessao, com pelo menos 43 caracteres em producao.
 - `DELIVERY_PROOF_STORAGE_DIR`: diretorio local de comprovantes.
 - Variaveis Firebase Admin para push server-side.
 

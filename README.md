@@ -120,6 +120,8 @@ Checar variaveis antes de deploy, sem imprimir valores sensiveis:
 npm run env:production:check -- file=env/api.env file=env/admin.env
 ```
 
+Essa checagem falha se o `API_SESSION_SECRET` estiver ausente, for placeholder ou tiver menos de 43 caracteres.
+
 Gerar um `API_SESSION_SECRET` seguro para ambiente local/deploy:
 
 ```bash
