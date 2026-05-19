@@ -10,13 +10,13 @@ const env = {
 const checks = [
   requireValue("API_SESSION_SECRET", { placeholderPattern: /troque_por|local-session-secret/i }),
   requireValue("SUPABASE_URL", { placeholderPattern: /PROJECT_REF/i }),
-  requireOneOf(["SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_JWT"]),
+  requireOneOf(["SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_JWT"], { placeholderPattern: /xxx|secret_xxx|service_role/i }),
   requireValue("DATABASE_URL", { placeholderPattern: /USER:PASSWORD|POOLER_HOST|localhost/i, warningOnly: true }),
   requireValue("DELIVERY_PROOF_STORAGE_DIR", { warningOnly: true }),
   requireFirebaseAdminCredential(),
   requireValue("VITE_API_URL", { placeholderPattern: /localhost|127\.0\.0\.1/i, warningOnly: true }),
   requireValue("VITE_SUPABASE_URL", { placeholderPattern: /PROJECT_REF/i, warningOnly: true }),
-  requireValue("VITE_SUPABASE_PUBLISHABLE_KEY", { placeholderPattern: /xxx|publishable/i, warningOnly: true }),
+  requireValue("VITE_SUPABASE_PUBLISHABLE_KEY", { placeholderPattern: /xxx|PROJECT_REF/i, warningOnly: true }),
   requireValue("VITE_FIREBASE_WEB_PUSH_VAPID_KEY", { placeholderPattern: /firebase_web_push|xxx/i, warningOnly: true }),
 ];
 
@@ -51,10 +51,15 @@ function requireValue(name, options = {}) {
   return { status: "pass", name };
 }
 
-function requireOneOf(names) {
-  return names.some((name) => env[name]?.trim())
-    ? { status: "pass", name: names.join(" or ") }
-    : { status: "fail", name: names.join(" or "), reason: "missing_one_required_option" };
+function requireOneOf(names, options = {}) {
+  const values = names.map((name) => env[name]?.trim()).filter(Boolean);
+  if (values.length === 0) {
+    return { status: "fail", name: names.join(" or "), reason: "missing_one_required_option" };
+  }
+  if (options.placeholderPattern && values.every((value) => options.placeholderPattern.test(value))) {
+    return { status: "fail", name: names.join(" or "), reason: "placeholder_or_local_value" };
+  }
+  return { status: "pass", name: names.join(" or ") };
 }
 
 function requireFirebaseAdminCredential() {
