@@ -2773,7 +2773,7 @@ h2 {
 
   .sidebar {
     position: static;
-    min-height: auto;
+    min-height: 0;
     padding: 16px;
   }
 
@@ -2843,6 +2843,6 @@ h2 {
   }
 
   .addressCell {
-    min-height: auto;
+    min-height: 0;
   }
 }
