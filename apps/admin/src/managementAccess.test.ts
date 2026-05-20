@@ -4,6 +4,7 @@ import {
   accessFlowForRole,
   activeStoreAccessUsers,
   buildAccessFormForFlow,
+  buildCounterReferenceName,
   buildCreatedAccessCard,
   buildStoreLoginAccessForm,
   buildStoreAccessRows,
@@ -69,6 +70,12 @@ test("keeps counter staff in a reference-only access flow", () => {
 
   assert.equal(accessFlowForRole("BALCONISTA_CAIXA"), "counterReference");
   assert.deepEqual(form, makeAccessForm({ role: "BALCONISTA_CAIXA", storeId: "", phone: "", password: "" }));
+});
+
+test("builds counter reference name with optional InovaFarma code", () => {
+  assert.equal(buildCounterReferenceName({ code: " 1234 ", name: " Maria Caixa " }), "1234 - Maria Caixa");
+  assert.equal(buildCounterReferenceName({ code: "", name: " Maria Caixa " }), "Maria Caixa");
+  assert.equal(buildCounterReferenceName({ code: "1234", name: " " }), "");
 });
 
 test("prepares store login as a credentialed store access", () => {
@@ -227,6 +234,7 @@ function makeUser(input: {
 function makeAccessForm(input: Partial<ReturnType<typeof buildAccessFormForFlow> & { role: TeamUser["role"] }> = {}) {
   return {
     name: input.name ?? "",
+    employeeCode: input.employeeCode ?? "",
     phone: input.phone ?? "",
     email: input.email ?? "",
     password: input.password ?? "",

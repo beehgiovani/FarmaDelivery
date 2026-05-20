@@ -109,6 +109,7 @@ Atualizado em 2026-05-20.
 - Fluxo de nova entrega preserva o atendente/balconista como referencia por nome no autocomplete global, sem transformar funcionario de balcao em login.
 - Cadastro de `BALCONISTA_CAIXA` no admin ficou como referencia operacional global por padrao, sem exigir loja base; `GERENTE` segue como login operacional da unidade.
 - Cadastro de `BALCONISTA_CAIXA` nao exige telefone, email ou senha, pois serve como referencia/autocomplete; o backend gera hash interno apenas para compatibilidade com o modelo atual.
+- Cadastro de `BALCONISTA_CAIXA` permite informar codigo InovaFarma opcional junto ao nome, salvando a referencia operacional no formato `codigo - nome` para autocomplete e relatorios sem nova coluna de banco.
 - UI de acessos possui fluxos separados para funcionario de conferencia (`BALCONISTA_CAIXA`, sem login), motoboy (`MOTOBOY`, login dedicado) e logins do sistema (`GERENTE` e `ADMIN`), evitando misturar balconista/caixa, motoboy e login da loja.
 - Cadastro de motoboy no admin foi separado em fluxo dedicado, com login proprio para o app/campo e loja base obrigatoria, sem misturar com login da loja ou referencia de balconista.
 - Cadastro de motoboy no admin ficou mais rapido, com telefone como login preferencial, senha inicial ja gerada, passos visuais do preenchimento e aviso de que a praca de atendimento e escolhida no app.

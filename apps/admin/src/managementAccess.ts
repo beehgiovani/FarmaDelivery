@@ -19,6 +19,7 @@ export type AccessFlow = "counterReference" | "systemAccess" | "courierAccess";
 
 export type AccessFormState = {
   name: string;
+  employeeCode: string;
   phone: string;
   email: string;
   password: string;
@@ -54,6 +55,7 @@ export function buildAccessFormForFlow(input: {
     return {
       ...input.current,
       name: "",
+      employeeCode: "",
       phone: "",
       email: "",
       password: "",
@@ -66,6 +68,7 @@ export function buildAccessFormForFlow(input: {
     return {
       ...input.current,
       name: "",
+      employeeCode: "",
       phone: "",
       email: "",
       password: input.current.password || input.initialPassword || "",
@@ -77,6 +80,7 @@ export function buildAccessFormForFlow(input: {
   return {
     ...input.current,
     name: "",
+    employeeCode: "",
     phone: "",
     email: "",
     password: input.current.password || input.initialPassword || "",
@@ -89,12 +93,20 @@ export function buildStoreLoginAccessForm(input: { current: AccessFormState; sto
   return {
     ...input.current,
     name: input.store.name,
+    employeeCode: "",
     phone: "",
     email: "",
     password: input.initialPassword,
     role: "GERENTE",
     storeId: input.store.id ?? "",
   };
+}
+
+export function buildCounterReferenceName(input: { code?: string; name: string }) {
+  const name = input.name.trim();
+  const code = input.code?.trim();
+  if (!name) return "";
+  return code ? `${code} - ${name}` : name;
 }
 
 export function buildStoreAccessRows(stores: StoreUnit[], users: TeamUser[]): StoreAccessRow[] {

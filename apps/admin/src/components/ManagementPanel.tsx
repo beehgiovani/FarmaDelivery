@@ -24,6 +24,7 @@ import {
 import {
   buildCreatedAccessCard,
   buildAccessFormForFlow,
+  buildCounterReferenceName,
   buildStoreAccessRows,
   buildStoreLoginAccessForm,
   formatStoreHours,
@@ -77,6 +78,7 @@ export function ManagementPanel({
 }: ManagementPanelProps) {
   const [form, setForm] = useState(() => ({
     name: "",
+    employeeCode: "",
     phone: "",
     email: "",
     password: generateInitialPassword(),
@@ -254,7 +256,10 @@ export function ManagementPanel({
     const normalizedPhone = normalizeDeliveryPhoneInput(form.phone);
     const phoneForLogin = hasEnoughDeliveryPhoneDigits(normalizedPhone) ? normalizedPhone : "";
     const emailForLogin = form.email.trim();
-    if (!form.name.trim()) {
+    const nameForSubmit = isCounterReference
+      ? buildCounterReferenceName({ code: form.employeeCode, name: form.name })
+      : form.name.trim();
+    if (!nameForSubmit) {
       setSubmitState("error");
       setFeedback("Informe o nome para este cadastro.");
       return;
@@ -283,7 +288,7 @@ export function ManagementPanel({
     try {
       const selectedStoreName = managedStores.find((store) => store.id === form.storeId)?.name ?? "Sem loja fixa";
       const created = await createUser({
-        name: form.name.trim(),
+        name: nameForSubmit,
         phone: phoneForLogin || undefined,
         email: emailForLogin || undefined,
         password: requiresLogin ? form.password : undefined,
@@ -313,6 +318,7 @@ export function ManagementPanel({
       setForm((current) => ({
         ...current,
         name: "",
+        employeeCode: "",
         phone: "",
         email: "",
         password: requiresLogin ? generateInitialPassword() : "",
@@ -810,13 +816,16 @@ export function ManagementPanel({
               />
             </label>
             {isCounterReference ? (
-              <label
-                className="inputGroup"
-                title="O codigo do InovaFarma sera salvo em campo proprio quando a estrutura de banco for evoluida. Por enquanto, nao sera usado para login."
-              >
+              <label className="inputGroup" title="Codigo interno usado apenas para referencia operacional e conferencia. Nao cria login.">
                 <span>Codigo InovaFarma</span>
-                <input className="plainInput" disabled placeholder="Proxima etapa" />
-                <small className="inputHint">Campo planejado para conferencia futura; nao sera salvo agora para evitar dado improvisado.</small>
+                <input
+                  className="plainInput"
+                  inputMode="numeric"
+                  value={form.employeeCode}
+                  placeholder="Ex.: 1234"
+                  onChange={(event) => setForm({ ...form, employeeCode: event.target.value.replace(/[^\dA-Za-z-]/g, "").toUpperCase() })}
+                />
+                <small className="inputHint">Sera salvo junto ao nome para aparecer no autocomplete e nos relatorios.</small>
               </label>
             ) : (
               <>
