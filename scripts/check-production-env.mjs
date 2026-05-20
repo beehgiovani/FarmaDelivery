@@ -16,13 +16,13 @@ const checks = [
   })),
   requireValue("API_SESSION_SECRET", { placeholderPattern: /troque_por|local-session-secret/i, minLength: 43 }),
   requireUrl("SUPABASE_URL", { placeholderPattern: /PROJECT_REF/i, allowedProtocols: ["https:"] }),
-  requireOneOf(["SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_JWT"], { placeholderPattern: /xxx|secret_xxx|service_role/i }),
+  requireSupabaseServerKey(),
   requirePostgresDatabaseUrl(),
   requireDeliveryProofStorageDir(),
   requireFirebaseAdminCredential(),
   requireUrl("VITE_API_URL", { placeholderPattern: /localhost|127\.0\.0\.1/i, warningOnly: true, allowedProtocols: ["https:"] }),
   requireUrl("VITE_SUPABASE_URL", { placeholderPattern: /PROJECT_REF/i, warningOnly: true, allowedProtocols: ["https:"] }),
-  requireValue("VITE_SUPABASE_PUBLISHABLE_KEY", { placeholderPattern: /xxx|PROJECT_REF/i, warningOnly: true }),
+  requireSupabasePublishableKey(),
   requireValue("VITE_FIREBASE_WEB_PUSH_VAPID_KEY", { placeholderPattern: /firebase_web_push|xxx/i, warningOnly: true }),
   requireFirebaseWebPushConfig(),
 ];
@@ -130,15 +130,41 @@ function requirePostgresDatabaseUrl() {
   return { status: "pass", name };
 }
 
-function requireOneOf(names, options = {}) {
-  const values = names.map((name) => env[name]?.trim()).filter(Boolean);
+function requireSupabaseServerKey() {
+  const names = ["SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_JWT"];
+  const values = names.map((name) => ({ name, value: env[name]?.trim() })).filter((item) => item.value);
   if (values.length === 0) {
     return { status: "fail", name: names.join(" or "), reason: "missing_one_required_option" };
   }
-  if (options.placeholderPattern && values.every((value) => options.placeholderPattern.test(value))) {
+  if (values.every((item) => /xxx|secret_xxx|service_role/i.test(item.value))) {
     return { status: "fail", name: names.join(" or "), reason: "placeholder_or_local_value" };
   }
+  if (values.every((item) => looksLikeSupabasePublishableKey(item.value))) {
+    return { status: "fail", name: names.join(" or "), reason: "frontend_publishable_key_used_server_side" };
+  }
+
   return { status: "pass", name: names.join(" or ") };
+}
+
+function requireSupabasePublishableKey() {
+  const name = "VITE_SUPABASE_PUBLISHABLE_KEY";
+  const value = env[name]?.trim();
+  const valueCheck = requireValue(name, { placeholderPattern: /xxx|PROJECT_REF/i, warningOnly: true });
+  if (valueCheck.status !== "pass") return valueCheck;
+
+  if (looksLikeSupabaseSecretKey(value)) {
+    return { status: "warn", name, reason: "server_secret_key_exposed_to_frontend" };
+  }
+
+  return { status: "pass", name };
+}
+
+function looksLikeSupabaseSecretKey(value) {
+  return typeof value === "string" && (/^sb_secret_/i.test(value) || /service_role/i.test(value));
+}
+
+function looksLikeSupabasePublishableKey(value) {
+  return typeof value === "string" && (/^sb_publishable_/i.test(value) || /\banon\b/i.test(value));
 }
 
 function requireFirebaseAdminCredential() {

@@ -54,6 +54,17 @@ runScenario("passes a PostgreSQL DATABASE_URL with credentials host and sslmode"
   expectPassedName: "DATABASE_URL",
 });
 
+runScenario("rejects Supabase publishable key used as server key", {
+  env: { ...baseEnv, SUPABASE_SECRET_KEY: "sb_publishable_public_key_for_check" },
+  expectExitCode: 1,
+  expectFailureReason: "frontend_publishable_key_used_server_side",
+});
+
+runScenario("warns when Supabase secret key is exposed to frontend", {
+  env: { ...baseEnv, VITE_SUPABASE_PUBLISHABLE_KEY: "sb_secret_server_key_for_check" },
+  expectWarningReason: "server_secret_key_exposed_to_frontend",
+});
+
 runScenario("warns when VAPID is configured without Firebase Web Messaging fields", {
   env: {
     ...baseEnv,
@@ -121,7 +132,7 @@ process.stdout.write(
     {
       mode: "production-env-check-self-test",
       ok: true,
-      scenarios: 14,
+      scenarios: 16,
     },
     null,
     2,

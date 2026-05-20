@@ -124,6 +124,7 @@ Essa checagem falha se o `API_SESSION_SECRET` estiver ausente, for placeholder o
 Arquivos informados com `file=` que nao existirem aparecem como warning para evitar typo silencioso no preflight.
 URLs de Supabase/API tambem sao validadas para evitar valores sem formato de URL ou frontend apontando para endereco local em producao.
 `DATABASE_URL` gera warning quando nao for PostgreSQL com usuario, senha, host e `sslmode=require`.
+A checagem tambem evita confundir chave server-side do Supabase com chave publishable do frontend.
 O diretorio de comprovantes gera warning quando parece caminho local/efemero, pois em producao precisa ser persistente.
 Quando a VAPID key do PWA estiver configurada, a checagem tambem avisa se a configuracao Firebase Web minima para Messaging estiver incompleta.
 A credencial Firebase Admin tambem e revisada sem exibir valores, aceitando JSON, base64 do JSON, trio de variaveis ou `GOOGLE_APPLICATION_CREDENTIALS`.
