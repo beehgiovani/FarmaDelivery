@@ -23,6 +23,17 @@ runScenario("warns when an explicit env file is missing", {
   expectWarningReason: "file_not_found",
 });
 
+runScenario("rejects invalid Supabase URL format", {
+  env: { ...baseEnv, SUPABASE_URL: "not-a-url" },
+  expectExitCode: 1,
+  expectFailureReason: "invalid_url",
+});
+
+runScenario("warns when frontend API URL is not HTTPS for production", {
+  env: { ...baseEnv, VITE_API_URL: "http://localhost:3333" },
+  expectWarningReason: "placeholder_or_local_value",
+});
+
 runScenario("warns when VAPID is configured without Firebase Web Messaging fields", {
   env: {
     ...baseEnv,
@@ -90,7 +101,7 @@ process.stdout.write(
     {
       mode: "production-env-check-self-test",
       ok: true,
-      scenarios: 8,
+      scenarios: 10,
     },
     null,
     2,

@@ -15,13 +15,13 @@ const checks = [
     reason: "file_not_found",
   })),
   requireValue("API_SESSION_SECRET", { placeholderPattern: /troque_por|local-session-secret/i, minLength: 43 }),
-  requireValue("SUPABASE_URL", { placeholderPattern: /PROJECT_REF/i }),
+  requireUrl("SUPABASE_URL", { placeholderPattern: /PROJECT_REF/i, allowedProtocols: ["https:"] }),
   requireOneOf(["SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_JWT"], { placeholderPattern: /xxx|secret_xxx|service_role/i }),
   requireValue("DATABASE_URL", { placeholderPattern: /USER:PASSWORD|POOLER_HOST|localhost/i, warningOnly: true }),
   requireValue("DELIVERY_PROOF_STORAGE_DIR", { warningOnly: true }),
   requireFirebaseAdminCredential(),
-  requireValue("VITE_API_URL", { placeholderPattern: /localhost|127\.0\.0\.1/i, warningOnly: true }),
-  requireValue("VITE_SUPABASE_URL", { placeholderPattern: /PROJECT_REF/i, warningOnly: true }),
+  requireUrl("VITE_API_URL", { placeholderPattern: /localhost|127\.0\.0\.1/i, warningOnly: true, allowedProtocols: ["https:"] }),
+  requireUrl("VITE_SUPABASE_URL", { placeholderPattern: /PROJECT_REF/i, warningOnly: true, allowedProtocols: ["https:"] }),
   requireValue("VITE_SUPABASE_PUBLISHABLE_KEY", { placeholderPattern: /xxx|PROJECT_REF/i, warningOnly: true }),
   requireValue("VITE_FIREBASE_WEB_PUSH_VAPID_KEY", { placeholderPattern: /firebase_web_push|xxx/i, warningOnly: true }),
   requireFirebaseWebPushConfig(),
@@ -58,6 +58,25 @@ function requireValue(name, options = {}) {
   if (options.minLength && value.length < options.minLength) {
     return { status: options.warningOnly ? "warn" : "fail", name, reason: `too_short_min_${options.minLength}_characters` };
   }
+  return { status: "pass", name };
+}
+
+function requireUrl(name, options = {}) {
+  const value = env[name]?.trim();
+  const valueCheck = requireValue(name, options);
+  if (valueCheck.status !== "pass") return valueCheck;
+
+  let parsed;
+  try {
+    parsed = new URL(value);
+  } catch {
+    return { status: options.warningOnly ? "warn" : "fail", name, reason: "invalid_url" };
+  }
+
+  if (options.allowedProtocols && !options.allowedProtocols.includes(parsed.protocol)) {
+    return { status: options.warningOnly ? "warn" : "fail", name, reason: "invalid_url_protocol" };
+  }
+
   return { status: "pass", name };
 }
 
