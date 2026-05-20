@@ -13,12 +13,19 @@ assert.notEqual(invalidArg.status, 0, "unknown arguments should fail before runn
 assert.match(invalidArg.stderr, /Argumento desconhecido/);
 assert.equal(invalidArg.stdout.includes("== production env check =="), false, "invalid args should not start preflight steps");
 
+const list = spawnPreflight(["--list"]);
+assert.equal(list.status, 0, `list should exit cleanly\n${list.stdout}\n${list.stderr}`);
+assert.match(list.stdout, /1\. production env check/);
+assert.match(list.stdout, /tracked sensitive files self-test/);
+assert.match(list.stdout, /production build/);
+assert.equal(list.stdout.includes("== production env check =="), false, "list should not execute preflight steps");
+
 process.stdout.write(
   `${JSON.stringify(
     {
       mode: "production-preflight-self-test",
       ok: true,
-      scenarios: 2,
+      scenarios: 3,
     },
     null,
     2,

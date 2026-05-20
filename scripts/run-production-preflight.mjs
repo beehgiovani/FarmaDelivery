@@ -14,6 +14,11 @@ const steps = [
   { name: "production build", command: "npm", args: ["run", "build"] },
 ];
 
+if (args.list) {
+  process.stdout.write(`${steps.map((step, index) => `${index + 1}. ${step.name}`).join("\n")}\n`);
+  process.exit(0);
+}
+
 for (const step of steps) {
   process.stdout.write(`\n== ${step.name} ==\n`);
   const result = spawnSync(step.command, step.args, {
@@ -31,10 +36,18 @@ for (const step of steps) {
 
 function parseArgs(rawArgs) {
   const files = [];
+  let list = false;
   for (const arg of rawArgs) {
     if (arg === "--help" || arg === "-h") {
-      process.stdout.write("Uso: npm run preflight:production -- file=env/api.env file=env/admin.env\n");
+      process.stdout.write(
+        "Uso: npm run preflight:production -- file=env/api.env file=env/admin.env\n" +
+          "Ou: npm run preflight:production -- --list\n",
+      );
       process.exit(0);
+    }
+    if (arg === "--list") {
+      list = true;
+      continue;
     }
     if (arg.startsWith("file=")) {
       files.push(arg.slice("file=".length));
@@ -42,5 +55,5 @@ function parseArgs(rawArgs) {
     }
     throw new Error(`Argumento desconhecido: ${arg}`);
   }
-  return { files };
+  return { files, list };
 }

@@ -25,6 +25,12 @@ Rodar o preflight completo na raiz do monorepo:
 npm run preflight:production -- file=env/api.env file=env/admin.env
 ```
 
+Para conferir a ordem das etapas sem executar o preflight:
+
+```powershell
+npm run preflight:production -- --list
+```
+
 O comando para no primeiro erro e executa:
 
 1. Checagem segura de ambiente.

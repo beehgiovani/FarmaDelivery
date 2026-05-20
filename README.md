@@ -141,6 +141,12 @@ Rodar o preflight completo de producao, parando no primeiro erro:
 npm run preflight:production -- file=env/api.env file=env/admin.env
 ```
 
+Listar a ordem do preflight sem executar:
+
+```bash
+npm run preflight:production -- --list
+```
+
 Autotestar a interface do runner de preflight:
 
 ```bash
