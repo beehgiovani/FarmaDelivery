@@ -29,7 +29,8 @@ Configurado no projeto Android local.
 - Logout com tentativa de marcar motoboy como indisponivel.
 - Escolha da praca de atendimento configurada no app na tela de entregas para filtrar corridas disponiveis.
 - Lista de entregas disponiveis e entregas em atendimento.
-- Loading, vazio, erro/retry e refresh manual.
+- Layout operacional compartilhado para carregando, vazio, erro/retry e refresh manual em entregas, rota e historico.
+- Mensagens tecnicas de backend/rede sao filtradas antes de aparecer para o motoboy.
 - Disponibilidade operacional antes de receber/aceitar novas corridas.
 - Acoes de entrega: aceitar, coletar, sair em rota, concluir e registrar problema.
 - Confirmacao textual obrigatoria antes de concluir entrega em rota.
@@ -62,6 +63,8 @@ app/src/main/kotlin/.../farmadelivery/
   notifications/  FirebaseMessagingService
   presentation/   Navegacao, telas e tema Compose
 ```
+
+Os estados de carregamento, vazio e erro das telas de campo ficam centralizados em `OperationalStateLayout.kt`. Mensagens de falha exibidas ao motoboy passam por `UserMessages.kt` para evitar expor termos tecnicos de backend, rede, token ou status HTTP.
 
 ## API local
 

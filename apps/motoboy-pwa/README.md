@@ -20,6 +20,8 @@ Este app nao deve documentar nomes reais de lojas, enderecos, coordenadas, chave
 - Sessao local e limpeza no logout ou expiracao.
 - Escolha local da praca de atendimento configurada no app para filtrar entregas disponiveis sem fluxo administrativo de emprestimo ocasional.
 - Lista de entregas disponiveis e entregas em atendimento.
+- Blocos visuais consistentes para carregando, vazio e erro/retry nas telas operacionais.
+- Mensagens tecnicas de backend/rede sao filtradas antes de aparecer para o motoboy.
 - Disponibilidade do motoboy antes de receber/aceitar novas corridas.
 - Envio manual de localizacao.
 - GPS automatico enquanto o PWA estiver aberto, com limites por tempo/deslocamento.
@@ -47,6 +49,7 @@ src/
   operationalSignals.ts           Notificacoes locais e sinais operacionais
   motoboyOperationalStatus.ts     Texto de disponibilidade/GPS
   serviceAreas.ts                 Contrato local das pracas de atendimento
+  userMessages.ts                 Mensagens seguras para o motoboy
   locationActionLabels.ts         Labels das acoes de localizacao
   types.ts                        Tipos usados pelo PWA
 ```
