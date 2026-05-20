@@ -360,6 +360,7 @@ Atualizado em 2026-05-20.
 - Comando `npm run preflight:production -- file=env/api.env file=env/admin.env` criado para orquestrar checagem de ambiente, RLS, testes e build antes do deploy.
 - Autoteste `npm run preflight:production:self-test` criado e incluido no `npm test` raiz para validar ajuda e rejeicao de argumento invalido do runner sem rodar o preflight completo.
 - Validacao local de prontidao mobile executada com `:app:testDebugUnitTest`, `:app:assembleDebug`, `npm run test -w apps/motoboy-pwa` e `npm run build -w apps/motoboy-pwa`, mantendo pendentes apenas os smoke tests em aparelho/iOS reais.
+- Validacao local pre-deploy executada com `npm run db:rls:check`, `npm run env:production:check:self-test`, `npm test` e `npm run build`; o preflight completo com `file=env/*.env` reais permanece para antes da publicacao.
 
 ## Em andamento
     
