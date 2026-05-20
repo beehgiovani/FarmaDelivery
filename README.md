@@ -135,6 +135,12 @@ Autotestar o precheck de producao com cenarios falsos:
 npm run env:production:check:self-test
 ```
 
+Rodar o preflight completo de producao, parando no primeiro erro:
+
+```bash
+npm run preflight:production -- file=env/api.env file=env/admin.env
+```
+
 Gerar um `API_SESSION_SECRET` seguro para ambiente local/deploy:
 
 ```bash
@@ -162,8 +168,8 @@ Antes de publicar uma versao, confira nesta ordem:
 3. Configurar `DELIVERY_PROOF_STORAGE_DIR` em armazenamento persistente ou migrar comprovantes para storage externo antes de depender de containers efemeros.
 4. Configurar uma credencial Firebase Admin no backend para FCM HTTP v1; a VAPID/Web Push key do frontend nao substitui essa credencial.
 5. Configurar `VITE_API_URL`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` e, no PWA, `VITE_FIREBASE_WEB_PUSH_VAPID_KEY`.
-6. Rodar `npm run env:production:check -- file=env/api.env file=env/admin.env` sem imprimir valores sensiveis.
-7. Rodar `npm run db:rls:check`, `npm test` e `npm run build`.
+6. Rodar `npm run preflight:production -- file=env/api.env file=env/admin.env`, que executa checagem de ambiente, RLS, testes e build sem imprimir valores sensiveis.
+7. Se preferir validar por partes, rodar `npm run env:production:check -- file=env/api.env file=env/admin.env`, `npm run db:rls:check`, `npm test` e `npm run build`.
 8. Conferir no Supabase SQL Editor se o banco aplicado esta alinhado ao `database/schema-full.sql`.
 
 ## Documentacao complementar

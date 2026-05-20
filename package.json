@@ -16,6 +16,7 @@
     "db:rls:check": "node scripts/check-supabase-rls.mjs",
     "env:production:check": "node scripts/check-production-env.mjs",
     "env:production:check:self-test": "node scripts/check-production-env.self-test.mjs",
+    "preflight:production": "node scripts/run-production-preflight.mjs",
     "secret:session": "node scripts/generate-session-secret.mjs",
     "deploy:admin": "npm run build -w apps/admin && firebase deploy --only hosting:farmadelivery-admin",
     "dev:admin": "npm run dev -w apps/admin",
