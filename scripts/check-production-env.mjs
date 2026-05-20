@@ -24,6 +24,7 @@ const checks = [
   requireValue("VITE_SUPABASE_URL", { placeholderPattern: /PROJECT_REF/i, warningOnly: true }),
   requireValue("VITE_SUPABASE_PUBLISHABLE_KEY", { placeholderPattern: /xxx|PROJECT_REF/i, warningOnly: true }),
   requireValue("VITE_FIREBASE_WEB_PUSH_VAPID_KEY", { placeholderPattern: /firebase_web_push|xxx/i, warningOnly: true }),
+  requireFirebaseWebPushConfig(),
 ];
 
 const failures = checks.filter((check) => check.status === "fail");
@@ -88,6 +89,38 @@ function requireFirebaseAdminCredential() {
     name: "Firebase Admin credentials",
     reason: "missing_or_placeholder_push_credentials",
   };
+}
+
+function requireFirebaseWebPushConfig() {
+  const vapidKey = env.VITE_FIREBASE_WEB_PUSH_VAPID_KEY?.trim();
+  if (!vapidKey || /firebase_web_push|xxx/i.test(vapidKey)) {
+    return {
+      status: "warn",
+      name: "Firebase Web Push config",
+      reason: "missing_or_placeholder_vapid_key",
+    };
+  }
+
+  const requiredNames = [
+    "VITE_FIREBASE_API_KEY",
+    "VITE_FIREBASE_PROJECT_ID",
+    "VITE_FIREBASE_MESSAGING_SENDER_ID",
+    "VITE_FIREBASE_APP_ID",
+  ];
+  const missingNames = requiredNames.filter((name) => {
+    const value = env[name]?.trim();
+    return !value || /firebase_|PROJECT_ID|MESSAGING_SENDER_ID|xxx/i.test(value);
+  });
+
+  if (missingNames.length > 0) {
+    return {
+      status: "warn",
+      name: "Firebase Web Push config",
+      reason: `missing_or_placeholder_${missingNames.join("_")}`,
+    };
+  }
+
+  return { status: "pass", name: "Firebase Web Push config" };
 }
 
 function parseArgs(rawArgs) {

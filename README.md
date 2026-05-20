@@ -122,6 +122,7 @@ npm run env:production:check -- file=env/api.env file=env/admin.env
 
 Essa checagem falha se o `API_SESSION_SECRET` estiver ausente, for placeholder ou tiver menos de 43 caracteres.
 Arquivos informados com `file=` que nao existirem aparecem como warning para evitar typo silencioso no preflight.
+Quando a VAPID key do PWA estiver configurada, a checagem tambem avisa se a configuracao Firebase Web minima para Messaging estiver incompleta.
 
 Gerar um `API_SESSION_SECRET` seguro para ambiente local/deploy:
 
