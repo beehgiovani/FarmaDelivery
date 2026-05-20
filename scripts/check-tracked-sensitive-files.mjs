@@ -31,6 +31,10 @@ const contentRules = [
     name: "google_api_key",
     test: (content) => /AIza[0-9A-Za-z_-]{20,}/.test(content),
   },
+  {
+    name: "private_key_block",
+    test: (content) => /-----BEGIN (?:RSA |EC )?PRIVATE KEY-----[\s\S]{80,}-----END (?:RSA |EC )?PRIVATE KEY-----/.test(content),
+  },
 ];
 
 const textFilePattern = /\.(cjs|css|html|js|json|jsx|kt|md|mjs|sql|toml|ts|tsx|txt|xml|yaml|yml)$/i;
