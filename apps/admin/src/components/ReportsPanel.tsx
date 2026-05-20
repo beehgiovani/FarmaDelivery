@@ -1,6 +1,7 @@
 import { Download } from "lucide-react";
 import { useMemo, useState } from "react";
 import { fetchDeliveryReportCsv } from "../api";
+import { buildAttendantReferenceOptionsFromNames } from "../attendantReferences";
 import {
   emptyDeliveryReportFilters,
   countReportRows,
@@ -86,11 +87,11 @@ export function ReportsPanel({
   );
   const attendantOptions = useMemo(
     () =>
-      countReportRows(
+      buildAttendantReferenceOptionsFromNames(
         deliveries
           .map((delivery) => delivery.attendantName?.trim() ?? "")
           .filter(Boolean),
-      ).map((row) => row.label),
+      ),
     [deliveries],
   );
   const courierOptions = useMemo(
@@ -228,11 +229,11 @@ export function ReportsPanel({
               list="report-attendants"
               value={filters.attendant}
               onChange={(event) => setFilters({ ...filters, attendant: event.target.value })}
-              placeholder="Nome"
+              placeholder="Codigo ou nome"
             />
             <datalist id="report-attendants">
-              {attendantOptions.map((name) => (
-                <option key={name} value={name} />
+              {attendantOptions.map((option) => (
+                <option key={option.value} value={option.value} label={option.label} />
               ))}
             </datalist>
           </label>

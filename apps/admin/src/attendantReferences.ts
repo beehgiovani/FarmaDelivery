@@ -16,10 +16,17 @@ export function parseAttendantReference(value: string) {
 }
 
 export function buildAttendantReferenceOptions(users: TeamUser[]): AttendantReferenceOption[] {
+  return buildAttendantReferenceOptionsFromNames(
+    users
+      .filter((user) => user.active && user.role === "BALCONISTA_CAIXA")
+      .map((user) => user.name),
+  );
+}
+
+export function buildAttendantReferenceOptionsFromNames(names: string[]): AttendantReferenceOption[] {
   const seen = new Set<string>();
-  return users
-    .filter((user) => user.active && user.role === "BALCONISTA_CAIXA")
-    .map((user) => user.name.trim())
+  return names
+    .map((name) => name.trim())
     .filter(Boolean)
     .filter((name) => {
       const key = name.toLocaleLowerCase("pt-BR");

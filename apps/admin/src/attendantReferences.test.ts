@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildAttendantReferenceOptions, parseAttendantReference } from "./attendantReferences";
+import { buildAttendantReferenceOptions, buildAttendantReferenceOptionsFromNames, parseAttendantReference } from "./attendantReferences";
 import type { TeamUser } from "./types";
 
 test("parses attendant reference code and name", () => {
@@ -20,6 +20,14 @@ test("builds attendant options sorted by name and labeled with code", () => {
   assert.deepEqual(options, [
     { value: "1000 - Ana Caixa", label: "Ana Caixa - codigo 1000" },
     { value: "2000 - Bruno Balcao", label: "Bruno Balcao - codigo 2000" },
+  ]);
+});
+
+test("builds attendant options from report names", () => {
+  assert.deepEqual(buildAttendantReferenceOptionsFromNames(["3000 - Carla", "Ana", "3000 - Carla", "1000 - Bruno"]), [
+    { value: "Ana", label: "Ana" },
+    { value: "1000 - Bruno", label: "Bruno - codigo 1000" },
+    { value: "3000 - Carla", label: "Carla - codigo 3000" },
   ]);
 });
 
