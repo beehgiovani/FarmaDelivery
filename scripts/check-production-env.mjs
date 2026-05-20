@@ -18,7 +18,7 @@ const checks = [
   requireUrl("SUPABASE_URL", { placeholderPattern: /PROJECT_REF/i, allowedProtocols: ["https:"] }),
   requireOneOf(["SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_JWT"], { placeholderPattern: /xxx|secret_xxx|service_role/i }),
   requireValue("DATABASE_URL", { placeholderPattern: /USER:PASSWORD|POOLER_HOST|localhost/i, warningOnly: true }),
-  requireValue("DELIVERY_PROOF_STORAGE_DIR", { warningOnly: true }),
+  requireDeliveryProofStorageDir(),
   requireFirebaseAdminCredential(),
   requireUrl("VITE_API_URL", { placeholderPattern: /localhost|127\.0\.0\.1/i, warningOnly: true, allowedProtocols: ["https:"] }),
   requireUrl("VITE_SUPABASE_URL", { placeholderPattern: /PROJECT_REF/i, warningOnly: true, allowedProtocols: ["https:"] }),
@@ -78,6 +78,27 @@ function requireUrl(name, options = {}) {
   }
 
   return { status: "pass", name };
+}
+
+function requireDeliveryProofStorageDir() {
+  const value = env.DELIVERY_PROOF_STORAGE_DIR?.trim();
+  const valueCheck = requireValue("DELIVERY_PROOF_STORAGE_DIR", { warningOnly: true });
+  if (valueCheck.status !== "pass") return valueCheck;
+
+  if (
+    value.startsWith("./") ||
+    value.startsWith(".\\") ||
+    /^uploads([\\/]|$)/i.test(value) ||
+    /tmp|temp/i.test(value)
+  ) {
+    return {
+      status: "warn",
+      name: "DELIVERY_PROOF_STORAGE_DIR",
+      reason: "local_or_ephemeral_storage_path",
+    };
+  }
+
+  return { status: "pass", name: "DELIVERY_PROOF_STORAGE_DIR" };
 }
 
 function requireOneOf(names, options = {}) {

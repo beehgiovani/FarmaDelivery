@@ -34,6 +34,11 @@ runScenario("warns when frontend API URL is not HTTPS for production", {
   expectWarningReason: "placeholder_or_local_value",
 });
 
+runScenario("warns when proof storage looks local or ephemeral", {
+  env: { ...baseEnv, DELIVERY_PROOF_STORAGE_DIR: "./uploads/delivery-proofs" },
+  expectWarningReason: "local_or_ephemeral_storage_path",
+});
+
 runScenario("warns when VAPID is configured without Firebase Web Messaging fields", {
   env: {
     ...baseEnv,
@@ -101,7 +106,7 @@ process.stdout.write(
     {
       mode: "production-env-check-self-test",
       ok: true,
-      scenarios: 10,
+      scenarios: 11,
     },
     null,
     2,
