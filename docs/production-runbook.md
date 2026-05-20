@@ -36,9 +36,10 @@ O comando para no primeiro erro e executa:
 1. Checagem segura de ambiente.
 2. Autoteste da checagem de arquivos sensiveis.
 3. Checagem de arquivos sensiveis rastreados pelo Git.
-4. Auditoria estatica de RLS do SQL canonico.
-5. Testes automatizados dos workspaces.
-6. Build completo.
+4. Autoteste da auditoria estatica de RLS.
+5. Auditoria estatica de RLS do SQL canonico.
+6. Testes automatizados dos workspaces.
+7. Build completo.
 
 Se precisar isolar uma falha:
 
@@ -46,6 +47,7 @@ Se precisar isolar uma falha:
 npm run env:production:check -- file=env/api.env file=env/admin.env
 npm run repo:sensitive:check:self-test
 npm run repo:sensitive:check
+npm run db:rls:check:self-test
 npm run db:rls:check
 npm test
 npm run build

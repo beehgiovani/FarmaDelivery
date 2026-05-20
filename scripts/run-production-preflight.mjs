@@ -9,6 +9,7 @@ const steps = [
   },
   { name: "tracked sensitive files self-test", command: "npm", args: ["run", "repo:sensitive:check:self-test"] },
   { name: "tracked sensitive files check", command: "npm", args: ["run", "repo:sensitive:check"] },
+  { name: "Supabase RLS static check self-test", command: "npm", args: ["run", "db:rls:check:self-test"] },
   { name: "Supabase RLS static check", command: "npm", args: ["run", "db:rls:check"] },
   { name: "test suite", command: "npm", args: ["test"] },
   { name: "production build", command: "npm", args: ["run", "build"] },

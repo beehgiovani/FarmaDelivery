@@ -17,6 +17,7 @@ const list = spawnPreflight(["--list"]);
 assert.equal(list.status, 0, `list should exit cleanly\n${list.stdout}\n${list.stderr}`);
 assert.match(list.stdout, /1\. production env check/);
 assert.match(list.stdout, /tracked sensitive files self-test/);
+assert.match(list.stdout, /Supabase RLS static check self-test/);
 assert.match(list.stdout, /production build/);
 assert.equal(list.stdout.includes("== production env check =="), false, "list should not execute preflight steps");
 
