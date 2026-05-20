@@ -124,6 +124,7 @@ Atualizado em 2026-05-20.
 - Painel de relatorios permite filtrar a visao carregada por balconista/atendente, com autocomplete, busca sem diferenciar acentos e exportacao local preservando o filtro.
 - Exportacao CSV server-side de relatorios aceita filtro de balconista/atendente, aplica busca sem diferenciar acentos e registra o filtro no contexto do arquivo.
 - Textos do painel admin foram revisados para linguagem de usuario final, removendo termos como API, banco, Supabase, push e tokens das telas operacionais.
+- Filtro de mensagens de erro do admin possui teste direto para esconder detalhes tecnicos de backend/rede e preservar mensagens operacionais legiveis.
 - Tela de equipe/lojas ganhou cards destacados por situacao e painel de acessos por loja, com atalho para o admin preparar acesso operacional da unidade.
 - Cadastro de loja no admin foi reorganizado como fluxo de unidade: dados internos, endereco, ponto opcional no mapa, operacao de motoboy, horario padrao e painel lateral com lojas cadastradas e atalho para preparar login da unidade.
 - Ao cadastrar uma nova loja, o painel ja prepara automaticamente o formulario de login operacional da unidade, mantendo a sequencia loja -> acesso da loja em um fluxo unico.
