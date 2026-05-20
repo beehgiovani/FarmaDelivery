@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { LocateFixed, MapPin, MapPinned, Phone, Printer, Search, UserRound } from "lucide-react";
 import { createDelivery, geocodeAddress, lookupCustomerByPhone, type CreatedDeliveryResult } from "../api";
 import { apiDeadlineTierFromDeliveryDeadlineTier, mapDeliveryDeadlineTier, mapDeliveryPriority, mapDeliveryStatus } from "../apiMappers";
+import { buildAttendantReferenceOptions } from "../attendantReferences";
 import { hasEnoughDeliveryPhoneDigits, normalizeDeliveryPhoneInput } from "../deliveryPhone";
 import {
   buildDeliveryNotesWithPayment,
@@ -102,12 +103,7 @@ export function DeliveryForm({ stores, redirectStores = stores, attendants = [],
     [form.redirectTo, redirectStores],
   );
   const attendantOptions = useMemo(
-    () =>
-      attendants
-        .filter((user) => user.active && user.role === "BALCONISTA_CAIXA")
-        .map((user) => user.name)
-        .filter((name, index, all) => all.indexOf(name) === index)
-        .sort((left, right) => left.localeCompare(right)),
+    () => buildAttendantReferenceOptions(attendants),
     [attendants],
   );
 
@@ -508,14 +504,15 @@ export function DeliveryForm({ stores, redirectStores = stores, attendants = [],
                   list="delivery-attendants"
                   value={form.attendantName}
                   disabled={formBusy}
-                  placeholder="Nome de quem conferiu"
+                  placeholder="Codigo ou nome de quem conferiu"
                   onChange={(event) => update("attendantName", event.target.value)}
                 />
                 <datalist id="delivery-attendants">
-                  {attendantOptions.map((name) => (
-                    <option key={name} value={name} />
+                  {attendantOptions.map((option) => (
+                    <option key={option.value} value={option.value} label={option.label} />
                   ))}
                 </datalist>
+                <small className="inputHint">Use o cadastro de funcionarios de conferencia para preencher mais rapido.</small>
               </label>
               <label className="inputGroup">
                 <span>Agendamento</span>
