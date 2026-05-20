@@ -1481,9 +1481,10 @@ export function deliveryReportRestFilter(
   session: { role: string; storeId?: string | null },
   storeScope: string[] | null,
   storeId?: string,
-  filters: { status?: string; priority?: string } = {},
+  filters: { date?: string; startsAt?: string; endsAt?: string; status?: string; priority?: string } = {},
 ) {
   const filterParts = [
+    deliveryReportRestPeriodFilter(filters),
     filters.status ? `&status=eq.${filters.status}` : "",
     filters.priority ? `&priority=eq.${filters.priority}` : "",
   ].join("");
@@ -1495,6 +1496,21 @@ export function deliveryReportRestFilter(
     return `${storeFilter}${filterParts}`;
   }
   return `${storeId ? `&storeId=eq.${storeId}` : ""}${filterParts}`;
+}
+
+/** Espelha no PostgREST o periodo aplicado pelo Prisma nos timestamps operacionais. */
+function deliveryReportRestPeriodFilter(period: { date?: string; startsAt?: string; endsAt?: string }) {
+  const range = reportDateRange(period);
+  if (!range) return "";
+  const start = range.gte.toISOString();
+  const end = range.lt.toISOString();
+  return `&or=(${[
+    `and(createdAt.gte.${start},createdAt.lt.${end})`,
+    `and(acceptedAt.gte.${start},acceptedAt.lt.${end})`,
+    `and(collectedAt.gte.${start},collectedAt.lt.${end})`,
+    `and(deliveredAt.gte.${start},deliveredAt.lt.${end})`,
+    `and(canceledAt.gte.${start},canceledAt.lt.${end})`,
+  ].join(",")})`;
 }
 
 /** Envia CSV com nome estavel e periodo no arquivo para auditoria operacional. */

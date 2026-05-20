@@ -361,10 +361,11 @@ Atualizado em 2026-05-20.
 - Autoteste `npm run preflight:production:self-test` criado e incluido no `npm test` raiz para validar ajuda e rejeicao de argumento invalido do runner sem rodar o preflight completo.
 - Validacao local de prontidao mobile executada com `:app:testDebugUnitTest`, `:app:assembleDebug`, `npm run test -w apps/motoboy-pwa` e `npm run build -w apps/motoboy-pwa`, mantendo pendentes apenas os smoke tests em aparelho/iOS reais.
 - Validacao local pre-deploy executada com `npm run db:rls:check`, `npm run env:production:check:self-test`, `npm test` e `npm run build`; o preflight completo com `file=env/*.env` reais permanece para antes da publicacao.
+- Fallback Supabase REST dos relatorios agora aplica o periodo operacional no PostgREST para `createdAt`, `acceptedAt`, `collectedAt`, `deliveredAt` e `canceledAt`, mantendo exportacao/summary mais alinhados ao caminho Prisma quando o banco direto indisponibilizar.
 
 ## Em andamento
     
-- Revisar filtros finos nos fallbacks Supabase REST quando surgirem novos endpoints.
+- Revisar filtros finos restantes nos fallbacks Supabase REST quando surgirem novos endpoints ou quando houver teste de integracao PostgREST real para filtros por relacao.
 - Revisar no Supabase SQL Editor se o RLS aplicado no banco confere com a auditoria estatica `npm run db:rls:check`, mantendo o arquivo canonico como fonte unica.
 - Evoluir relatorios para filtros avancados adicionais e, se necessario em producao, exportacao assincrona por fila/worker.
 

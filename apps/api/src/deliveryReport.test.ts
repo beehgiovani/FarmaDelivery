@@ -261,14 +261,23 @@ test("uses default delivery report export limit when query is omitted", () => {
 });
 
 test("builds delivery report Supabase REST filters with store scope and report filters", () => {
+  const periodStart = new Date(2026, 4, 15).toISOString();
+  const periodEnd = new Date(2026, 4, 17).toISOString();
+  const periodFilter = [
+    `and(createdAt.gte.${periodStart},createdAt.lt.${periodEnd})`,
+    `and(acceptedAt.gte.${periodStart},acceptedAt.lt.${periodEnd})`,
+    `and(collectedAt.gte.${periodStart},collectedAt.lt.${periodEnd})`,
+    `and(deliveredAt.gte.${periodStart},deliveredAt.lt.${periodEnd})`,
+    `and(canceledAt.gte.${periodStart},canceledAt.lt.${periodEnd})`,
+  ].join(",");
   assert.equal(
     deliveryReportRestFilter(
       { role: "GERENTE", storeId: "store-1" },
       ["store-1", "store-2"],
       "store-2",
-      { status: "ENTREGUE", priority: "URGENTE" },
+      { startsAt: "2026-05-15", endsAt: "2026-05-16", status: "ENTREGUE", priority: "URGENTE" },
     ),
-    "&storeId=eq.store-2&status=eq.ENTREGUE&priority=eq.URGENTE",
+    `&storeId=eq.store-2&or=(${periodFilter})&status=eq.ENTREGUE&priority=eq.URGENTE`,
   );
   assert.equal(
     deliveryReportRestFilter(
