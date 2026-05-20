@@ -365,6 +365,7 @@ Atualizado em 2026-05-20.
 - Relatorios ganharam filtro por motoboy com autocomplete no admin, exportacao CSV registrando `filtro_motoboy` e API aceitando o parametro para manter a visao local e server-side alinhadas.
 - Exportacao server-side de relatorios agora busca uma linha sentinela alem do limite escolhido, marcando `limite_atingido` apenas quando realmente houver mais entregas fora do CSV.
 - Runbook de producao criado em `docs/production-runbook.md`, reunindo preflight, conferencia Supabase, smoke test Android, smoke test PWA iOS e criterio de publicacao sem expor dados sensiveis.
+- `.dockerignore` alinhado aos cuidados de versionamento para manter fora do contexto Docker artefatos Android locais, `local.properties`, `.kotlin`, `.idea`, APK/AAB e temporarios.
 
 ## Em andamento
     
