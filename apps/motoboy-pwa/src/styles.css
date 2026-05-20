@@ -54,6 +54,7 @@ a {
 .installHint,
 .loginForm,
 .emptyState,
+.stateBlock,
 .banner {
   border: 1px solid rgba(24, 50, 44, 0.12);
   background: rgba(255, 255, 255, 0.92);
@@ -659,6 +660,49 @@ textarea {
   border-radius: 16px;
   color: #667571;
   text-align: center;
+}
+
+.stateBlock {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 18px;
+  border-radius: 16px;
+  color: #37534d;
+  text-align: center;
+}
+
+.stateBlock strong {
+  color: #143c34;
+}
+
+.stateBlock p {
+  max-width: 34ch;
+  margin: 0;
+  color: #667571;
+}
+
+.stateBlock.loading {
+  background: #f3faf7;
+}
+
+.stateBlock.danger {
+  color: #7f1d1d;
+  background: #fff1f1;
+}
+
+.stateBlock.danger strong,
+.stateBlock.danger p {
+  color: #7f1d1d;
+}
+
+.stateIcon {
+  display: inline-flex;
+  color: currentColor;
+}
+
+.stateAction {
+  margin-top: 4px;
 }
 
 .loginScreen {

@@ -560,9 +560,12 @@ export function App() {
         <DeliveryList
           availableDeliveries={sections.available}
           activeDeliveries={sections.active}
+          loading={loading}
+          error={error}
           available={available}
           courierId={courierId}
           busyAction={busyAction}
+          onRetry={() => void loadOperationalData()}
           eventsByDelivery={eventsByDelivery}
           onLoadEvents={async (deliveryId) => {
             const events = await fetchDeliveryEvents(deliveryId, serviceArea);
@@ -608,7 +611,7 @@ export function App() {
           }
         />
       ) : (
-        <RoutePanel routes={routes} />
+        <RoutePanel routes={routes} loading={loading} error={error} onRetry={() => void loadOperationalData()} />
       )}
     </main>
   );
@@ -695,9 +698,12 @@ function LoginScreen({
 function DeliveryList(props: {
   availableDeliveries: Delivery[];
   activeDeliveries: Delivery[];
+  loading: boolean;
+  error: string | null;
   available: boolean;
   courierId: string | null;
   busyAction: BusyAction;
+  onRetry: () => void;
   eventsByDelivery: Record<string, DeliveryEvent[]>;
   onLoadEvents: (deliveryId: string) => Promise<void>;
   onAccept: (deliveryId: string) => void;
@@ -707,6 +713,38 @@ function DeliveryList(props: {
   onProblem: (deliveryId: string, notes: string) => void;
 }) {
   const [section, setSection] = useState<DeliveryListSection>("available");
+  const hasDeliveries = props.availableDeliveries.length > 0 || props.activeDeliveries.length > 0;
+
+  if (props.loading && !hasDeliveries) {
+    return (
+      <section className="contentStack">
+        <StateBlock
+          tone="loading"
+          icon={<RefreshCw size={20} />}
+          title="Carregando entregas"
+          text="Atualizando corridas disponiveis e entregas em atendimento."
+        />
+      </section>
+    );
+  }
+
+  if (props.error && !hasDeliveries) {
+    return (
+      <section className="contentStack">
+        <StateBlock
+          tone="danger"
+          icon={<AlertTriangle size={20} />}
+          title="Nao foi possivel carregar entregas"
+          text={props.error}
+          action={
+            <button className="secondaryButton" type="button" onClick={props.onRetry}>
+              Tentar novamente
+            </button>
+          }
+        />
+      </section>
+    );
+  }
 
   return (
     <section className="contentStack">
@@ -937,13 +975,42 @@ function DeliveryActions(props: {
   );
 }
 
-function RoutePanel({ routes }: { routes: CourierRoute[] }) {
+function RoutePanel({
+  routes,
+  loading,
+  error,
+  onRetry,
+}: {
+  routes: CourierRoute[];
+  loading: boolean;
+  error: string | null;
+  onRetry: () => void;
+}) {
   const activeRoutes = activeRoutesWithPendingStops(routes);
 
   return (
     <section className="contentStack">
       <h2>Rota atual</h2>
-      {activeRoutes.length ? (
+      {loading && !activeRoutes.length ? (
+        <StateBlock
+          tone="loading"
+          icon={<RefreshCw size={20} />}
+          title="Carregando rota"
+          text="Buscando paradas pendentes das rotas ativas."
+        />
+      ) : error && !activeRoutes.length ? (
+        <StateBlock
+          tone="danger"
+          icon={<AlertTriangle size={20} />}
+          title="Nao foi possivel carregar rota"
+          text={error}
+          action={
+            <button className="secondaryButton" type="button" onClick={onRetry}>
+              Tentar novamente
+            </button>
+          }
+        />
+      ) : activeRoutes.length ? (
         <>
           {activeRoutes.map(({ route, pendingStops }) => {
             const mapsSegment = buildRouteMapsSegment(pendingStops);
@@ -1061,8 +1128,31 @@ function Banner({ tone, text }: { tone: "danger" | "success"; text: string }) {
   return <div className={`banner ${tone}`}>{text}</div>;
 }
 
+function StateBlock({
+  tone = "neutral",
+  icon,
+  title,
+  text,
+  action,
+}: {
+  tone?: "neutral" | "loading" | "danger";
+  icon?: React.ReactNode;
+  title: string;
+  text?: string;
+  action?: React.ReactNode;
+}) {
+  return (
+    <div className={`stateBlock ${tone}`} role={tone === "danger" ? "alert" : "status"}>
+      {icon ? <span className={tone === "loading" ? "spin stateIcon" : "stateIcon"}>{icon}</span> : null}
+      <strong>{title}</strong>
+      {text ? <p>{text}</p> : null}
+      {action ? <div className="stateAction">{action}</div> : null}
+    </div>
+  );
+}
+
 function EmptyState({ text }: { text: string }) {
-  return <div className="emptyState">{text}</div>;
+  return <StateBlock title={text} />;
 }
 
 async function uploadProofFile(deliveryId: string, file: File) {

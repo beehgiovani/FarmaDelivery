@@ -294,6 +294,7 @@ Atualizado em 2026-05-20.
 - PWA iPhone normaliza telefone com helper testado antes de abrir o discador, igual ao Android.
 - Android e PWA abrem o mapa do card da entrega usando coordenadas quando disponiveis e endereco normalizado quando nao houver coordenadas.
 - Android e PWA deixam de exibir atalho de mapa no card da entrega quando nao houver coordenada nem endereco navegavel, mostrando estado de endereco pendente.
+- PWA iPhone usa bloco visual consistente para carregando, erro com tentativa novamente e vazio nas abas principais de entregas e rota, evitando mostrar estado vazio antes da primeira carga.
 - PWA iPhone possui loading, erro/retry e vazio no historico auditavel de cada entrega, sem chamada duplicada enquanto os eventos carregam.
 - PWA iPhone invalida o historico local da entrega apos acoes operacionais e recarrega automaticamente quando o historico estiver aberto.
 - Android e PWA mostram o responsavel pelo evento no historico quando a API retorna `actor`, com helper testado para nomes ausentes.
@@ -352,6 +353,7 @@ Atualizado em 2026-05-20.
 - Autoteste `npm run db:rls:check:self-test` criado e incluido no `npm test` e no preflight para proteger a deteccao de tabela sem RLS, tabela sem comentario e policy `TO anon` em tabela sensivel.
 - Checagem `npm run env:production:check -- file=env/api.env file=env/admin.env` criada para revisar variaveis de deploy sem imprimir valores sensiveis, incluindo tamanho minimo do `API_SESSION_SECRET`.
 - Gerador `npm run secret:session` criado para produzir `API_SESSION_SECRET` forte sem versionar segredo.
+- Autoteste `npm run secret:session:self-test` criado e incluido no `npm test` raiz para validar ajuda, minimo de bytes, modo `--check` e formato seguro do `API_SESSION_SECRET`.
 - Preflight de producao documentado no README e checklist de banco documentado em `docs/supabase.md`, cobrindo segredo de sessao, pooler, comprovantes, Firebase Admin, VAPID, RLS, testes e build.
 - Roteiro de smoke test manual do app Android documentado em `apps/motoboy/README.md`, cobrindo API acessivel, login de motoboy, praca, GPS, rota, pagamento, comprovante, problema, FCM e logout.
 - Roteiro de smoke test Web Push do PWA no iOS documentado em `apps/motoboy-pwa/README.md`, cobrindo deploy HTTPS, app instalado na Tela de Inicio, VAPID, Firebase Admin, registro de token e recebimento de notificacao.
