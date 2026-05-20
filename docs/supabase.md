@@ -91,11 +91,12 @@ Essa checagem valida se toda tabela criada em `database/schema-full.sql` tem RLS
 
 ## Proximas Conferencias Recomendadas
 
-1. Revisar no Supabase SQL Editor se o resultado de `npm run db:rls:check` tambem confere com o banco aplicado antes de producao.
-2. Confirmar `DATABASE_URL` da API com Transaction pooler.
-3. Configurar credenciais reais do Firebase Admin para push server-side.
-4. Configurar VAPID key e testar Web Push real no PWA instalado no iOS.
-5. Fazer smoke test completo do app Android com API publicada ou API local acessivel pelo aparelho.
+1. Confirmar `DATABASE_URL` da API com Transaction pooler.
+2. Configurar credenciais reais do Firebase Admin para push server-side.
+3. Configurar VAPID key e testar Web Push real no PWA instalado no iOS.
+4. Rodar `npm run preflight:production -- file=env/api.env file=env/admin.env` antes do deploy final; ele executa checagem de ambiente, auditoria RLS, testes e build sem imprimir valores sensiveis.
+5. Revisar no Supabase SQL Editor se o resultado de `npm run db:rls:check` tambem confere com o banco aplicado antes de producao.
+6. Fazer smoke test completo do app Android com API publicada ou API local acessivel pelo aparelho.
 
 ## Checklist de Banco para Producao
 
@@ -107,3 +108,24 @@ Antes do deploy final, trate `database/schema-full.sql` como fonte unica:
 4. Confirmar que `Realtime` esta habilitado apenas para as tabelas esperadas pelo painel, PWA e apps de campo.
 5. Confirmar que o backend usa service role/secret key apenas server-side e que o frontend usa somente publishable/anon key.
 6. Validar login admin, login operacional de loja, autocomplete de balconista/caixa e login de motoboy depois da aplicacao do SQL.
+
+## Preflight de Producao
+
+Use o preflight completo como conferencia final antes de publicar:
+
+```powershell
+npm run preflight:production -- file=env/api.env file=env/admin.env
+```
+
+Esse comando deve ser rodado com os arquivos locais de ambiente ja preparados e ignorados pelo Git. Ele para no primeiro erro e executa, nesta ordem:
+
+1. `npm run env:production:check -- file=...`
+2. `npm run db:rls:check`
+3. `npm test`
+4. `npm run build`
+
+Para investigar uma falha especifica, rode o comando individual correspondente. Para testar apenas a interface do runner sem executar todo o preflight, use:
+
+```powershell
+npm run preflight:production:self-test
+```

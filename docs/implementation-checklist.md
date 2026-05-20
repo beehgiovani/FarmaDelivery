@@ -372,7 +372,7 @@ Atualizado em 2026-05-20.
 - Evoluir app Kotlin com mapa nativo/embarcado da rota e offline. 
 - Executar teste real de Web Push do PWA em dispositivo iOS instalado pela Tela de Inicio apos configurar VAPID key e deploy HTTPS.
 - Revalidar permissao/background policy final de localizacao no Play Console antes de publicacao externa, mantendo a decisao atual sem `ACCESS_BACKGROUND_LOCATION` enquanto nao houver requisito de app fechado.
-- Deploy da API e estrategia final de banco/producao, usando `npm run secret:session` e `npm run env:production:check` como pre-check local.
+- Deploy da API e estrategia final de banco/producao, usando `npm run secret:session` para gerar o segredo e `npm run preflight:production -- file=env/api.env file=env/admin.env` como conferencia local final.
 
 ## Observacoes tecnicas
 

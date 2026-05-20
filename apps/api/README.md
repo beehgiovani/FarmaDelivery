@@ -82,6 +82,12 @@ Gerar segredo de sessao:
 npm run secret:session
 ```
 
+Antes de publicar, rode a checagem de ambiente na raiz do monorepo com os arquivos locais ignorados pelo Git:
+
+```bash
+npm run env:production:check -- file=env/api.env file=env/admin.env
+```
+
 ## Comandos
 
 Rodar em desenvolvimento:
@@ -100,6 +106,12 @@ Build/typecheck:
 
 ```bash
 npm run build -w apps/api
+```
+
+Preflight completo de producao, a partir da raiz do monorepo:
+
+```bash
+npm run preflight:production -- file=env/api.env file=env/admin.env
 ```
 
 Reset local de senha admin:
