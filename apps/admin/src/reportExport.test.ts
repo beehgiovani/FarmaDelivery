@@ -30,6 +30,7 @@ test("exports delivery report csv with context, summary and masked phone", () =>
       priorityFilter: "Urgente",
       proofFilter: "com",
       mapPointFilter: "sem",
+      courierFilter: "Joao",
       summary: makeSummary({
         total: 1,
         delivered: 1,
@@ -57,6 +58,7 @@ test("exports delivery report csv with context, summary and masked phone", () =>
   assert.match(csv, /"filtro_prioridade","Urgente"/);
   assert.match(csv, /"filtro_comprovante","com_comprovante"/);
   assert.match(csv, /"filtro_ponto_mapa","sem_ponto"/);
+  assert.match(csv, /"filtro_motoboy","Joao"/);
   assert.match(csv, /"resumo"/);
   assert.match(csv, /"com_comprovante","1"/);
   assert.match(csv, /"distribuicao_por_loja"/);

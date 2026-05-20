@@ -362,12 +362,13 @@ Atualizado em 2026-05-20.
 - Validacao local de prontidao mobile executada com `:app:testDebugUnitTest`, `:app:assembleDebug`, `npm run test -w apps/motoboy-pwa` e `npm run build -w apps/motoboy-pwa`, mantendo pendentes apenas os smoke tests em aparelho/iOS reais.
 - Validacao local pre-deploy executada com `npm run db:rls:check`, `npm run env:production:check:self-test`, `npm test` e `npm run build`; o preflight completo com `file=env/*.env` reais permanece para antes da publicacao.
 - Fallback Supabase REST dos relatorios agora aplica o periodo operacional no PostgREST para `createdAt`, `acceptedAt`, `collectedAt`, `deliveredAt` e `canceledAt`, mantendo exportacao/summary mais alinhados ao caminho Prisma quando o banco direto indisponibilizar.
+- Relatorios ganharam filtro por motoboy com autocomplete no admin, exportacao CSV registrando `filtro_motoboy` e API aceitando o parametro para manter a visao local e server-side alinhadas.
 
 ## Em andamento
     
 - Revisar filtros finos restantes nos fallbacks Supabase REST quando surgirem novos endpoints ou quando houver teste de integracao PostgREST real para filtros por relacao.
 - Revisar no Supabase SQL Editor se o RLS aplicado no banco confere com a auditoria estatica `npm run db:rls:check`, mantendo o arquivo canonico como fonte unica.
-- Evoluir relatorios para filtros avancados adicionais e, se necessario em producao, exportacao assincrona por fila/worker.
+- Evoluir relatorios, se necessario em producao, com exportacao assincrona por fila/worker para volumes acima do limite operacional atual.
 
 ## Falta
 

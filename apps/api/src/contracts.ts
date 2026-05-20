@@ -226,6 +226,7 @@ export const deliveryReportQuerySchema = z.object({
   proof: z.enum(["com", "sem"]).optional(),
   mapPoint: z.enum(["com", "sem"]).optional(),
   attendant: z.string().trim().min(1).max(80).optional(),
+  courier: z.string().trim().min(1).max(80).optional(),
   exportLimit: z.coerce.number().int().min(1).max(50000).optional(),
 }).refine((value) => !(value.startsAt && value.endsAt) || value.startsAt <= value.endsAt, {
   message: "startsAt must be before or equal to endsAt.",

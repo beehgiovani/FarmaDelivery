@@ -18,34 +18,39 @@ test("filters delivery report rows by status, priority, proof state and map poin
     "delivered-return",
   ]);
   assert.deepEqual(
-    filterDeliveriesForReport(deliveries, { status: "Entregue", priority: "Urgente", proof: "com", mapPoint: "", attendant: "" }).map((delivery) => delivery.id),
+    filterDeliveriesForReport(deliveries, { status: "Entregue", priority: "Urgente", proof: "com", mapPoint: "", attendant: "", courier: "" }).map((delivery) => delivery.id),
     ["delivered-urgent-proof"],
   );
   assert.deepEqual(
-    filterDeliveriesForReport(deliveries, { status: "Entregue", priority: "Urgente", proof: "sem", mapPoint: "", attendant: "" }).map((delivery) => delivery.id),
+    filterDeliveriesForReport(deliveries, { status: "Entregue", priority: "Urgente", proof: "sem", mapPoint: "", attendant: "", courier: "" }).map((delivery) => delivery.id),
     ["delivered-urgent-no-proof"],
   );
   assert.deepEqual(
-    filterDeliveriesForReport(deliveries, { status: "Entregue", priority: "Urgente", proof: "", mapPoint: "com", attendant: "" }).map((delivery) => delivery.id),
+    filterDeliveriesForReport(deliveries, { status: "Entregue", priority: "Urgente", proof: "", mapPoint: "com", attendant: "", courier: "" }).map((delivery) => delivery.id),
     ["delivered-urgent-proof"],
   );
   assert.deepEqual(
-    filterDeliveriesForReport(deliveries, { status: "Entregue", priority: "Urgente", proof: "", mapPoint: "sem", attendant: "" }).map((delivery) => delivery.id),
+    filterDeliveriesForReport(deliveries, { status: "Entregue", priority: "Urgente", proof: "", mapPoint: "sem", attendant: "", courier: "" }).map((delivery) => delivery.id),
     ["delivered-urgent-no-proof"],
   );
   assert.deepEqual(
-    filterDeliveriesForReport(deliveries, { status: "Entregue", priority: "Urgente", proof: "", mapPoint: "", attendant: "ana balcao" }).map((delivery) => delivery.id),
+    filterDeliveriesForReport(deliveries, { status: "Entregue", priority: "Urgente", proof: "", mapPoint: "", attendant: "ana balcao", courier: "" }).map((delivery) => delivery.id),
     ["delivered-urgent-proof"],
+  );
+  assert.deepEqual(
+    filterDeliveriesForReport(deliveries, { status: "Entregue", priority: "Urgente", proof: "", mapPoint: "", attendant: "", courier: "joao" }).map((delivery) => delivery.id),
+    ["delivered-urgent-proof", "delivered-urgent-no-proof"],
   );
 });
 
 test("detects active delivery report filters", () => {
   assert.equal(hasDeliveryReportFilters(emptyDeliveryReportFilters), false);
-  assert.equal(hasDeliveryReportFilters({ status: "Problema", priority: "", proof: "", mapPoint: "", attendant: "" }), true);
-  assert.equal(hasDeliveryReportFilters({ status: "", priority: "Retorno", proof: "", mapPoint: "", attendant: "" }), true);
-  assert.equal(hasDeliveryReportFilters({ status: "", priority: "", proof: "sem", mapPoint: "", attendant: "" }), true);
-  assert.equal(hasDeliveryReportFilters({ status: "", priority: "", proof: "", mapPoint: "sem", attendant: "" }), true);
-  assert.equal(hasDeliveryReportFilters({ status: "", priority: "", proof: "", mapPoint: "", attendant: "Ana" }), true);
+  assert.equal(hasDeliveryReportFilters({ status: "Problema", priority: "", proof: "", mapPoint: "", attendant: "", courier: "" }), true);
+  assert.equal(hasDeliveryReportFilters({ status: "", priority: "Retorno", proof: "", mapPoint: "", attendant: "", courier: "" }), true);
+  assert.equal(hasDeliveryReportFilters({ status: "", priority: "", proof: "sem", mapPoint: "", attendant: "", courier: "" }), true);
+  assert.equal(hasDeliveryReportFilters({ status: "", priority: "", proof: "", mapPoint: "sem", attendant: "", courier: "" }), true);
+  assert.equal(hasDeliveryReportFilters({ status: "", priority: "", proof: "", mapPoint: "", attendant: "Ana", courier: "" }), true);
+  assert.equal(hasDeliveryReportFilters({ status: "", priority: "", proof: "", mapPoint: "", attendant: "", courier: "Joao" }), true);
 });
 
 test("counts report rows sorted by volume and label", () => {

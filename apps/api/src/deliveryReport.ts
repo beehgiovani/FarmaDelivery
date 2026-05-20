@@ -10,6 +10,7 @@ export type DeliveryReportFilters = {
   proof?: "com" | "sem";
   mapPoint?: "com" | "sem";
   attendant?: string;
+  courier?: string;
 };
 
 export type ReportDeliveryRow = {
@@ -154,6 +155,7 @@ export function buildDeliveryReportCsv(deliveries: ReportDeliveryExportRow[], co
       ["filtro_comprovante", context.filters?.proof ? proofFilterLabel(context.filters.proof) : "todos"],
       ["filtro_ponto_mapa", context.filters?.mapPoint ? mapPointFilterLabel(context.filters.mapPoint) : "todos"],
       ["filtro_balconista", context.filters?.attendant?.trim() || "todos"],
+      ["filtro_motoboy", context.filters?.courier?.trim() || "todos"],
       [""],
     ],
     [
@@ -202,7 +204,9 @@ export function filterReportDeliveries<T extends ReportDeliveryRow>(
       !filters.mapPoint || (filters.mapPoint === "com" ? delivery.hasMapPoint === true : delivery.hasMapPoint !== true);
     const matchesAttendant =
       !filters.attendant?.trim() || normalizeFilterText(delivery.attendantName ?? "").includes(normalizeFilterText(filters.attendant));
-    return matchesPeriod && matchesStatus && matchesPriority && matchesProof && matchesMapPoint && matchesAttendant;
+    const matchesCourier =
+      !filters.courier?.trim() || normalizeFilterText(delivery.courier).includes(normalizeFilterText(filters.courier));
+    return matchesPeriod && matchesStatus && matchesPriority && matchesProof && matchesMapPoint && matchesAttendant && matchesCourier;
   });
 }
 

@@ -15,6 +15,7 @@ export type DeliveryReportCsvContext = {
   proofFilter?: string;
   mapPointFilter?: string;
   attendantFilter?: string;
+  courierFilter?: string;
   summary?: DeliveryReportSummary | null;
 };
 
@@ -111,6 +112,7 @@ function buildContextSection(context: DeliveryReportCsvContext) {
     ["filtro_comprovante", proofFilterLabel(context.proofFilter)],
     ["filtro_ponto_mapa", mapPointFilterLabel(context.mapPointFilter)],
     ["filtro_balconista", context.attendantFilter?.trim() || "todos"],
+    ["filtro_motoboy", context.courierFilter?.trim() || "todos"],
     [""],
   ];
 }

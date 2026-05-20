@@ -558,6 +558,7 @@ export async function fetchDeliveryReportCsv(
     proof?: "com" | "sem" | "";
     mapPoint?: "com" | "sem" | "";
     attendant?: string;
+    courier?: string;
     exportLimit?: number;
   } = {},
 ) {
@@ -571,6 +572,7 @@ export async function fetchDeliveryReportCsv(
   if (input.proof) params.set("proof", input.proof);
   if (input.mapPoint) params.set("mapPoint", input.mapPoint);
   if (input.attendant?.trim()) params.set("attendant", input.attendant.trim());
+  if (input.courier?.trim()) params.set("courier", input.courier.trim());
   if (input.exportLimit) params.set("exportLimit", String(input.exportLimit));
 
   const query = params.toString();

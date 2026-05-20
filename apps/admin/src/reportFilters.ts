@@ -9,6 +9,7 @@ export type DeliveryReportFilters = {
   proof: DeliveryProofFilter;
   mapPoint: DeliveryMapPointFilter;
   attendant: string;
+  courier: string;
 };
 
 export const emptyDeliveryReportFilters: DeliveryReportFilters = {
@@ -17,11 +18,12 @@ export const emptyDeliveryReportFilters: DeliveryReportFilters = {
   proof: "",
   mapPoint: "",
   attendant: "",
+  courier: "",
 };
 
 /** Indica se o relatorio esta com filtro comparativo aplicado. */
 export function hasDeliveryReportFilters(filters: DeliveryReportFilters) {
-  return Boolean(filters.status || filters.priority || filters.proof || filters.mapPoint || filters.attendant.trim());
+  return Boolean(filters.status || filters.priority || filters.proof || filters.mapPoint || filters.attendant.trim() || filters.courier.trim());
 }
 
 /** Aplica filtros locais no relatorio ja carregado, inclusive entregas com ou sem comprovante. */
@@ -34,7 +36,9 @@ export function filterDeliveriesForReport(deliveries: Delivery[], filters: Deliv
     const matchesMapPoint = !filters.mapPoint || (filters.mapPoint === "com" ? Boolean(delivery.coordinates) : !delivery.coordinates);
     const matchesAttendant =
       !filters.attendant.trim() || normalizeFilterText(delivery.attendantName ?? "").includes(normalizeFilterText(filters.attendant));
-    return matchesStatus && matchesPriority && matchesProof && matchesMapPoint && matchesAttendant;
+    const matchesCourier =
+      !filters.courier.trim() || normalizeFilterText(delivery.courier).includes(normalizeFilterText(filters.courier));
+    return matchesStatus && matchesPriority && matchesProof && matchesMapPoint && matchesAttendant && matchesCourier;
   });
 }
 

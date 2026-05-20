@@ -107,7 +107,7 @@ test("filters report deliveries by status, priority, proof state, map point and 
   const deliveries = [
     makeDelivery({ id: "waiting", status: "AGUARDANDO_MOTOBOY", priority: "NORMAL", proofCount: 0, hasMapPoint: false }),
     makeDelivery({ id: "delivered-proof", status: "ENTREGUE", priority: "URGENTE", proofCount: 1, hasMapPoint: true, attendantName: "Ana Balcao" }),
-    makeDelivery({ id: "delivered-no-proof", status: "ENTREGUE", priority: "URGENTE", proofCount: 0, hasMapPoint: false, attendantName: "Joao" }),
+    makeDelivery({ id: "delivered-no-proof", status: "ENTREGUE", priority: "URGENTE", proofCount: 0, hasMapPoint: false, attendantName: "Joao", courier: "Carlos" }),
   ];
 
   assert.deepEqual(
@@ -133,6 +133,10 @@ test("filters report deliveries by status, priority, proof state, map point and 
   assert.deepEqual(
     filterReportDeliveries(deliveries, null, { attendant: "ana balcão" }).map((delivery) => delivery.id),
     ["delivered-proof"],
+  );
+  assert.deepEqual(
+    filterReportDeliveries(deliveries, null, { courier: "carlos" }).map((delivery) => delivery.id),
+    ["delivered-no-proof"],
   );
 });
 
@@ -167,7 +171,7 @@ test("exports delivery report csv with masked phone and distributions", () => {
       scopeLabel: "todas as lojas",
       periodLabel: "2026-05-16",
       period: { date: "2026-05-16" },
-      filters: { status: "ENTREGUE", proof: "com", mapPoint: "sem", attendant: "ana" },
+      filters: { status: "ENTREGUE", proof: "com", mapPoint: "sem", attendant: "ana", courier: "joao" },
       exportLimit: 10000,
     },
   );
@@ -181,6 +185,7 @@ test("exports delivery report csv with masked phone and distributions", () => {
   assert.match(csv, /"filtro_comprovante","com_comprovante"/);
   assert.match(csv, /"filtro_ponto_mapa","sem_ponto"/);
   assert.match(csv, /"filtro_balconista","ana"/);
+  assert.match(csv, /"filtro_motoboy","joao"/);
   assert.match(csv, /"distribuicao_por_status"/);
   assert.match(csv, /"distribuicao_por_balconista"/);
   assert.match(csv, /"Ana Balcao","1"/);

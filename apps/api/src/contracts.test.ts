@@ -186,6 +186,7 @@ test("validates delivery report date range query", () => {
       proof: "com",
       mapPoint: "sem",
       attendant: "Ana Balcao",
+      courier: "Joao Motoboy",
       exportLimit: "10000",
     }),
     {
@@ -196,6 +197,7 @@ test("validates delivery report date range query", () => {
       proof: "com",
       mapPoint: "sem",
       attendant: "Ana Balcao",
+      courier: "Joao Motoboy",
       exportLimit: 10000,
     },
   );

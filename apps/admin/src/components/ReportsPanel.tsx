@@ -93,6 +93,15 @@ export function ReportsPanel({
       ).map((row) => row.label),
     [deliveries],
   );
+  const courierOptions = useMemo(
+    () =>
+      countReportRows(
+        deliveries
+          .map((delivery) => delivery.courier.trim())
+          .filter((courier) => courier && courier !== "Sem motoboy"),
+      ).map((row) => row.label),
+    [deliveries],
+  );
   const localStatusRows = countReportRows(filteredDeliveries.map((delivery) => delivery.status));
   const localPriorityRows = countReportRows(filteredDeliveries.map((delivery) => delivery.priority));
   const mapSummary = buildReportMapSummary(filteredDeliveries);
@@ -227,6 +236,20 @@ export function ReportsPanel({
               ))}
             </datalist>
           </label>
+          <label className="compactSelect">
+            <span>Motoboy</span>
+            <input
+              list="report-couriers"
+              value={filters.courier}
+              onChange={(event) => setFilters({ ...filters, courier: event.target.value })}
+              placeholder="Nome"
+            />
+            <datalist id="report-couriers">
+              {courierOptions.map((name) => (
+                <option key={name} value={name} />
+              ))}
+            </datalist>
+          </label>
           <button
             className="secondaryButton compactButton"
             type="button"
@@ -324,6 +347,7 @@ export function ReportsPanel({
         proof: filters.proof,
         mapPoint: filters.mapPoint,
         attendant: filters.attendant,
+        courier: filters.courier,
         exportLimit,
       });
       downloadBlob(result.blob, result.fileName);
@@ -342,6 +366,7 @@ export function ReportsPanel({
           filters.mapPoint,
           exportLimit,
           filters.attendant,
+          filters.courier,
         );
         setExportError("Nao foi possivel gerar o arquivo completo. Exportei a visao filtrada carregada na tela.");
         return;
@@ -412,6 +437,7 @@ function exportDeliveriesCsv(
   mapPointFilter = "",
   exportLimit?: number,
   attendantFilter = "",
+  courierFilter = "",
 ) {
   const csv = buildDeliveriesCsv(deliveries, {
     generatedAt: new Date().toISOString(),
@@ -426,7 +452,8 @@ function exportDeliveriesCsv(
     proofFilter,
     mapPointFilter,
     attendantFilter,
-    summary: statusFilter || priorityFilter || proofFilter || mapPointFilter || attendantFilter ? null : summary,
+    courierFilter,
+    summary: statusFilter || priorityFilter || proofFilter || mapPointFilter || attendantFilter || courierFilter ? null : summary,
   });
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
