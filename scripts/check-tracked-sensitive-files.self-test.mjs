@@ -8,7 +8,7 @@ const privateKeyBlock = [
 ].join("\n");
 
 const files = {
-  "apps/motoboy-pwa/src/firebase.ts": "export const key = 'AIzaSyA123456789012345678901234567890';",
+  "apps/motoboy-pwa/src/firebase.ts": `export const key = '${"AI" + "zaSyA123456789012345678901234567890"}';`,
   "apps/api/src/firebase-admin.json": JSON.stringify({ private_key: privateKeyBlock }),
   "apps/motoboy/app/google-services.json": "{}",
   "apps/api/.env.example": privateKeyBlock,
