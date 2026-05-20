@@ -11,6 +11,20 @@ const baseEnv = {
   SUPABASE_SECRET_KEY: "valid-service-key-for-check",
 };
 
+runCliScenario("shows help without running checks or leaking variable names", {
+  args: ["--help"],
+  expectExitCode: 0,
+  expectStdout: /env:production:check/,
+  rejectStdout: /API_SESSION_SECRET|SUPABASE_SECRET_KEY|FIREBASE/i,
+});
+
+runCliScenario("rejects unknown arguments before running checks", {
+  args: ["unknown=value"],
+  expectExitCode: 1,
+  expectStderr: /Argumento desconhecido/,
+  rejectStdout: /production-env-check/,
+});
+
 runScenario("rejects short session secret", {
   env: { ...baseEnv, API_SESSION_SECRET: "short" },
   expectExitCode: 1,
@@ -132,12 +146,24 @@ process.stdout.write(
     {
       mode: "production-env-check-self-test",
       ok: true,
-      scenarios: 16,
+      scenarios: 18,
     },
     null,
     2,
   )}\n`,
 );
+
+function runCliScenario(name, options) {
+  const result = spawnSync(process.execPath, [scriptPath, ...(options.args ?? [])], {
+    cwd: process.cwd(),
+    encoding: "utf8",
+    env: buildEnv({}),
+  });
+  assert.equal(result.status, options.expectExitCode, `${name}: unexpected exit code\n${result.stdout}\n${result.stderr}`);
+  if (options.expectStdout) assert.match(result.stdout, options.expectStdout, `${name}: stdout mismatch`);
+  if (options.expectStderr) assert.match(result.stderr, options.expectStderr, `${name}: stderr mismatch`);
+  if (options.rejectStdout) assert.doesNotMatch(result.stdout, options.rejectStdout, `${name}: stdout should not match`);
+}
 
 function runScenario(name, options) {
   const result = spawnSync(process.execPath, [scriptPath, ...(options.args ?? [])], {
