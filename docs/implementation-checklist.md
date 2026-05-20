@@ -374,6 +374,7 @@ Atualizado em 2026-05-20.
 - `.dockerignore` alinhado aos cuidados de versionamento para manter fora do contexto Docker artefatos Android locais, `local.properties`, `.kotlin`, `.idea`, APK/AAB e temporarios.
 - Checagem `npm run repo:sensitive:check` criada e incluida no `npm test` raiz para falhar se arquivos sensiveis ou artefatos locais entrarem no versionamento.
 - Checagem `npm run repo:sensitive:check` tambem varre arquivos texto versionados para bloquear Google API key e blocos reais de chave privada hardcoded antes de commit/push.
+- Autoteste `npm run repo:sensitive:check:self-test` criado e incluido no `npm test` raiz para proteger as regras de bloqueio de Google API key, chave privada e arquivos locais sensiveis.
 - Preflight de producao agora executa `npm run repo:sensitive:check` como passo explicito antes de RLS, testes e build.
 
 ## Em andamento

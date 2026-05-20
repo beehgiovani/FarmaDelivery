@@ -1,10 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-
-const trackedFiles = execFileSync("git", ["ls-files"], { encoding: "utf8" })
-  .split(/\r?\n/)
-  .map((file) => file.trim())
-  .filter(Boolean);
+import { fileURLToPath } from "node:url";
 
 const allowList = new Set([
   ".env.example",
@@ -39,36 +35,50 @@ const contentRules = [
 
 const textFilePattern = /\.(cjs|css|html|js|json|jsx|kt|md|mjs|sql|toml|ts|tsx|txt|xml|yaml|yml)$/i;
 
-const pathFindings = trackedFiles.flatMap((file) => {
-  if (allowList.has(file)) return [];
-  return forbiddenRules
-    .filter((rule) => rule.test(file))
-    .map((rule) => ({ file, reason: rule.name }));
-});
+export function findTrackedSensitiveFiles(trackedFiles, readTextFile = (file) => readFileSync(file, "utf8")) {
+  const pathFindings = trackedFiles.flatMap((file) => {
+    if (allowList.has(file)) return [];
+    return forbiddenRules
+      .filter((rule) => rule.test(file))
+      .map((rule) => ({ file, reason: rule.name }));
+  });
 
-const contentFindings = trackedFiles.flatMap((file) => {
-  if (allowList.has(file) || !textFilePattern.test(file)) return [];
-  const content = readFileSync(file, "utf8");
-  return contentRules
-    .filter((rule) => rule.test(content))
-    .map((rule) => ({ file, reason: rule.name }));
-});
+  const contentFindings = trackedFiles.flatMap((file) => {
+    if (allowList.has(file) || !textFilePattern.test(file)) return [];
+    const content = readTextFile(file);
+    return contentRules
+      .filter((rule) => rule.test(content))
+      .map((rule) => ({ file, reason: rule.name }));
+  });
 
-const findings = [...pathFindings, ...contentFindings];
+  return [...pathFindings, ...contentFindings];
+}
 
-process.stdout.write(
-  `${JSON.stringify(
-    {
-      mode: "tracked-sensitive-files-check",
-      ok: findings.length === 0,
-      checkedFiles: trackedFiles.length,
-      findings,
-    },
-    null,
-    2,
-  )}\n`,
-);
+export function buildTrackedSensitiveFilesReport(trackedFiles, readTextFile) {
+  const findings = findTrackedSensitiveFiles(trackedFiles, readTextFile);
+  return {
+    mode: "tracked-sensitive-files-check",
+    ok: findings.length === 0,
+    checkedFiles: trackedFiles.length,
+    findings,
+  };
+}
 
-if (findings.length > 0) {
-  process.exitCode = 1;
+function listTrackedFiles() {
+  return execFileSync("git", ["ls-files"], { encoding: "utf8" })
+    .split(/\r?\n/)
+    .map((file) => file.trim())
+    .filter(Boolean);
+}
+
+function runCli() {
+  const report = buildTrackedSensitiveFilesReport(listTrackedFiles());
+  process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+  if (!report.ok) {
+    process.exitCode = 1;
+  }
+}
+
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  runCli();
 }
