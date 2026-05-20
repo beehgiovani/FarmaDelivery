@@ -19,7 +19,7 @@ fun motoboyOperationalStatus(
   if (trackingEnabled) {
     return MotoboyOperationalStatus(
       title = "Disponivel com GPS automatico",
-      text = "Voce esta recebendo entregas e sua localizacao sera enviada em segundo plano.",
+      text = "Voce esta recebendo entregas e sua localizacao sera enviada enquanto o servico de GPS estiver ativo.",
     )
   }
 

@@ -19,9 +19,13 @@ class MotoboyOperationalStatusTest {
   }
 
   @Test
-  fun `shows automatic GPS status when background tracking is active`() {
+  fun `shows automatic GPS status without promising background location`() {
     val status = motoboyOperationalStatus(available = true, trackingEnabled = true)
 
     assertEquals("Disponivel com GPS automatico", status.title)
+    assertEquals(
+      "Voce esta recebendo entregas e sua localizacao sera enviada enquanto o servico de GPS estiver ativo.",
+      status.text,
+    )
   }
 }

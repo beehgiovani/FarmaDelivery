@@ -300,6 +300,7 @@ Atualizado em 2026-05-20.
 - PWA iPhone possui loading, erro/retry e vazio no historico auditavel de cada entrega, sem chamada duplicada enquanto os eventos carregam.
 - App Android motoboy usa layout operacional compartilhado para carregando, erro/retry e vazio nas entregas, rota e historico da entrega.
 - PWA iPhone e app Android motoboy filtram mensagens tecnicas de backend/rede antes de exibir erros ao motoboy, com testes diretos dos helpers.
+- Texto de GPS automatico do app Android foi alinhado a politica atual de localizacao, sem prometer uso de localizacao em background.
 - PWA iPhone invalida o historico local da entrega apos acoes operacionais e recarrega automaticamente quando o historico estiver aberto.
 - Android e PWA mostram o responsavel pelo evento no historico quando a API retorna `actor`, com helper testado para nomes ausentes.
 - PWA iPhone exibe tipos de evento do historico com helper testado e fallback seguro para eventos novos.
