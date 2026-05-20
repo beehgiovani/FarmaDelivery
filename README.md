@@ -184,6 +184,7 @@ Antes de publicar uma versao, confira nesta ordem:
 - `docs/engineering-guidelines.md`: regras de engenharia, seguranca, Supabase e manutencao.
 - `docs/architecture.md`: arquitetura atual do monorepo.
 - `docs/supabase.md`: setup Supabase e uso do SQL canonico.
+- `docs/production-runbook.md`: roteiro final de preflight, publicacao e smoke tests.
 - `docs/implementation-checklist.md`: checklist de implementacao e validacao.
 - `docs/operational-contracts.md`: contratos entre API, admin, Android e PWA.
 - `docs/lgpd.md`: privacidade, retencao e cuidados com dados pessoais.
