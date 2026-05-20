@@ -73,15 +73,67 @@ function requireOneOf(names, options = {}) {
 }
 
 function requireFirebaseAdminCredential() {
-  const hasJson = Boolean(env.FIREBASE_SERVICE_ACCOUNT_JSON?.trim());
-  const hasBase64 = Boolean(env.FIREBASE_SERVICE_ACCOUNT_BASE64?.trim());
-  const hasGoogleCredentials = Boolean(env.GOOGLE_APPLICATION_CREDENTIALS?.trim());
+  const json = env.FIREBASE_SERVICE_ACCOUNT_JSON?.trim();
+  if (json) return validateFirebaseServiceAccountJson(json, "FIREBASE_SERVICE_ACCOUNT_JSON");
+
+  const base64 = env.FIREBASE_SERVICE_ACCOUNT_BASE64?.trim();
+  if (base64) {
+    try {
+      return validateFirebaseServiceAccountJson(
+        Buffer.from(base64, "base64").toString("utf8"),
+        "FIREBASE_SERVICE_ACCOUNT_BASE64",
+      );
+    } catch {
+      return {
+        status: "warn",
+        name: "Firebase Admin credentials",
+        reason: "invalid_base64_service_account",
+      };
+    }
+  }
+
+  const googleCredentialsPath = env.GOOGLE_APPLICATION_CREDENTIALS?.trim();
+  if (googleCredentialsPath) {
+    if (/caminho|path|xxx/i.test(googleCredentialsPath)) {
+      return {
+        status: "warn",
+        name: "Firebase Admin credentials",
+        reason: "placeholder_google_application_credentials",
+      };
+    }
+    const resolvedGoogleCredentialsPath = resolve(process.cwd(), googleCredentialsPath);
+    if (!existsSync(resolvedGoogleCredentialsPath)) {
+      return {
+        status: "warn",
+        name: "Firebase Admin credentials",
+        reason: "google_application_credentials_file_not_found_locally",
+      };
+    }
+    return validateFirebaseServiceAccountJson(
+      readFileSync(resolvedGoogleCredentialsPath, "utf8"),
+      "GOOGLE_APPLICATION_CREDENTIALS",
+    );
+  }
+
   const triplet = `${env.FIREBASE_PROJECT_ID ?? ""} ${env.FIREBASE_CLIENT_EMAIL ?? ""} ${env.FIREBASE_PRIVATE_KEY ?? ""}`;
   const hasTriplet = Boolean(env.FIREBASE_PROJECT_ID?.trim() && env.FIREBASE_CLIENT_EMAIL?.trim() && env.FIREBASE_PRIVATE_KEY?.trim());
   const hasPlaceholderTriplet = /firebase_project_id|firebase_admin_client_email|\.\.\./i.test(triplet);
 
-  if (hasJson || hasBase64 || hasGoogleCredentials || (hasTriplet && !hasPlaceholderTriplet)) {
+  if (
+    hasTriplet &&
+    !hasPlaceholderTriplet &&
+    looksLikeFirebasePrivateKey(env.FIREBASE_PRIVATE_KEY) &&
+    looksLikeFirebaseClientEmail(env.FIREBASE_CLIENT_EMAIL)
+  ) {
     return { status: "pass", name: "Firebase Admin credentials" };
+  }
+
+  if (hasTriplet) {
+    return {
+      status: "warn",
+      name: "Firebase Admin credentials",
+      reason: "invalid_or_placeholder_triplet_credentials",
+    };
   }
 
   return {
@@ -89,6 +141,40 @@ function requireFirebaseAdminCredential() {
     name: "Firebase Admin credentials",
     reason: "missing_or_placeholder_push_credentials",
   };
+}
+
+function validateFirebaseServiceAccountJson(rawJson, sourceName) {
+  let parsed;
+  try {
+    parsed = JSON.parse(rawJson);
+  } catch {
+    return {
+      status: "warn",
+      name: "Firebase Admin credentials",
+      reason: `invalid_json_${sourceName}`,
+    };
+  }
+
+  const projectId = parsed.projectId ?? parsed.project_id;
+  const clientEmail = parsed.clientEmail ?? parsed.client_email;
+  const privateKey = parsed.privateKey ?? parsed.private_key;
+  if (projectId && looksLikeFirebaseClientEmail(clientEmail) && looksLikeFirebasePrivateKey(privateKey)) {
+    return { status: "pass", name: "Firebase Admin credentials" };
+  }
+
+  return {
+    status: "warn",
+    name: "Firebase Admin credentials",
+    reason: `missing_or_placeholder_fields_${sourceName}`,
+  };
+}
+
+function looksLikeFirebaseClientEmail(value) {
+  return typeof value === "string" && value.includes("@") && value.includes(".iam.gserviceaccount.com");
+}
+
+function looksLikeFirebasePrivateKey(value) {
+  return typeof value === "string" && value.includes("BEGIN PRIVATE KEY") && value.includes("END PRIVATE KEY");
 }
 
 function requireFirebaseWebPushConfig() {

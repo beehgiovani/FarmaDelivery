@@ -351,6 +351,7 @@ Atualizado em 2026-05-19.
 - Politica atual de localizacao Android documentada em `apps/motoboy/README.md`: foreground service com notificacao persistente, sem `ACCESS_BACKGROUND_LOCATION`, e checklist para Play Store se background real virar requisito.
 - Checagem `env:production:check` agora sinaliza como warning quando um arquivo informado por `file=` nao existe, evitando typo silencioso no preflight de deploy.
 - Checagem `env:production:check` tambem sinaliza configuracao Firebase Web Push incompleta quando a VAPID key do PWA estiver configurada sem os campos Firebase Web minimos.
+- Checagem `env:production:check` agora valida formato basico da credencial Firebase Admin sem expor valores, cobrindo JSON, base64, trio de variaveis e `GOOGLE_APPLICATION_CREDENTIALS`.
 
 ## Em andamento
     
