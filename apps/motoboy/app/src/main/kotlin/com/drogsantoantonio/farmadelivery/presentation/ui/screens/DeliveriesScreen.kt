@@ -88,7 +88,7 @@ fun DeliveriesScreen(
         deliveries = deliveryRepository.list(serviceArea.value)
         lastSyncedAt = Instant.now()
       } catch (failure: Exception) {
-        error = failure.message ?: "Nao foi possivel carregar entregas."
+        error = courierFacingError(failure, "Nao foi possivel carregar entregas.")
       } finally {
         loading = false
       }
@@ -141,7 +141,7 @@ fun DeliveriesScreen(
                   serviceArea = nextArea.value,
                 )
               }.onFailure { failure ->
-                error = failure.message ?: "Nao foi possivel salvar a praca escolhida."
+                error = courierFacingError(failure, "Nao foi possivel salvar a praca escolhida.")
               }
             }
           }
@@ -374,7 +374,7 @@ private fun DeliveryCard(
         events = repository.events(delivery.id, serviceArea)
         historyLoaded = true
       } catch (failure: Exception) {
-        historyError = failure.message ?: "Nao foi possivel carregar o historico."
+        historyError = courierFacingError(failure, "Nao foi possivel carregar o historico.")
       } finally {
         historyLoading = false
       }
@@ -496,7 +496,7 @@ private fun DeliveryCard(
                 onAvailabilityChanged(false)
                 onAccepted()
               } catch (failure: Exception) {
-                actionError = failure.message ?: "Nao foi possivel aceitar."
+                actionError = courierFacingError(failure, "Nao foi possivel aceitar.")
               } finally {
                 submitting = false
               }
@@ -523,7 +523,7 @@ private fun DeliveryCard(
                 markHistoryStale()
                 onAccepted()
               } catch (failure: Exception) {
-                actionError = failure.message ?: "Nao foi possivel atualizar."
+                actionError = courierFacingError(failure, "Nao foi possivel atualizar.")
               } finally {
                 submitting = false
               }
@@ -628,7 +628,7 @@ private fun DeliveryCard(
                 proofReady = false
                 onAccepted()
               } catch (failure: Exception) {
-                actionError = failure.message ?: "Nao foi possivel concluir a entrega."
+                actionError = courierFacingError(failure, "Nao foi possivel concluir a entrega.")
               } finally {
                 submitting = false
               }
@@ -662,7 +662,7 @@ private fun DeliveryCard(
                 showProblemForm = false
                 onAccepted()
               } catch (failure: Exception) {
-                actionError = failure.message ?: "Nao foi possivel registrar problema."
+                actionError = courierFacingError(failure, "Nao foi possivel registrar problema.")
               } finally {
                 submitting = false
               }

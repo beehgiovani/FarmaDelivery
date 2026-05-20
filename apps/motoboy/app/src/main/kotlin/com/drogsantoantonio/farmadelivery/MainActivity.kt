@@ -21,6 +21,7 @@ import com.drogsantoantonio.farmadelivery.data.repository.RouteRepository
 import com.drogsantoantonio.farmadelivery.location.LocationTrackingService
 import com.drogsantoantonio.farmadelivery.presentation.ui.screens.LoginScreen
 import com.drogsantoantonio.farmadelivery.presentation.ui.screens.MotoboyHomeScreen
+import com.drogsantoantonio.farmadelivery.presentation.ui.screens.courierFacingError
 import com.drogsantoantonio.farmadelivery.presentation.ui.theme.FarmaDeliveryTheme
 import kotlinx.coroutines.launch
 
@@ -83,7 +84,7 @@ private fun MotoboyApp(
             onTokenChanged(logged.token)
             session = logged
           } catch (error: Exception) {
-            onError(error.message ?: "Nao foi possivel entrar.")
+            onError(courierFacingError(error, "Nao foi possivel entrar."))
           }
         }
       },

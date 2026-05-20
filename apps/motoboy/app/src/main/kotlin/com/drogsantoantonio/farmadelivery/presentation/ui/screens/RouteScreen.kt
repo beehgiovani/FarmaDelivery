@@ -60,7 +60,7 @@ fun RouteScreen(
         routes = routeRepository.activeRoutes()
         lastSyncedAt = Instant.now()
       } catch (failure: Exception) {
-        error = failure.message ?: "Nao foi possivel carregar a rota."
+        error = courierFacingError(failure, "Nao foi possivel carregar a rota.")
       } finally {
         loading = false
       }

@@ -111,7 +111,7 @@ fun LocationPanel(
                   "Indisponivel. Novas corridas nao serao direcionadas para voce."
                 }
               } catch (failure: Exception) {
-                feedback = failure.message ?: "Nao foi possivel atualizar disponibilidade."
+                feedback = courierFacingError(failure, "Nao foi possivel atualizar disponibilidade.")
               } finally {
                 availabilityLoading = false
               }
@@ -175,7 +175,7 @@ fun LocationPanel(
                   feedback = "Localizacao enviada."
                 }
               } catch (failure: Exception) {
-                feedback = failure.message ?: "Nao foi possivel enviar."
+                feedback = courierFacingError(failure, "Nao foi possivel enviar.")
               } finally {
                 loading = false
               }

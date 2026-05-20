@@ -76,6 +76,7 @@ import {
   type CourierServiceArea,
 } from "./serviceAreas";
 import type { AuthSession, CourierRoute, Delivery, DeliveryEvent } from "./types";
+import { userFacingError } from "./userMessages";
 
 const TOKEN_KEY = "farmadelivery.motoboy.token";
 const TRACKING_KEY = "farmadelivery.motoboy.tracking";
@@ -130,7 +131,7 @@ export function App() {
       setRoutes(nextRoutes);
       setLastSyncedAt(new Date());
     } catch (err) {
-      if (!silent) setError(messageFrom(err));
+      if (!silent) setError(messageFrom(err, "Nao foi possivel carregar entregas e rotas agora."));
     } finally {
       if (!silent) setLoading(false);
     }
@@ -243,7 +244,7 @@ export function App() {
               sentAt: Date.now(),
             };
           })
-          .catch((err) => setError(messageFrom(err)));
+          .catch((err) => setError(messageFrom(err, "Nao foi possivel enviar a localizacao automatica agora.")));
       },
       () => {
         setTrackingEnabled(false);
@@ -309,7 +310,7 @@ export function App() {
       setNotice("Acao registrada com sucesso.");
       await loadOperationalData();
     } catch (err) {
-      setError(messageFrom(err));
+      setError(messageFrom(err, "Nao foi possivel registrar a acao agora."));
     } finally {
       setBusyAction(null);
     }
@@ -347,7 +348,7 @@ export function App() {
           .then(() => {
             setNotice("Localizacao enviada.");
           })
-          .catch((err) => setError(messageFrom(err)))
+          .catch((err) => setError(messageFrom(err, "Nao foi possivel enviar a localizacao agora.")))
           .finally(() => setBusyAction(null));
       },
       () => {
@@ -399,7 +400,7 @@ export function App() {
           : "Voce esta indisponivel. Novas corridas nao serao direcionadas para voce.",
       );
     } catch (err) {
-      setError(messageFrom(err));
+      setError(messageFrom(err, "Nao foi possivel atualizar sua disponibilidade agora."));
     } finally {
       setBusyAction(null);
     }
@@ -430,7 +431,7 @@ export function App() {
     try {
       await updateAvailability({ courierId, available, serviceArea: nextServiceArea });
     } catch (err) {
-      setError(messageFrom(err));
+      setError(messageFrom(err, "Nao foi possivel salvar a praca escolhida agora."));
     }
   }
 
@@ -647,7 +648,7 @@ function LoginScreen({
     try {
       await onLogin({ identifier, password });
     } catch (err) {
-      setLocalError(messageFrom(err));
+      setLocalError(messageFrom(err, "Nao foi possivel entrar agora."));
     } finally {
       setLoading(false);
     }
@@ -873,7 +874,7 @@ function DeliveryActions(props: {
     try {
       await props.onLoadEvents();
     } catch (err) {
-      setHistoryError(messageFrom(err));
+      setHistoryError(messageFrom(err, "Nao foi possivel carregar o historico agora."));
     } finally {
       setHistoryLoading(false);
     }
@@ -1166,8 +1167,8 @@ async function uploadProofFile(deliveryId: string, file: File) {
   return proof.id;
 }
 
-function messageFrom(error: unknown) {
-  return error instanceof Error ? error.message : "Erro inesperado.";
+function messageFrom(error: unknown, fallback = "Nao foi possivel concluir agora.") {
+  return userFacingError(error, fallback);
 }
 
 async function requestNotificationPermission() {
