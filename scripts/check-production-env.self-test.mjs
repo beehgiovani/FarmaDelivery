@@ -160,7 +160,7 @@ function runScenario(name, options) {
     assert.ok(output.passed.some((check) => check.name === options.expectPassedName), `${name}: missing pass ${options.expectPassedName}`);
   }
 
-  for (const forbidden of options.forbiddenOutput ?? []) {
+  for (const forbidden of [...sensitiveEnvValues(options.env), ...(options.forbiddenOutput ?? [])]) {
     assert.equal(result.stdout.includes(forbidden), false, `${name}: leaked forbidden value`);
   }
 }
@@ -182,4 +182,11 @@ function serviceAccountJson() {
     client_email: "firebase-adminsdk@test.iam.gserviceaccount.com",
     private_key: "-----BEGIN PRIVATE KEY-----\nFAKE-PRIVATE-KEY\n-----END PRIVATE KEY-----\n",
   });
+}
+
+function sensitiveEnvValues(env) {
+  const sensitiveNamePattern = /SECRET|KEY|PASSWORD|TOKEN|CREDENTIALS|DATABASE_URL|VAPID/i;
+  return Object.entries(env)
+    .filter(([key, value]) => sensitiveNamePattern.test(key) && typeof value === "string" && value.length >= 8)
+    .map(([, value]) => value);
 }
