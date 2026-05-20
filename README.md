@@ -125,6 +125,12 @@ Arquivos informados com `file=` que nao existirem aparecem como warning para evi
 Quando a VAPID key do PWA estiver configurada, a checagem tambem avisa se a configuracao Firebase Web minima para Messaging estiver incompleta.
 A credencial Firebase Admin tambem e revisada sem exibir valores, aceitando JSON, base64 do JSON, trio de variaveis ou `GOOGLE_APPLICATION_CREDENTIALS`.
 
+Autotestar o precheck de producao com cenarios falsos:
+
+```bash
+npm run env:production:check:self-test
+```
+
 Gerar um `API_SESSION_SECRET` seguro para ambiente local/deploy:
 
 ```bash
