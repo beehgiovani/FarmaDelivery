@@ -1,6 +1,6 @@
 # FarmaDelivery - checklist de implementacao
 
-Atualizado em 2026-05-19.
+Atualizado em 2026-05-20.
 
 ## Feito
 
