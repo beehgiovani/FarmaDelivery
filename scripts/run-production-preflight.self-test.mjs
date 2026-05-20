@@ -1,0 +1,40 @@
+import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+
+const scriptPath = "scripts/run-production-preflight.mjs";
+
+const help = spawnPreflight(["--help"]);
+assert.equal(help.status, 0, `help should exit cleanly\n${help.stdout}\n${help.stderr}`);
+assert.match(help.stdout, /preflight:production/);
+assert.doesNotMatch(help.stdout, /API_SESSION_SECRET|SUPABASE_SECRET_KEY|FIREBASE/i);
+
+const invalidArg = spawnPreflight(["unknown=value"]);
+assert.notEqual(invalidArg.status, 0, "unknown arguments should fail before running preflight steps");
+assert.match(invalidArg.stderr, /Argumento desconhecido/);
+assert.equal(invalidArg.stdout.includes("== production env check =="), false, "invalid args should not start preflight steps");
+
+process.stdout.write(
+  `${JSON.stringify(
+    {
+      mode: "production-preflight-self-test",
+      ok: true,
+      scenarios: 2,
+    },
+    null,
+    2,
+  )}\n`,
+);
+
+function spawnPreflight(args) {
+  return spawnSync(process.execPath, [scriptPath, ...args], {
+    cwd: process.cwd(),
+    encoding: "utf8",
+    env: {
+      PATH: process.env.PATH,
+      SystemRoot: process.env.SystemRoot,
+      WINDIR: process.env.WINDIR,
+      TEMP: process.env.TEMP,
+      TMP: process.env.TMP,
+    },
+  });
+}

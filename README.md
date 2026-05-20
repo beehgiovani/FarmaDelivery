@@ -141,6 +141,12 @@ Rodar o preflight completo de producao, parando no primeiro erro:
 npm run preflight:production -- file=env/api.env file=env/admin.env
 ```
 
+Autotestar a interface do runner de preflight:
+
+```bash
+npm run preflight:production:self-test
+```
+
 Gerar um `API_SESSION_SECRET` seguro para ambiente local/deploy:
 
 ```bash
