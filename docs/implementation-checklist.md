@@ -373,6 +373,7 @@ Atualizado em 2026-05-20.
 - Runbook de producao criado em `docs/production-runbook.md`, reunindo preflight, conferencia Supabase, smoke test Android, smoke test PWA iOS e criterio de publicacao sem expor dados sensiveis.
 - `.dockerignore` alinhado aos cuidados de versionamento para manter fora do contexto Docker artefatos Android locais, `local.properties`, `.kotlin`, `.idea`, APK/AAB e temporarios.
 - Checagem `npm run repo:sensitive:check` criada e incluida no `npm test` raiz para falhar se arquivos sensiveis ou artefatos locais entrarem no versionamento.
+- Checagem `npm run repo:sensitive:check` tambem varre arquivos texto versionados para bloquear Google API key real hardcoded antes de commit/push.
 - Preflight de producao agora executa `npm run repo:sensitive:check` como passo explicito antes de RLS, testes e build.
 
 ## Em andamento
