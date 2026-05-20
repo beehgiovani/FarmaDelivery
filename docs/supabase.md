@@ -120,9 +120,10 @@ npm run preflight:production -- file=env/api.env file=env/admin.env
 Esse comando deve ser rodado com os arquivos locais de ambiente ja preparados e ignorados pelo Git. Ele para no primeiro erro e executa, nesta ordem:
 
 1. `npm run env:production:check -- file=...`
-2. `npm run db:rls:check`
-3. `npm test`
-4. `npm run build`
+2. `npm run repo:sensitive:check`
+3. `npm run db:rls:check`
+4. `npm test`
+5. `npm run build`
 
 Para investigar uma falha especifica, rode o comando individual correspondente. Para testar apenas a interface do runner sem executar todo o preflight, use:
 

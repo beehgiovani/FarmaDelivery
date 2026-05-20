@@ -28,14 +28,16 @@ npm run preflight:production -- file=env/api.env file=env/admin.env
 O comando para no primeiro erro e executa:
 
 1. Checagem segura de ambiente.
-2. Auditoria estatica de RLS do SQL canonico.
-3. Testes automatizados dos workspaces.
-4. Build completo.
+2. Checagem de arquivos sensiveis rastreados pelo Git.
+3. Auditoria estatica de RLS do SQL canonico.
+4. Testes automatizados dos workspaces.
+5. Build completo.
 
 Se precisar isolar uma falha:
 
 ```powershell
 npm run env:production:check -- file=env/api.env file=env/admin.env
+npm run repo:sensitive:check
 npm run db:rls:check
 npm test
 npm run build

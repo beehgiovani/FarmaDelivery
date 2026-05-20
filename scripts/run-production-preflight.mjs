@@ -7,6 +7,7 @@ const steps = [
     command: process.execPath,
     args: ["scripts/check-production-env.mjs", ...args.files.map((file) => `file=${file}`)],
   },
+  { name: "tracked sensitive files check", command: "npm", args: ["run", "repo:sensitive:check"] },
   { name: "Supabase RLS static check", command: "npm", args: ["run", "db:rls:check"] },
   { name: "test suite", command: "npm", args: ["test"] },
   { name: "production build", command: "npm", args: ["run", "build"] },
