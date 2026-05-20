@@ -203,7 +203,7 @@ export function filterReportDeliveries<T extends ReportDeliveryRow>(
     const matchesMapPoint =
       !filters.mapPoint || (filters.mapPoint === "com" ? delivery.hasMapPoint === true : delivery.hasMapPoint !== true);
     const matchesAttendant =
-      !filters.attendant?.trim() || normalizeFilterText(delivery.attendantName ?? "").includes(normalizeFilterText(filters.attendant));
+      !filters.attendant?.trim() || normalizeFilterText(attendantReferenceSearchText(delivery.attendantName)).includes(normalizeFilterText(filters.attendant));
     const matchesCourier =
       !filters.courier?.trim() || normalizeFilterText(delivery.courier).includes(normalizeFilterText(filters.courier));
     return matchesPeriod && matchesStatus && matchesPriority && matchesProof && matchesMapPoint && matchesAttendant && matchesCourier;
@@ -278,6 +278,23 @@ function normalizeFilterText(value: string) {
     .toLocaleLowerCase("pt-BR")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
+}
+
+function attendantReferenceSearchText(value?: string | null) {
+  const raw = (value ?? "").trim();
+  const reference = parseAttendantReference(raw);
+  const display = reference.name && reference.code ? `${reference.name} (cod. ${reference.code})` : reference.name;
+  return [raw, display, reference.code, reference.name].filter(Boolean).join(" ");
+}
+
+function parseAttendantReference(value: string) {
+  const trimmed = value.trim();
+  const match = trimmed.match(/^([A-Za-z0-9-]+)\s+-\s+(.+)$/);
+  if (!match) return { code: "", name: trimmed };
+  return {
+    code: match[1].trim(),
+    name: match[2].trim(),
+  };
 }
 
 function formatStoreDailyNumber(value: number | null | undefined) {

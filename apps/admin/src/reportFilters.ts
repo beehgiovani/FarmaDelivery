@@ -1,3 +1,4 @@
+import { attendantReferenceSearchText } from "./attendantReferences";
 import type { Delivery, DeliveryPriority, DeliveryStatus, ReportCountRow } from "./types";
 
 export type DeliveryProofFilter = "" | "com" | "sem";
@@ -35,7 +36,7 @@ export function filterDeliveriesForReport(deliveries: Delivery[], filters: Deliv
     const matchesProof = !filters.proof || (filters.proof === "com" ? proofCount > 0 : proofCount === 0);
     const matchesMapPoint = !filters.mapPoint || (filters.mapPoint === "com" ? Boolean(delivery.coordinates) : !delivery.coordinates);
     const matchesAttendant =
-      !filters.attendant.trim() || normalizeFilterText(delivery.attendantName ?? "").includes(normalizeFilterText(filters.attendant));
+      !filters.attendant.trim() || normalizeFilterText(attendantReferenceSearchText(delivery.attendantName)).includes(normalizeFilterText(filters.attendant));
     const matchesCourier =
       !filters.courier.trim() || normalizeFilterText(delivery.courier).includes(normalizeFilterText(filters.courier));
     return matchesStatus && matchesPriority && matchesProof && matchesMapPoint && matchesAttendant && matchesCourier;

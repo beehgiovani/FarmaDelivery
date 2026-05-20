@@ -43,6 +43,22 @@ test("filters delivery report rows by status, priority, proof state and map poin
   );
 });
 
+test("filters delivery reports by attendant code display text", () => {
+  const deliveries = [
+    makeDelivery({ id: "coded-attendant", status: "Entregue", attendantName: "1234 - Maria Caixa" }),
+    makeDelivery({ id: "plain-attendant", status: "Entregue", attendantName: "Ana Balcao" }),
+  ];
+
+  assert.deepEqual(
+    filterDeliveriesForReport(deliveries, { status: "", priority: "", proof: "", mapPoint: "", attendant: "cod. 1234", courier: "" }).map((delivery) => delivery.id),
+    ["coded-attendant"],
+  );
+  assert.deepEqual(
+    filterDeliveriesForReport(deliveries, { status: "", priority: "", proof: "", mapPoint: "", attendant: "Maria Caixa", courier: "" }).map((delivery) => delivery.id),
+    ["coded-attendant"],
+  );
+});
+
 test("detects active delivery report filters", () => {
   assert.equal(hasDeliveryReportFilters(emptyDeliveryReportFilters), false);
   assert.equal(hasDeliveryReportFilters({ status: "Problema", priority: "", proof: "", mapPoint: "", attendant: "", courier: "" }), true);

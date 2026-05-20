@@ -21,6 +21,13 @@ export function formatAttendantReference(value?: string | null) {
   return reference.code ? `${reference.name} (cod. ${reference.code})` : reference.name;
 }
 
+export function attendantReferenceSearchText(value?: string | null) {
+  const raw = (value ?? "").trim();
+  const formatted = formatAttendantReference(raw);
+  const reference = parseAttendantReference(raw);
+  return [raw, formatted, reference.code, reference.name].filter(Boolean).join(" ");
+}
+
 export function buildAttendantReferenceOptions(users: TeamUser[]): AttendantReferenceOption[] {
   return buildAttendantReferenceOptionsFromNames(
     users

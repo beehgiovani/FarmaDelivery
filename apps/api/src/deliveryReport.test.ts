@@ -140,6 +140,22 @@ test("filters report deliveries by status, priority, proof state, map point and 
   );
 });
 
+test("filters report deliveries by attendant reference display text", () => {
+  const deliveries = [
+    makeDelivery({ id: "coded-attendant", status: "ENTREGUE", attendantName: "1234 - Maria Caixa" }),
+    makeDelivery({ id: "plain-attendant", status: "ENTREGUE", attendantName: "Ana Balcao" }),
+  ];
+
+  assert.deepEqual(
+    filterReportDeliveries(deliveries, null, { attendant: "cod. 1234" }).map((delivery) => delivery.id),
+    ["coded-attendant"],
+  );
+  assert.deepEqual(
+    filterReportDeliveries(deliveries, null, { attendant: "Maria Caixa" }).map((delivery) => delivery.id),
+    ["coded-attendant"],
+  );
+});
+
 test("exports delivery report csv with masked phone and distributions", () => {
   const csv = buildDeliveryReportCsv(
     [

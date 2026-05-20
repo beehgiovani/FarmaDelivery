@@ -113,6 +113,7 @@ Atualizado em 2026-05-20.
 - Autocomplete de atendente na criacao de entrega entende referencias `codigo - nome`, ordena pelo nome do funcionario e exibe o codigo como apoio de conferencia.
 - Filtro de balconista nos relatorios usa a mesma leitura de referencia `codigo - nome`, permitindo buscar por codigo ou nome e exibindo o codigo como apoio no autocomplete.
 - Fila de entregas e distribuicao do relatorio exibem referencias de balconista como `nome (cod. codigo)`, mantendo o valor salvo/exportado no formato operacional original.
+- Filtro local e server-side de relatorios tambem reconhece a forma exibida `nome (cod. codigo)`, mantendo busca por codigo, nome ou texto visual alinhada ao CSV.
 - UI de acessos possui fluxos separados para funcionario de conferencia (`BALCONISTA_CAIXA`, sem login), motoboy (`MOTOBOY`, login dedicado) e logins do sistema (`GERENTE` e `ADMIN`), evitando misturar balconista/caixa, motoboy e login da loja.
 - Cadastro de motoboy no admin foi separado em fluxo dedicado, com login proprio para o app/campo e loja base obrigatoria, sem misturar com login da loja ou referencia de balconista.
 - Cadastro de motoboy no admin ficou mais rapido, com telefone como login preferencial, senha inicial ja gerada, passos visuais do preenchimento e aviso de que a praca de atendimento e escolhida no app.

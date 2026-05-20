@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   buildAttendantReferenceOptions,
   buildAttendantReferenceOptionsFromNames,
+  attendantReferenceSearchText,
   formatAttendantReference,
   parseAttendantReference,
 } from "./attendantReferences";
@@ -17,6 +18,10 @@ test("formats attendant reference for display", () => {
   assert.equal(formatAttendantReference("1234 - Maria Caixa"), "Maria Caixa (cod. 1234)");
   assert.equal(formatAttendantReference("Maria Caixa"), "Maria Caixa");
   assert.equal(formatAttendantReference(" "), "");
+});
+
+test("builds attendant reference search text with raw and display formats", () => {
+  assert.equal(attendantReferenceSearchText("1234 - Maria Caixa"), "1234 - Maria Caixa Maria Caixa (cod. 1234) 1234 Maria Caixa");
 });
 
 test("builds attendant options sorted by name and labeled with code", () => {
