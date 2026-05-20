@@ -75,14 +75,14 @@ export function ManagementPanel({
   onUserCreated,
   onStoreChanged,
 }: ManagementPanelProps) {
-  const [form, setForm] = useState({
+  const [form, setForm] = useState(() => ({
     name: "",
     phone: "",
     email: "",
-    password: "",
+    password: generateInitialPassword(),
     role: "MOTOBOY" as TeamRole,
     storeId: stores[0]?.id ?? "",
-  });
+  }));
   const [storeForm, setStoreForm] = useState({
     code: "",
     name: "",
@@ -293,7 +293,9 @@ export function ManagementPanel({
       setSubmitState("success");
       setFeedback(
         requiresLogin
-          ? `${created.name} cadastrado com sucesso.`
+          ? form.role === "MOTOBOY"
+            ? `${created.name} cadastrado como motoboy. Entregue o login e a senha inicial abaixo.`
+            : `${created.name} cadastrado com sucesso.`
           : `${created.name} cadastrado como referencia de balconista para autocomplete.`,
       );
       setCreatedAccess(
@@ -313,7 +315,7 @@ export function ManagementPanel({
         name: "",
         phone: "",
         email: "",
-        password: "",
+        password: requiresLogin ? generateInitialPassword() : "",
       }));
       onUserCreated?.();
     } catch (error) {
@@ -775,6 +777,27 @@ export function ManagementPanel({
             </div>
           </div>
 
+          {isCourierAccess ? (
+            <div className="courierQuickGuide" aria-label="Cadastro rapido de motoboy">
+              <span>
+                <strong>1</strong>
+                Nome
+              </span>
+              <span>
+                <strong>2</strong>
+                Telefone para login
+              </span>
+              <span>
+                <strong>3</strong>
+                Senha pronta
+              </span>
+              <span>
+                <strong>4</strong>
+                Loja base
+              </span>
+            </div>
+          ) : null}
+
           <div className="teamFormGrid">
             <label className="inputGroup">
               <span>{isCounterReference ? "Nome do funcionario" : isStoreLogin ? "Nome do acesso da loja" : isCourierAccess ? "Nome do motoboy" : "Nome"}</span>
@@ -803,9 +826,10 @@ export function ManagementPanel({
                     className="plainInput"
                     inputMode="tel"
                     value={form.phone}
-                    placeholder={isStoreLogin ? "Telefone da unidade" : isCourierAccess ? "(13) 99999-0000" : undefined}
+                    placeholder={isStoreLogin ? "Telefone da unidade" : isCourierAccess ? "Usado para entrar no app" : undefined}
                     onChange={(event) => setForm({ ...form, phone: normalizeDeliveryPhoneInput(event.target.value) })}
                   />
+                  {isCourierAccess ? <small className="inputHint">O motoboy pode usar este telefone como login no app.</small> : null}
                 </label>
                 <label className="inputGroup">
                   <span>{isStoreLogin ? "Email do login" : isCourierAccess ? "Email do motoboy" : "Email"}</span>
@@ -820,7 +844,7 @@ export function ManagementPanel({
             )}
             {currentRoleRequiresLogin ? (
               <label className="inputGroup">
-                <span>Senha inicial</span>
+                <span>{isCourierAccess ? "Senha inicial do app" : "Senha inicial"}</span>
                 <div className="inputWithButton">
                   <input
                     className="plainInput"
@@ -833,6 +857,7 @@ export function ManagementPanel({
                     Gerar
                   </button>
                 </div>
+                {isCourierAccess ? <small className="inputHint">Ja vem preenchida. Gere outra senha se quiser entregar uma nova.</small> : null}
               </label>
             ) : null}
             {accessFlow === "systemAccess" ? (
@@ -872,6 +897,12 @@ export function ManagementPanel({
                 </select>
               </label>
             )}
+            {isCourierAccess ? (
+              <div className="referenceNotice">
+                <strong>Praca no app</strong>
+                <small>A loja base organiza o cadastro; o motoboy escolhe a praca de atendimento quando abrir o app.</small>
+              </div>
+            ) : null}
           </div>
 
           {feedback ? <div className={`formFeedback ${submitState}`}>{feedback}</div> : null}
@@ -1461,8 +1492,8 @@ function AssignmentGroup({
 function roleLabel(role: TeamRole) {
   const labels: Record<TeamRole, string> = {
     ADMIN: "Admin",
-  GERENTE: "Acesso da loja",
-  BALCONISTA_CAIXA: "Balconista / caixa (referencia)",
+    GERENTE: "Acesso da loja",
+    BALCONISTA_CAIXA: "Balconista / caixa (referencia)",
     MOTOBOY: "Motoboy",
   };
   return labels[role];

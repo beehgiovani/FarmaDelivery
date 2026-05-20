@@ -157,6 +157,26 @@ test("builds created access card preferring email as login", () => {
   );
 });
 
+test("builds courier access card with phone login when email is absent", () => {
+  assert.deepEqual(
+    buildCreatedAccessCard({
+      name: "Joao Motoboy",
+      email: "",
+      phone: "(13) 98888-7777",
+      password: "FarmaMoto123",
+      role: "MOTOBOY",
+      storeName: "Loja Base",
+    }),
+    {
+      name: "Joao Motoboy",
+      login: "(13) 98888-7777",
+      password: "FarmaMoto123",
+      role: "MOTOBOY",
+      storeName: "Loja Base",
+    },
+  );
+});
+
 test("generates initial passwords with stable prefix and requested entropy length", () => {
   const password = generateInitialPassword(() => Uint8Array.from([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]));
 

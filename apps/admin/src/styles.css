@@ -2284,6 +2284,39 @@ h2 {
   background: #f5f8ff;
 }
 
+.courierQuickGuide {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.courierQuickGuide span {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid #d8e2f3;
+  border-radius: 8px;
+  color: var(--brand-blue-dark);
+  background: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.courierQuickGuide strong {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: #ffffff;
+  background: var(--brand-red);
+  font-size: 0.72rem;
+}
+
 .referenceNotice {
   min-height: 44px;
   display: grid;
@@ -2387,6 +2420,12 @@ h2 {
   width: 16px;
   height: 16px;
   accent-color: var(--brand-blue);
+}
+
+@media (max-width: 760px) {
+  .courierQuickGuide {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .checkLine.wide {

@@ -111,6 +111,7 @@ Atualizado em 2026-05-20.
 - Cadastro de `BALCONISTA_CAIXA` nao exige telefone, email ou senha, pois serve como referencia/autocomplete; o backend gera hash interno apenas para compatibilidade com o modelo atual.
 - UI de acessos possui fluxos separados para funcionario de conferencia (`BALCONISTA_CAIXA`, sem login), motoboy (`MOTOBOY`, login dedicado) e logins do sistema (`GERENTE` e `ADMIN`), evitando misturar balconista/caixa, motoboy e login da loja.
 - Cadastro de motoboy no admin foi separado em fluxo dedicado, com login proprio para o app/campo e loja base obrigatoria, sem misturar com login da loja ou referencia de balconista.
+- Cadastro de motoboy no admin ficou mais rapido, com telefone como login preferencial, senha inicial ja gerada, passos visuais do preenchimento e aviso de que a praca de atendimento e escolhida no app.
 - Login operacional de loja, como Loja Central, fica limitado a propria unidade; admin permanece como unico acesso de visao geral.
 - Listagem e CSV de relatorios preservam o balconista de lancamento/conferencia e o motoboy que entregou, mantendo os demais dados operacionais da entrega.
 - Relatorio operacional tambem distribui entregas por balconista/atendente informado, alem de loja, motoboy, status e prioridade.
