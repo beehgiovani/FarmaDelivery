@@ -15,6 +15,12 @@ export function parseAttendantReference(value: string) {
   };
 }
 
+export function formatAttendantReference(value?: string | null) {
+  const reference = parseAttendantReference(value ?? "");
+  if (!reference.name) return "";
+  return reference.code ? `${reference.name} (cod. ${reference.code})` : reference.name;
+}
+
 export function buildAttendantReferenceOptions(users: TeamUser[]): AttendantReferenceOption[] {
   return buildAttendantReferenceOptionsFromNames(
     users

@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { AlertTriangle, ClipboardList, LoaderCircle, Printer } from "lucide-react";
+import { formatAttendantReference } from "../attendantReferences";
 import type { Delivery, DeliveryStatus, TeamUser } from "../types";
 import { deliveryDeadlineWindowsMinutes, getDeliverySlaState } from "../deliverySla";
 import { printThermalReceipt } from "../thermalReceipt";
@@ -113,7 +114,7 @@ export function DeliveryTable({
             </div>
             <div>
               <strong>{delivery.courier}</strong>
-              <span>Balcao: {delivery.attendantName?.trim() || "Nao informado"}</span>
+              <span>Balcao: {formatAttendantReference(delivery.attendantName) || "Nao informado"}</span>
               <span>Criou {delivery.createdAt}</span>
               {delivery.dispatchedAt ? <span>Aceite {delivery.dispatchedAt}</span> : <span>Sem aceite</span>}
               {delivery.collectedAt ? <span>Coleta {delivery.collectedAt}</span> : null}

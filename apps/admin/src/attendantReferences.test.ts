@@ -1,11 +1,22 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildAttendantReferenceOptions, buildAttendantReferenceOptionsFromNames, parseAttendantReference } from "./attendantReferences";
+import {
+  buildAttendantReferenceOptions,
+  buildAttendantReferenceOptionsFromNames,
+  formatAttendantReference,
+  parseAttendantReference,
+} from "./attendantReferences";
 import type { TeamUser } from "./types";
 
 test("parses attendant reference code and name", () => {
   assert.deepEqual(parseAttendantReference("1234 - Maria Caixa"), { code: "1234", name: "Maria Caixa" });
   assert.deepEqual(parseAttendantReference("Maria Caixa"), { code: "", name: "Maria Caixa" });
+});
+
+test("formats attendant reference for display", () => {
+  assert.equal(formatAttendantReference("1234 - Maria Caixa"), "Maria Caixa (cod. 1234)");
+  assert.equal(formatAttendantReference("Maria Caixa"), "Maria Caixa");
+  assert.equal(formatAttendantReference(" "), "");
 });
 
 test("builds attendant options sorted by name and labeled with code", () => {

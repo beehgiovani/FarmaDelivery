@@ -1,7 +1,7 @@
 import { Download } from "lucide-react";
 import { useMemo, useState } from "react";
 import { fetchDeliveryReportCsv } from "../api";
-import { buildAttendantReferenceOptionsFromNames } from "../attendantReferences";
+import { buildAttendantReferenceOptionsFromNames, formatAttendantReference } from "../attendantReferences";
 import {
   emptyDeliveryReportFilters,
   countReportRows,
@@ -295,7 +295,12 @@ export function ReportsPanel({
           {activeSection === "distribution" ? (
             <div className="reportGrid">
               <ReportList title="Por loja" rows={storeRows} />
-              <ReportList title="Por balconista" rows={attendantRows} emptyLabel="Nenhuma entrega com balconista informado." />
+              <ReportList
+                title="Por balconista"
+                rows={attendantRows}
+                emptyLabel="Nenhuma entrega com balconista informado."
+                formatLabel={formatAttendantReference}
+              />
               <ReportList title="Por motoboy" rows={courierRows} emptyLabel="Nenhuma entrega aceita por motoboy." />
               <ReportList title="Por status" rows={statusRows} />
               <ReportList title="Por prioridade" rows={priorityRows} />
@@ -402,10 +407,12 @@ function ReportList({
   title,
   rows,
   emptyLabel = "Sem dados.",
+  formatLabel = (label: string) => label,
 }: {
   title: string;
   rows: Array<{ label: string; count: number }>;
   emptyLabel?: string;
+  formatLabel?: (label: string) => string;
 }) {
   const visibleRows = rows.filter((row) => row.count > 0);
 
@@ -417,7 +424,7 @@ function ReportList({
       ) : (
         visibleRows.map((row) => (
           <div className="reportRow" key={row.label}>
-            <span>{row.label}</span>
+            <span>{formatLabel(row.label) || row.label}</span>
             <b>{row.count}</b>
           </div>
         ))
