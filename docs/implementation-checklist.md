@@ -363,6 +363,7 @@ Atualizado em 2026-05-20.
 - Validacao local pre-deploy executada com `npm run db:rls:check`, `npm run env:production:check:self-test`, `npm test` e `npm run build`; o preflight completo com `file=env/*.env` reais permanece para antes da publicacao.
 - Fallback Supabase REST dos relatorios agora aplica o periodo operacional no PostgREST para `createdAt`, `acceptedAt`, `collectedAt`, `deliveredAt` e `canceledAt`, mantendo exportacao/summary mais alinhados ao caminho Prisma quando o banco direto indisponibilizar.
 - Relatorios ganharam filtro por motoboy com autocomplete no admin, exportacao CSV registrando `filtro_motoboy` e API aceitando o parametro para manter a visao local e server-side alinhadas.
+- Exportacao server-side de relatorios agora busca uma linha sentinela alem do limite escolhido, marcando `limite_atingido` apenas quando realmente houver mais entregas fora do CSV.
 
 ## Em andamento
     

@@ -311,10 +311,11 @@ export async function deliveryRoutes(app: FastifyInstance) {
     const exportLimit = deliveryReportExportLimit(parsed.data.exportLimit);
 
     try {
-      const deliveries = await fetchDeliveryReportExportWithPrisma(
+      const fetchedDeliveries = await fetchDeliveryReportExportWithPrisma(
         deliveryReportWhere(session, storeScope, parsed.data.storeId, parsed.data),
-        exportLimit,
+        exportLimit + 1,
       );
+      const { rows: deliveries, exportLimitReached } = trimDeliveryReportExportRows(fetchedDeliveries, exportLimit);
 
       return sendDeliveryReportCsv(
         reply,
@@ -352,7 +353,7 @@ export async function deliveryRoutes(app: FastifyInstance) {
             period: parsed.data,
             filters: parsed.data,
             exportLimit,
-            exportLimitReached: deliveries.length >= exportLimit,
+            exportLimitReached,
           },
         ),
         parsed.data,
@@ -360,10 +361,11 @@ export async function deliveryRoutes(app: FastifyInstance) {
     } catch (error) {
       app.log.error({ error }, "delivery report export error");
       if (canUseSupabaseRest()) {
-        const deliveries = await fetchDeliveryReportExportWithSupabaseRest(
+        const fetchedDeliveries = await fetchDeliveryReportExportWithSupabaseRest(
           deliveryReportRestFilter(session, storeScope, parsed.data.storeId, parsed.data),
-          exportLimit,
+          exportLimit + 1,
         );
+        const { rows: deliveries, exportLimitReached } = trimDeliveryReportExportRows(fetchedDeliveries, exportLimit);
 
         return sendDeliveryReportCsv(
           reply,
@@ -401,7 +403,7 @@ export async function deliveryRoutes(app: FastifyInstance) {
               period: parsed.data,
               filters: parsed.data,
               exportLimit,
-              exportLimitReached: deliveries.length >= exportLimit,
+              exportLimitReached,
             },
           ),
           parsed.data,
@@ -1572,6 +1574,14 @@ function deliveryReportScopeLabel(session: { role: string }, storeId?: string) {
 /** Mantem limite padrao seguro para exportacao server-side. */
 export function deliveryReportExportLimit(value: number | undefined) {
   return value ?? DELIVERY_REPORT_EXPORT_DEFAULT_LIMIT;
+}
+
+/** Usa uma linha sentinela para saber se havia mais entregas alem do limite exportado. */
+export function trimDeliveryReportExportRows<T>(rows: T[], exportLimit: number) {
+  return {
+    rows: rows.slice(0, exportLimit),
+    exportLimitReached: rows.length > exportLimit,
+  };
 }
 
 /** Converte filtros de data em intervalo aberto no fim do dia para consultar timestamps. */

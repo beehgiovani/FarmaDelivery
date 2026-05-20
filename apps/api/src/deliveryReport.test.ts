@@ -9,7 +9,7 @@ import {
   type ReportDeliveryExportRow,
   type ReportDeliveryRow,
 } from "./deliveryReport";
-import { deliveryReportExportLimit, deliveryReportRestFilter } from "./routes/deliveries";
+import { deliveryReportExportLimit, deliveryReportRestFilter, trimDeliveryReportExportRows } from "./routes/deliveries";
 
 test("builds delivery report with period, proof counts and distributions", () => {
   const report = buildDeliveryReport(
@@ -263,6 +263,17 @@ test("uses default delivery report export limit when query is omitted", () => {
   assert.equal(deliveryReportExportLimit(undefined), 5000);
   assert.equal(deliveryReportExportLimit(10000), 10000);
   assert.equal(deliveryReportExportLimit(50000), 50000);
+});
+
+test("marks delivery report export limit only when a sentinel row exists", () => {
+  assert.deepEqual(trimDeliveryReportExportRows(["one", "two"], 2), {
+    rows: ["one", "two"],
+    exportLimitReached: false,
+  });
+  assert.deepEqual(trimDeliveryReportExportRows(["one", "two", "three"], 2), {
+    rows: ["one", "two"],
+    exportLimitReached: true,
+  });
 });
 
 test("builds delivery report Supabase REST filters with store scope and report filters", () => {
