@@ -2,6 +2,7 @@ import { Clock3 } from "lucide-react";
 import { deliveryProofAuthHeaders, deliveryProofFileUrl } from "../api";
 import { mapRawDeliveryEventTypeLabel } from "../apiMappers";
 import type { Delivery, DeliveryEvent, DeliveryProof } from "../types";
+import { StateBlock } from "./StateBlock";
 
 type DeliveryEventPanelProps = {
   delivery?: Delivery | null;
@@ -24,13 +25,13 @@ export function DeliveryEventPanel({ delivery, events, proofs = [], loading, err
       </div>
 
       {!delivery ? (
-        <div className="emptyList">Selecione uma entrega para ver o historico.</div>
+        <StateBlock title="Selecione uma entrega" description="Escolha um pedido na fila para ver historico e comprovantes." />
       ) : loading ? (
-        <div className="emptyList">Carregando historico...</div>
+        <StateBlock tone="loading" title="Carregando historico" description="Buscando eventos e comprovantes da entrega." />
       ) : error ? (
-        <div className="formFeedback error">{error}</div>
+        <StateBlock tone="error" title="Nao foi possivel carregar o historico" description={error} />
       ) : events.length === 0 && proofs.length === 0 ? (
-        <div className="emptyList">Nenhum evento registrado para esta entrega.</div>
+        <StateBlock title="Sem registros ainda" description="Esta entrega ainda nao possui eventos ou comprovantes para exibir." />
       ) : (
         <>
           <div className="eventTimeline">

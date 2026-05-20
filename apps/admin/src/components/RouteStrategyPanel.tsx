@@ -4,6 +4,7 @@ import { fetchRoutePreview } from "../api";
 import { mapRawStatusLabel } from "../apiMappers";
 import type { RoutePreview, StoreUnit } from "../types";
 import { userFacingError } from "../userMessages";
+import { StateBlock } from "./StateBlock";
 
 type RouteStrategyPanelProps = {
   stores: StoreUnit[];
@@ -102,8 +103,10 @@ export function RouteStrategyPanel({ stores, selectedStoreName, isAdmin = true }
           <span>Inicio: {preview?.start.label ?? "Sem ponto inicial"}</span>
         </div>
 
-        {error ? (
-          <div className="formFeedback error">{error}</div>
+        {loading ? (
+          <StateBlock tone="loading" title="Calculando pre-rota" description="Conferindo entregas aguardando e pontos confirmados." />
+        ) : error ? (
+          <StateBlock tone="error" title="Nao foi possivel montar a pre-rota" description={error} />
         ) : preview?.stops.length ? (
           <div className="previewStops">
             {preview.stops.map((stop) => (
@@ -120,7 +123,10 @@ export function RouteStrategyPanel({ stores, selectedStoreName, isAdmin = true }
             ))}
           </div>
         ) : (
-          <div className="emptyList">Nenhuma entrega com coordenada confirmada para roteirizar.</div>
+          <StateBlock
+            title="Sem entregas roteirizaveis"
+            description="Nenhuma entrega aguardando com coordenada confirmada para montar a pre-rota."
+          />
         )}
       </div>
     </section>

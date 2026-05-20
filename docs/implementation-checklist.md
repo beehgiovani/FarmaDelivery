@@ -91,6 +91,7 @@ Atualizado em 2026-05-20.
 - Painel admin usa nomes unicos por assinatura Realtime do Supabase, evitando erro ao reinscrever callbacks `postgres_changes` depois de remount/reload da UI.
 - Leituras principais do painel admin agora usam o mesmo tratamento de resposta da API, mantendo logout automatico e mensagem do backend quando a sessao expira.
 - Painel admin foi quebrado em telas dedicadas pelo menu lateral, evitando a pagina unica continua e mantendo identidade visual com as cores reais do logo.
+- Painel admin usa `StateBlock` padrao tambem nos estados de historico da entrega, pre-rota e listas vazias de cadastros/alocacoes, alinhando carregando, erro, vazio e selecao pendente.
 - Area administrativa de cadastros foi separada em categorias internas dedicadas para acessos, lojas, horarios e alocacoes, mantendo juntas apenas funcoes que se comunicam diretamente.
 - Fila do admin/loja foi separada em categorias internas dedicadas para despacho, entregas e historico, preservando a navegacao direta do botao de historico da entrega.
 - Tela de rotas foi separada em categorias internas dedicadas para planejamento de pre-rota e acompanhamento de rotas ativas.

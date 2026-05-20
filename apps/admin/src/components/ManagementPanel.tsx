@@ -693,7 +693,7 @@ export function ManagementPanel({
 
             <div className="storeSetupList">
               {managedStores.length === 0 ? (
-                <div className="emptyList">Nenhuma loja cadastrada.</div>
+                <StateBlock title="Nenhuma loja cadastrada" description="Cadastre a primeira unidade para liberar acessos, horarios e operacao." />
               ) : (
                 managedStores.map((store) => (
                   <article className="storeSetupRow" key={store.id ?? store.name}>
@@ -1277,7 +1277,7 @@ function UserGroup({
     <section className="teamGroup">
       <strong>{title}</strong>
       {users.length === 0 ? (
-        <div className="emptyList">Nenhum usuario cadastrado.</div>
+        <StateBlock title="Nenhum usuario cadastrado" description="Os cadastros deste grupo aparecem aqui depois de criados." />
       ) : (
         users.map((user) => (
           <article className="teamRow" key={user.id}>
@@ -1422,7 +1422,7 @@ function AssignmentGroup({
       ) : null}
       <strong>Alocacoes ativas</strong>
       {!hasActiveAssignments ? (
-        <div className="emptyList">Nenhuma alocacao ativa.</div>
+        <StateBlock title="Nenhuma alocacao ativa" description="Coberturas, rodizios e dedicacoes em andamento aparecem aqui." />
       ) : (
         <>
           {activeUserAssignments.map((assignment) => (
@@ -1459,9 +1459,9 @@ function AssignmentGroup({
         <>
           <strong>Historico encerrado</strong>
           {!validAssignmentDateRange ? (
-            <div className="emptyList">Periodo invalido: a data inicial precisa ser anterior ou igual a data final.</div>
+            <StateBlock tone="error" title="Periodo invalido" description="A data inicial precisa ser anterior ou igual a data final." />
           ) : !hasEndedAssignments ? (
-            <div className="emptyList">Nenhuma alocacao encerrada.</div>
+            <StateBlock title="Nenhuma alocacao encerrada" description="O historico encerrado aparece aqui conforme os filtros selecionados." />
           ) : (
             <>
               {endedUserAssignments.map((assignment) => (
