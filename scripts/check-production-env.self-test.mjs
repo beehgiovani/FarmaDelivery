@@ -39,6 +39,21 @@ runScenario("warns when proof storage looks local or ephemeral", {
   expectWarningReason: "local_or_ephemeral_storage_path",
 });
 
+runScenario("warns when DATABASE_URL is not a PostgreSQL URL", {
+  env: { ...baseEnv, DATABASE_URL: "mysql://user:pass@db.example.com/app?sslmode=require" },
+  expectWarningReason: "invalid_database_url_protocol",
+});
+
+runScenario("warns when DATABASE_URL is missing sslmode require", {
+  env: { ...baseEnv, DATABASE_URL: "postgresql://user:pass@db.example.com/app" },
+  expectWarningReason: "missing_sslmode_require",
+});
+
+runScenario("passes a PostgreSQL DATABASE_URL with credentials host and sslmode", {
+  env: { ...baseEnv, DATABASE_URL: "postgresql://user:pass@db.example.com/app?sslmode=require" },
+  expectPassedName: "DATABASE_URL",
+});
+
 runScenario("warns when VAPID is configured without Firebase Web Messaging fields", {
   env: {
     ...baseEnv,
@@ -106,7 +121,7 @@ process.stdout.write(
     {
       mode: "production-env-check-self-test",
       ok: true,
-      scenarios: 11,
+      scenarios: 14,
     },
     null,
     2,

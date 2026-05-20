@@ -17,7 +17,7 @@ const checks = [
   requireValue("API_SESSION_SECRET", { placeholderPattern: /troque_por|local-session-secret/i, minLength: 43 }),
   requireUrl("SUPABASE_URL", { placeholderPattern: /PROJECT_REF/i, allowedProtocols: ["https:"] }),
   requireOneOf(["SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_JWT"], { placeholderPattern: /xxx|secret_xxx|service_role/i }),
-  requireValue("DATABASE_URL", { placeholderPattern: /USER:PASSWORD|POOLER_HOST|localhost/i, warningOnly: true }),
+  requirePostgresDatabaseUrl(),
   requireDeliveryProofStorageDir(),
   requireFirebaseAdminCredential(),
   requireUrl("VITE_API_URL", { placeholderPattern: /localhost|127\.0\.0\.1/i, warningOnly: true, allowedProtocols: ["https:"] }),
@@ -99,6 +99,35 @@ function requireDeliveryProofStorageDir() {
   }
 
   return { status: "pass", name: "DELIVERY_PROOF_STORAGE_DIR" };
+}
+
+function requirePostgresDatabaseUrl() {
+  const name = "DATABASE_URL";
+  const value = env[name]?.trim();
+  const valueCheck = requireValue(name, {
+    placeholderPattern: /USER:PASSWORD|POOLER_HOST|localhost/i,
+    warningOnly: true,
+  });
+  if (valueCheck.status !== "pass") return valueCheck;
+
+  let parsed;
+  try {
+    parsed = new URL(value);
+  } catch {
+    return { status: "warn", name, reason: "invalid_url" };
+  }
+
+  if (!["postgres:", "postgresql:"].includes(parsed.protocol)) {
+    return { status: "warn", name, reason: "invalid_database_url_protocol" };
+  }
+  if (!parsed.hostname || !parsed.username || !parsed.password) {
+    return { status: "warn", name, reason: "missing_database_url_credentials_or_host" };
+  }
+  if (parsed.searchParams.get("sslmode") !== "require") {
+    return { status: "warn", name, reason: "missing_sslmode_require" };
+  }
+
+  return { status: "pass", name };
 }
 
 function requireOneOf(names, options = {}) {
