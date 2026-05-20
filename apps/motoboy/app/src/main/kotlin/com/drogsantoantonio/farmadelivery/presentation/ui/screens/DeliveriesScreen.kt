@@ -22,7 +22,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -302,33 +301,31 @@ private fun DeliverySectionList(
 
 @Composable
 private fun LoadingState(message: String) {
-  Column(
-    verticalArrangement = Arrangement.spacedBy(10.dp),
-    modifier = Modifier.fillMaxWidth(),
-  ) {
-    CircularProgressIndicator()
-    Text(message, style = MaterialTheme.typography.bodyMedium)
-  }
+  OperationalStateLayout(
+    title = "Carregando entregas",
+    description = message,
+    tone = OperationalStateTone.Loading,
+  )
 }
 
 @Composable
 private fun ErrorState(message: String, onRetry: () -> Unit) {
-  Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-    Text(message, color = MaterialTheme.colorScheme.error)
-    OutlinedButton(onClick = onRetry) {
-      Text("Tentar novamente")
-    }
-  }
+  OperationalStateLayout(
+    title = "Nao foi possivel carregar entregas",
+    description = message,
+    tone = OperationalStateTone.Error,
+    actionLabel = "Tentar novamente",
+    onAction = onRetry,
+  )
 }
 
 @Composable
 private fun EmptyState(message: String, onRefresh: () -> Unit) {
-  Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-    Text(message, style = MaterialTheme.typography.bodyMedium)
-    OutlinedButton(onClick = onRefresh) {
-      Text("Atualizar")
-    }
-  }
+  OperationalStateLayout(
+    title = message,
+    actionLabel = "Atualizar",
+    onAction = onRefresh,
+  )
 }
 
 @Composable
@@ -689,14 +686,24 @@ private fun DeliveryHistory(
   Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
     Text("Historico da entrega", style = MaterialTheme.typography.titleSmall)
     when {
-      loading -> Text("Carregando historico...", style = MaterialTheme.typography.bodySmall)
+      loading -> OperationalStateLayout(
+        title = "Carregando historico",
+        description = "Buscando eventos da entrega.",
+        tone = OperationalStateTone.Loading,
+      )
       error != null -> {
-        Text(error, color = MaterialTheme.colorScheme.error)
-        OutlinedButton(onClick = onRetry) {
-          Text("Tentar novamente")
-        }
+        OperationalStateLayout(
+          title = "Nao foi possivel carregar o historico",
+          description = error,
+          tone = OperationalStateTone.Error,
+          actionLabel = "Tentar novamente",
+          onAction = onRetry,
+        )
       }
-      events.isEmpty() -> Text("Nenhum evento registrado.", style = MaterialTheme.typography.bodySmall)
+      events.isEmpty() -> OperationalStateLayout(
+        title = "Sem registros ainda",
+        description = "Nenhum evento registrado para esta entrega.",
+      )
       else -> events.forEach { event ->
         Column {
           Text(deliveryEventTypeLabel(event.type), style = MaterialTheme.typography.bodyMedium)

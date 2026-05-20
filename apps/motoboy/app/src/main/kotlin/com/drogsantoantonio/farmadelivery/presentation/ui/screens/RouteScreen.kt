@@ -15,7 +15,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -123,33 +122,31 @@ fun RouteScreen(
 
 @Composable
 private fun RouteLoadingState(message: String) {
-  Column(
-    verticalArrangement = Arrangement.spacedBy(10.dp),
-    modifier = Modifier.fillMaxWidth(),
-  ) {
-    CircularProgressIndicator()
-    Text(message, style = MaterialTheme.typography.bodyMedium)
-  }
+  OperationalStateLayout(
+    title = "Carregando rota",
+    description = message,
+    tone = OperationalStateTone.Loading,
+  )
 }
 
 @Composable
 private fun RouteErrorState(message: String, onRetry: () -> Unit) {
-  Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-    Text(message, color = MaterialTheme.colorScheme.error)
-    OutlinedButton(onClick = onRetry) {
-      Text("Tentar novamente")
-    }
-  }
+  OperationalStateLayout(
+    title = "Nao foi possivel carregar a rota",
+    description = message,
+    tone = OperationalStateTone.Error,
+    actionLabel = "Tentar novamente",
+    onAction = onRetry,
+  )
 }
 
 @Composable
 private fun RouteEmptyState(message: String, onRefresh: () -> Unit) {
-  Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-    Text(message, style = MaterialTheme.typography.bodyMedium)
-    OutlinedButton(onClick = onRefresh) {
-      Text("Atualizar")
-    }
-  }
+  OperationalStateLayout(
+    title = message,
+    actionLabel = "Atualizar",
+    onAction = onRefresh,
+  )
 }
 
 @Composable
