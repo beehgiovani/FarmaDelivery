@@ -1,6 +1,6 @@
 # FarmaDelivery - checklist de implementacao
 
-Atualizado em 2026-05-20.
+Atualizado em 2026-05-21.
 
 ## Feito
 
@@ -385,6 +385,7 @@ Atualizado em 2026-05-20.
 - Relatorios ganharam filtro por motoboy com autocomplete no admin, exportacao CSV registrando `filtro_motoboy` e API aceitando o parametro para manter a visao local e server-side alinhadas.
 - Exportacao server-side de relatorios agora busca uma linha sentinela alem do limite escolhido, marcando `limite_atingido` apenas quando realmente houver mais entregas fora do CSV.
 - Runbook de producao criado em `docs/production-runbook.md`, reunindo preflight, conferencia Supabase, smoke test Android, smoke test PWA iOS e criterio de publicacao sem expor dados sensiveis.
+- Runbook de producao reforcado com criterio de aceite em aparelho real para login, estados de tela, disponibilidade/GPS, acoes de entrega, dados de pagamento, push, comprovante e logout.
 - `.dockerignore` alinhado aos cuidados de versionamento para manter fora do contexto Docker artefatos Android locais, `local.properties`, `.kotlin`, `.idea`, APK/AAB e temporarios.
 - Checagem `npm run repo:sensitive:check` criada e incluida no `npm test` raiz para falhar se arquivos sensiveis ou artefatos locais entrarem no versionamento.
 - Checagem `npm run repo:sensitive:check` tambem varre arquivos texto versionados para bloquear Google API key e blocos reais de chave privada hardcoded antes de commit/push.

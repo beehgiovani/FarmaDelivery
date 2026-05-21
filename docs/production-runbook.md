@@ -85,6 +85,18 @@ cd apps\motoboy
 10. Confirmar recebimento de FCM no canal `deliveries`.
 11. Fazer logout e confirmar parada do envio de localizacao.
 
+Durante o teste real, registre apenas evidencias operacionais sem dados sensiveis: versao/commit testado, aparelho ou emulador usado, horario aproximado, perfil usado, praca escolhida, resultado de GPS, notificacao, fluxo de entrega, comprovante e logout. Prints podem ser usados desde que nao mostrem telefone completo, endereco completo, token, chave ou credencial.
+
+O app so deve ser considerado pronto para campo quando estes pontos passarem no aparelho real:
+
+1. Login, sessao expirada e logout sem travar em tela branca.
+2. Estados de carregando, vazio, erro com tentar novamente e lista preenchida legiveis.
+3. Disponibilidade e GPS automatico com textos claros e notificacao persistente quando aplicavel.
+4. Aceite, coleta, saida em rota, problema e conclusao refletidos no painel admin.
+5. Valor, pagamento, troco/conta, telefone, endereco, observacoes e numero diario visiveis no card antes da conclusao.
+6. Push FCM chegando sem expor token em tela, CSV, log ou documentacao.
+7. Foto de comprovante opcional comprimida e historico auditavel abrindo no painel.
+
 ## Smoke Test PWA iOS
 
 Use este bloco apenas com HTTPS e Firebase Web Push configurado.
