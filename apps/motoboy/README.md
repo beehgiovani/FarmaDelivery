@@ -100,6 +100,8 @@ Esse comando valida o PWA motoboy, roda lint/testes do Android, monta o APK debu
 apps\motoboy\app\build\outputs\apk\debug\app-debug.apk
 ```
 
+Ele tambem avisa se o Android esta usando a URL padrao do emulador (`10.0.2.2`) ou uma URL customizada. Para aparelho fisico, use uma API publicada em HTTPS ou um host da rede local acessivel pelo celular.
+
 Para rodar apenas o app Android manualmente, entre na pasta do app:
 
 ```powershell

@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 
 const args = parseArgs(process.argv.slice(2));
@@ -17,6 +18,8 @@ if (args.list) {
   process.stdout.write(`${steps.map((step, index) => `${index + 1}. ${step.name}`).join("\n")}\n`);
   process.exit(0);
 }
+
+process.stdout.write(`${androidApiConfigMessage()}\n`);
 
 for (const step of steps) {
   process.stdout.write(`\n== ${step.name} ==\n`);
@@ -60,4 +63,40 @@ function parseArgs(rawArgs) {
     throw new Error(`Argumento desconhecido: ${arg}`);
   }
   return { list };
+}
+
+function androidApiConfigMessage() {
+  const localPropertiesPath = join(androidDir, "local.properties");
+  if (!existsSync(localPropertiesPath)) {
+    return "Android API: sem local.properties; o app usara o padrao do emulador. Para aparelho fisico, configure uma URL acessivel pelo celular.";
+  }
+
+  const content = readFileSync(localPropertiesPath, "utf8");
+  const apiUrl = content
+    .split(/\r?\n/)
+    .find((line) => line.trim().startsWith("farmadelivery.apiUrl="))
+    ?.split("=")
+    .slice(1)
+    .join("=")
+    .trim();
+
+  if (!apiUrl) {
+    return "Android API: farmadelivery.apiUrl ausente; o app usara o padrao do emulador. Para aparelho fisico, configure uma URL acessivel pelo celular.";
+  }
+
+  try {
+    const parsed = new URL(apiUrl);
+    if (parsed.hostname === "10.0.2.2") {
+      return "Android API: configurada para o host do emulador Android. Para aparelho fisico, troque por HTTPS publicado ou host da rede local.";
+    }
+    if (["localhost", "127.0.0.1", "::1"].includes(parsed.hostname)) {
+      return "Android API: configurada para loopback local, que nao atende aparelho fisico. Use 10.0.2.2 no emulador ou uma URL acessivel pelo celular.";
+    }
+    if (parsed.protocol !== "https:") {
+      return "Android API: URL customizada sem HTTPS. Serve para rede local controlada; para producao, prefira HTTPS publicado.";
+    }
+    return "Android API: URL customizada com HTTPS configurada.";
+  } catch {
+    return "Android API: farmadelivery.apiUrl nao parece uma URL valida; revise local.properties antes do teste real.";
+  }
 }
