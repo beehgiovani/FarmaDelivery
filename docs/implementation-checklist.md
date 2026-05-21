@@ -385,7 +385,7 @@ Atualizado em 2026-05-21.
 - `npm run mobile:local-check` avisa se o Android esta usando URL de emulador, loopback, rede local ou HTTPS, evitando instalar APK apontado para destino errado no teste real.
 - `npm run mobile:local-check -- --api-config` permite conferir apenas o alvo da API Android sem rodar builds/testes.
 - Autoteste `npm run mobile:local-check:self-test` criado e incluido no `npm test` raiz para validar ajuda, listagem e rejeicao de argumento invalido do runner mobile sem executar Gradle/build.
-- README do app Android alinhado ao fluxo `npm run mobile:local-check`, incluindo caminho do APK debug para instalacao no aparelho/emulador.
+- README do app Android alinhado ao fluxo `npm run mobile:local-check`, incluindo caminho do APK debug e conferencia isolada de alvo da API para instalacao no aparelho/emulador.
 - README do PWA motoboy e runbook de producao alinhados ao fluxo `npm run mobile:local-check` antes do smoke test iOS/Web Push.
 - Validacao local pre-deploy executada com `npm run db:rls:check`, `npm run env:production:check:self-test`, `npm test` e `npm run build`; o preflight completo com `file=env/*.env` reais permanece para antes da publicacao.
 - Fallback Supabase REST dos relatorios agora aplica o periodo operacional no PostgREST para `createdAt`, `acceptedAt`, `collectedAt`, `deliveredAt` e `canceledAt`, mantendo exportacao/summary mais alinhados ao caminho Prisma quando o banco direto indisponibilizar.
