@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Clock3 } from "lucide-react";
 import { deliveryProofAuthHeaders, deliveryProofFileUrl } from "../api";
 import { mapRawDeliveryEventTypeLabel } from "../apiMappers";
@@ -14,6 +15,12 @@ type DeliveryEventPanelProps = {
 
 /** Mostra historico auditavel e comprovantes da entrega selecionada no painel. */
 export function DeliveryEventPanel({ delivery, events, proofs = [], loading, error }: DeliveryEventPanelProps) {
+  const [proofOpenError, setProofOpenError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setProofOpenError(null);
+  }, [delivery?.id]);
+
   return (
     <section className="eventPanel" aria-label="Historico da entrega">
       <div className="sectionHeader">
@@ -53,14 +60,16 @@ export function DeliveryEventPanel({ delivery, events, proofs = [], loading, err
           {proofs.length > 0 ? (
             <div className="proofList">
               <strong>Comprovantes</strong>
+              {proofOpenError ? <div className="formFeedback error">{proofOpenError}</div> : null}
               {proofs.map((proof) => (
                 <button
                   className="inlineHistoryButton"
                   key={proof.id}
                   type="button"
                   onClick={() => {
+                    setProofOpenError(null);
                     void openDeliveryProof(proof).catch(() => {
-                      window.alert("Nao foi possivel abrir o comprovante.");
+                      setProofOpenError("Nao foi possivel abrir o comprovante agora.");
                     });
                   }}
                 >
