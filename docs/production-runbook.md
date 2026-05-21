@@ -33,17 +33,19 @@ npm run preflight:production -- --list
 
 O comando para no primeiro erro e executa:
 
-1. Checagem segura de ambiente.
-2. Autoteste da checagem de arquivos sensiveis.
-3. Checagem de arquivos sensiveis rastreados pelo Git.
-4. Autoteste da auditoria estatica de RLS.
-5. Auditoria estatica de RLS do SQL canonico.
-6. Testes automatizados dos workspaces.
-7. Build completo.
+1. Autoteste do gerador de `API_SESSION_SECRET`.
+2. Checagem segura de ambiente.
+3. Autoteste da checagem de arquivos sensiveis.
+4. Checagem de arquivos sensiveis rastreados pelo Git.
+5. Autoteste da auditoria estatica de RLS.
+6. Auditoria estatica de RLS do SQL canonico.
+7. Testes automatizados dos workspaces.
+8. Build completo.
 
 Se precisar isolar uma falha:
 
 ```powershell
+npm run secret:session:self-test
 npm run env:production:check -- file=env/api.env file=env/admin.env
 npm run repo:sensitive:check:self-test
 npm run repo:sensitive:check
