@@ -9,7 +9,7 @@
   ],
   "scripts": {
     "build": "npm run build -w apps/admin && npm run build -w apps/api && npm run build -w apps/motoboy-pwa",
-    "test": "npm run secret:session:self-test && npm run repo:sensitive:check:self-test && npm run repo:sensitive:check && npm run env:production:check:self-test && npm run db:rls:check:self-test && npm run preflight:production:self-test && npm run test -w apps/admin && npm run test -w apps/api && npm run test -w apps/motoboy-pwa",
+    "test": "npm run secret:session:self-test && npm run repo:sensitive:check:self-test && npm run repo:sensitive:check && npm run env:production:check:self-test && npm run db:rls:check:self-test && npm run preflight:production:self-test && npm run mobile:local-check:self-test && npm run test -w apps/admin && npm run test -w apps/api && npm run test -w apps/motoboy-pwa",
     "admin:reset-password": "npm run admin:reset-password -w apps/api --",
     "lgpd:retention": "npm run lgpd:retention -w apps/api --",
     "db:schema:snapshot": "node scripts/snapshot-db-schema.mjs",
@@ -22,6 +22,7 @@
     "preflight:production": "node scripts/run-production-preflight.mjs",
     "preflight:production:self-test": "node scripts/run-production-preflight.self-test.mjs",
     "mobile:local-check": "node scripts/run-mobile-local-check.mjs",
+    "mobile:local-check:self-test": "node scripts/run-mobile-local-check.self-test.mjs",
     "secret:session": "node scripts/generate-session-secret.mjs",
     "secret:session:self-test": "node scripts/generate-session-secret.self-test.mjs",
     "deploy:admin": "npm run build -w apps/admin && firebase deploy --only hosting:farmadelivery-admin",

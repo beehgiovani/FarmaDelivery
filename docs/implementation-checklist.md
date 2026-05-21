@@ -381,6 +381,7 @@ Atualizado em 2026-05-21.
 - Autoteste `npm run preflight:production:self-test` criado e incluido no `npm test` raiz para validar ajuda, listagem e rejeicao de argumento invalido do runner sem rodar o preflight completo.
 - Validacao local de prontidao mobile executada com `:app:testDebugUnitTest`, `:app:assembleDebug`, `npm run test -w apps/motoboy-pwa` e `npm run build -w apps/motoboy-pwa`, mantendo pendentes apenas os smoke tests em aparelho/iOS reais.
 - Comando `npm run mobile:local-check` criado para validar PWA motoboy e app Android em sequencia antes do teste real em aparelho/emulador.
+- Autoteste `npm run mobile:local-check:self-test` criado e incluido no `npm test` raiz para validar ajuda, listagem e rejeicao de argumento invalido do runner mobile sem executar Gradle/build.
 - Validacao local pre-deploy executada com `npm run db:rls:check`, `npm run env:production:check:self-test`, `npm test` e `npm run build`; o preflight completo com `file=env/*.env` reais permanece para antes da publicacao.
 - Fallback Supabase REST dos relatorios agora aplica o periodo operacional no PostgREST para `createdAt`, `acceptedAt`, `collectedAt`, `deliveredAt` e `canceledAt`, mantendo exportacao/summary mais alinhados ao caminho Prisma quando o banco direto indisponibilizar.
 - Relatorios ganharam filtro por motoboy com autocomplete no admin, exportacao CSV registrando `filtro_motoboy` e API aceitando o parametro para manter a visao local e server-side alinhadas.
