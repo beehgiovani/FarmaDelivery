@@ -88,7 +88,19 @@ Esse arquivo e sensivel ao ambiente e nao deve ser versionado.
 
 ## Build local
 
-Entrar na pasta do app Android:
+Na raiz do monorepo, rode a conferencia local completa dos apps de campo:
+
+```powershell
+npm run mobile:local-check
+```
+
+Esse comando valida o PWA motoboy, roda lint/testes do Android, monta o APK debug e mostra o caminho do arquivo ao final:
+
+```text
+apps\motoboy\app\build\outputs\apk\debug\app-debug.apk
+```
+
+Para rodar apenas o app Android manualmente, entre na pasta do app:
 
 ```powershell
 cd apps\motoboy
@@ -118,7 +130,7 @@ Use este roteiro quando houver API publicada ou API local acessivel pelo emulado
 
 1. Configurar `farmadelivery.apiUrl` em `local.properties`; no emulador use `http://10.0.2.2:3333`, em aparelho fisico use uma URL HTTPS publicada ou um host da rede local acessivel pelo celular.
 2. Conferir se `app/google-services.json` existe localmente para validar FCM; o arquivo nao deve ser versionado.
-3. Rodar `.\gradlew.bat :app:assembleDebug` e instalar o APK no emulador/aparelho.
+3. Rodar `npm run mobile:local-check` na raiz do monorepo e instalar o APK indicado no final do comando.
 4. Abrir o app, fazer login com um usuario `MOTOBOY` e confirmar que usuarios de loja ou balconista/caixa nao entram no fluxo de campo.
 5. Escolher a praca de atendimento e conferir se a lista de entregas livres muda conforme a praca selecionada.
 6. Ativar disponibilidade e permitir notificacoes no Android 13+ quando o sistema solicitar.
