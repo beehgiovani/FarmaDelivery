@@ -379,6 +379,9 @@ Atualizado em 2026-05-21.
 - Preflight de producao aceita `npm run preflight:production -- --list` para listar a ordem das etapas sem executar ambiente, RLS, testes ou build.
 - Preflight de producao executa explicitamente o autoteste do gerador de `API_SESSION_SECRET` antes da checagem de ambiente, falhando cedo se a ferramenta de segredo quebrar.
 - Autoteste `npm run preflight:production:self-test` criado e incluido no `npm test` raiz para validar ajuda, listagem e rejeicao de argumento invalido do runner sem rodar o preflight completo.
+- Preflight de producao ajustado para executar `npm.cmd` corretamente no Windows sem `shell: true`, evitando quebra quando o Node esta em `C:\Program Files`.
+- Autoteste do preflight ganhou `--probe-runner` para validar a execucao real de Node e npm antes de confiar no runner completo.
+- Preflight local com `env/api.env` e `env/admin.env` reais executado com sucesso apos configurar `API_SESSION_SECRET` local forte e VAPID Web Push publica no ambiente ignorado pelo Git; restam apenas warnings dependentes do deploy real.
 - Validacao local de prontidao mobile executada com `:app:testDebugUnitTest`, `:app:assembleDebug`, `npm run test -w apps/motoboy-pwa` e `npm run build -w apps/motoboy-pwa`, mantendo pendentes apenas os smoke tests em aparelho/iOS reais.
 - Comando `npm run mobile:local-check` criado para validar PWA motoboy e app Android em sequencia antes do teste real em aparelho/emulador.
 - `npm run mobile:local-check` informa o caminho do APK debug ao final, facilitando instalacao no aparelho/emulador para smoke test real.

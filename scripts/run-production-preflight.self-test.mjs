@@ -22,12 +22,19 @@ assert.match(list.stdout, /Supabase RLS static check self-test/);
 assert.match(list.stdout, /production build/);
 assert.equal(list.stdout.includes("== production env check =="), false, "list should not execute preflight steps");
 
+const probeRunner = spawnPreflight(["--probe-runner"]);
+assert.equal(probeRunner.status, 0, `runner probe should exit cleanly\n${probeRunner.stdout}\n${probeRunner.stderr}`);
+assert.match(probeRunner.stdout, /node command runner probe/);
+assert.match(probeRunner.stdout, /node-ok/);
+assert.match(probeRunner.stdout, /npm command runner probe/);
+assert.doesNotMatch(probeRunner.stdout, /production env check/);
+
 process.stdout.write(
   `${JSON.stringify(
     {
       mode: "production-preflight-self-test",
       ok: true,
-      scenarios: 3,
+      scenarios: 4,
     },
     null,
     2,
