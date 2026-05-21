@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 
 const args = parseArgs(process.argv.slice(2));
 const steps = [
+  { name: "session secret generator self-test", command: "npm", args: ["run", "secret:session:self-test"] },
   {
     name: "production env check",
     command: process.execPath,

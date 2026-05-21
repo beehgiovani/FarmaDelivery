@@ -374,6 +374,7 @@ Atualizado em 2026-05-20.
 - Autoteste do precheck de producao tambem cobre `FIREBASE_SERVICE_ACCOUNT_BASE64` malformado, distinguindo base64 invalido de JSON invalido.
 - Comando `npm run preflight:production -- file=env/api.env file=env/admin.env` criado para orquestrar checagem de ambiente, RLS, testes e build antes do deploy.
 - Preflight de producao aceita `npm run preflight:production -- --list` para listar a ordem das etapas sem executar ambiente, RLS, testes ou build.
+- Preflight de producao executa explicitamente o autoteste do gerador de `API_SESSION_SECRET` antes da checagem de ambiente, falhando cedo se a ferramenta de segredo quebrar.
 - Autoteste `npm run preflight:production:self-test` criado e incluido no `npm test` raiz para validar ajuda, listagem e rejeicao de argumento invalido do runner sem rodar o preflight completo.
 - Validacao local de prontidao mobile executada com `:app:testDebugUnitTest`, `:app:assembleDebug`, `npm run test -w apps/motoboy-pwa` e `npm run build -w apps/motoboy-pwa`, mantendo pendentes apenas os smoke tests em aparelho/iOS reais.
 - Validacao local pre-deploy executada com `npm run db:rls:check`, `npm run env:production:check:self-test`, `npm test` e `npm run build`; o preflight completo com `file=env/*.env` reais permanece para antes da publicacao.
