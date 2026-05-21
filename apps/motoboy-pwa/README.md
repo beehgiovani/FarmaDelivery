@@ -66,6 +66,14 @@ O PWA so tenta registrar Web Push quando a VAPID key e a configuracao Firebase W
 
 ## Comandos
 
+Validacao local completa dos apps de campo, a partir da raiz do monorepo:
+
+```bash
+npm run mobile:local-check
+```
+
+Esse comando roda os testes/build do PWA e tambem valida o app Android antes do smoke test real.
+
 Rodar em desenvolvimento:
 
 ```bash
@@ -96,7 +104,7 @@ Use este roteiro somente com deploy HTTPS e Firebase Web Push configurado:
 
 1. Configurar no ambiente do PWA as variaveis Firebase Web e `VITE_FIREBASE_WEB_PUSH_VAPID_KEY`; nao colocar valores reais em `src/`, `public/` ou README.
 2. Configurar na API uma credencial Firebase Admin para FCM HTTP v1; a VAPID key publica do PWA nao envia push server-side sozinha.
-3. Rodar `npm run build -w apps/motoboy-pwa` e publicar em HTTPS.
+3. Rodar `npm run mobile:local-check` na raiz do monorepo e publicar o build do PWA em HTTPS.
 4. Abrir a URL no Safari do iPhone e adicionar o PWA pela opcao de compartilhar para a Tela de Inicio.
 5. Abrir o app instalado pela Tela de Inicio, fazer login com usuario `MOTOBOY` e escolher a praca de atendimento.
 6. Permitir notificacoes quando solicitado pelo iOS e conferir no backend se o token do dispositivo foi registrado sem ser exibido na tela ou em logs.

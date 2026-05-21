@@ -117,7 +117,7 @@ O app so deve ser considerado pronto para campo quando estes pontos passarem no 
 
 Use este bloco apenas com HTTPS e Firebase Web Push configurado.
 
-1. Publicar o PWA em HTTPS com as variaveis Firebase Web e VAPID configuradas no ambiente.
+1. Rodar `npm run mobile:local-check` e publicar o PWA em HTTPS com as variaveis Firebase Web e VAPID configuradas no ambiente.
 2. Abrir a URL no Safari do iPhone e adicionar pela Tela de Inicio.
 3. Abrir o app instalado, entrar com usuario `MOTOBOY` e escolher praca de atendimento.
 4. Permitir notificacoes e confirmar no backend que o token foi registrado sem aparecer em tela, log ou CSV.
