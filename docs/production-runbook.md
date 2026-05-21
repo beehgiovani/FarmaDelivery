@@ -84,6 +84,8 @@ Esse comando executa testes e build do PWA motoboy, depois `lintDebug`, `testDeb
 3. Confirmar que Realtime esta habilitado apenas para as tabelas esperadas pelo painel, PWA e apps de campo.
 4. Validar login admin, login operacional da loja, autocomplete de balconista/caixa e login de motoboy apos a aplicacao do SQL.
 
+Use `docs/operational-smoke-test-checklist.md` para registrar o teste real do painel admin, login de loja, entregas, comanda, relatorios e notificacoes sem expor dados sensiveis.
+
 ## Smoke Test Android
 
 Use este bloco com emulador ou aparelho que consiga acessar a API.

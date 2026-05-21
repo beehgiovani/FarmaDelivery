@@ -388,6 +388,7 @@ Atualizado em 2026-05-21.
 - README do app Android alinhado ao fluxo `npm run mobile:local-check`, incluindo caminho do APK debug e conferencia isolada de alvo da API para instalacao no aparelho/emulador.
 - README do PWA motoboy e runbook de producao alinhados ao fluxo `npm run mobile:local-check` antes do smoke test iOS/Web Push.
 - Checklist preenchivel `docs/mobile-smoke-test-checklist.md` criado para registrar smoke test Android/PWA iOS sem expor dados sensiveis.
+- Checklist preenchivel `docs/operational-smoke-test-checklist.md` criado para registrar smoke test de admin, login de loja, entregas, comanda, relatorios e notificacoes sem expor dados sensiveis.
 - Validacao local pre-deploy executada com `npm run db:rls:check`, `npm run env:production:check:self-test`, `npm test` e `npm run build`; o preflight completo com `file=env/*.env` reais permanece para antes da publicacao.
 - Fallback Supabase REST dos relatorios agora aplica o periodo operacional no PostgREST para `createdAt`, `acceptedAt`, `collectedAt`, `deliveredAt` e `canceledAt`, mantendo exportacao/summary mais alinhados ao caminho Prisma quando o banco direto indisponibilizar.
 - Relatorios ganharam filtro por motoboy com autocomplete no admin, exportacao CSV registrando `filtro_motoboy` e API aceitando o parametro para manter a visao local e server-side alinhadas.
