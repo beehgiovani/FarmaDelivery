@@ -69,6 +69,12 @@ Para conferir a ordem sem executar:
 npm run mobile:local-check -- --list
 ```
 
+Para conferir apenas o alvo da API do Android sem rodar build/testes:
+
+```powershell
+npm run mobile:local-check -- --api-config
+```
+
 Esse comando executa testes e build do PWA motoboy, depois `lintDebug`, `testDebugUnitTest` e `assembleDebug` do app Android. Ele tambem avisa se o Android esta apontando para o host do emulador, loopback local, rede local ou HTTPS. Ao terminar, mostra o caminho do APK debug gerado para instalacao no aparelho/emulador. Ele nao substitui o smoke test real em aparelho, mas evita levar para campo um APK/PWA que ja falha localmente.
 
 ## Supabase

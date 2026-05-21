@@ -22,12 +22,18 @@ assert.match(list.stdout, /Android motoboy unit tests/);
 assert.match(list.stdout, /Android motoboy debug APK/);
 assert.equal(list.stdout.includes("== PWA motoboy tests =="), false, "list should not execute mobile checks");
 
+const apiConfig = spawnMobileCheck(["--api-config"]);
+assert.equal(apiConfig.status, 0, `api config should exit cleanly\n${apiConfig.stdout}\n${apiConfig.stderr}`);
+assert.match(apiConfig.stdout, /^Android API:/);
+assert.equal(apiConfig.stdout.includes("== PWA motoboy tests =="), false, "api config should not execute mobile checks");
+assert.doesNotMatch(apiConfig.stdout, /API_SESSION_SECRET|SUPABASE_SECRET_KEY|FIREBASE/i);
+
 process.stdout.write(
   `${JSON.stringify(
     {
       mode: "mobile-local-check-self-test",
       ok: true,
-      scenarios: 3,
+      scenarios: 4,
     },
     null,
     2,

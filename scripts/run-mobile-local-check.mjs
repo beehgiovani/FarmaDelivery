@@ -19,7 +19,12 @@ if (args.list) {
   process.exit(0);
 }
 
-process.stdout.write(`${androidApiConfigMessage()}\n`);
+const apiConfigMessage = androidApiConfigMessage();
+process.stdout.write(`${apiConfigMessage}\n`);
+
+if (args.apiConfigOnly) {
+  process.exit(0);
+}
 
 for (const step of steps) {
   process.stdout.write(`\n== ${step.name} ==\n`);
@@ -48,11 +53,13 @@ if (process.exitCode === undefined) {
 
 function parseArgs(rawArgs) {
   let list = false;
+  let apiConfigOnly = false;
   for (const arg of rawArgs) {
     if (arg === "--help" || arg === "-h") {
       process.stdout.write(
         "Uso: npm run mobile:local-check\n" +
-          "Ou: npm run mobile:local-check -- --list\n",
+          "Ou: npm run mobile:local-check -- --list\n" +
+          "Ou: npm run mobile:local-check -- --api-config\n",
       );
       process.exit(0);
     }
@@ -60,9 +67,13 @@ function parseArgs(rawArgs) {
       list = true;
       continue;
     }
+    if (arg === "--api-config") {
+      apiConfigOnly = true;
+      continue;
+    }
     throw new Error(`Argumento desconhecido: ${arg}`);
   }
-  return { list };
+  return { list, apiConfigOnly };
 }
 
 function androidApiConfigMessage() {

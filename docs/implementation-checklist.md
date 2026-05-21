@@ -383,6 +383,7 @@ Atualizado em 2026-05-21.
 - Comando `npm run mobile:local-check` criado para validar PWA motoboy e app Android em sequencia antes do teste real em aparelho/emulador.
 - `npm run mobile:local-check` informa o caminho do APK debug ao final, facilitando instalacao no aparelho/emulador para smoke test real.
 - `npm run mobile:local-check` avisa se o Android esta usando URL de emulador, loopback, rede local ou HTTPS, evitando instalar APK apontado para destino errado no teste real.
+- `npm run mobile:local-check -- --api-config` permite conferir apenas o alvo da API Android sem rodar builds/testes.
 - Autoteste `npm run mobile:local-check:self-test` criado e incluido no `npm test` raiz para validar ajuda, listagem e rejeicao de argumento invalido do runner mobile sem executar Gradle/build.
 - README do app Android alinhado ao fluxo `npm run mobile:local-check`, incluindo caminho do APK debug para instalacao no aparelho/emulador.
 - README do PWA motoboy e runbook de producao alinhados ao fluxo `npm run mobile:local-check` antes do smoke test iOS/Web Push.
