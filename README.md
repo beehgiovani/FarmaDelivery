@@ -153,6 +153,18 @@ Autotestar a interface do runner de preflight:
 npm run preflight:production:self-test
 ```
 
+Validar localmente os apps de campo antes do teste real:
+
+```bash
+npm run mobile:local-check
+```
+
+Conferir apenas o alvo da API do Android sem rodar build/testes:
+
+```bash
+npm run mobile:local-check -- --api-config
+```
+
 Gerar um `API_SESSION_SECRET` seguro para ambiente local/deploy:
 
 ```bash
@@ -191,6 +203,9 @@ Antes de publicar uma versao, confira nesta ordem:
 - `docs/architecture.md`: arquitetura atual do monorepo.
 - `docs/supabase.md`: setup Supabase e uso do SQL canonico.
 - `docs/production-runbook.md`: roteiro final de preflight, publicacao e smoke tests.
+- `docs/production-readiness.md`: resumo do que esta pronto localmente e do que ainda depende de ambiente real.
+- `docs/operational-smoke-test-checklist.md`: checklist preenchivel para teste real do admin, loja, entregas, comanda e relatorios.
+- `docs/mobile-smoke-test-checklist.md`: checklist preenchivel para teste real Android/PWA iOS.
 - `docs/implementation-checklist.md`: checklist de implementacao e validacao.
 - `docs/operational-contracts.md`: contratos entre API, admin, Android e PWA.
 - `docs/lgpd.md`: privacidade, retencao e cuidados com dados pessoais.
