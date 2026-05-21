@@ -21,6 +21,7 @@
     "env:production:check:self-test": "node scripts/check-production-env.self-test.mjs",
     "preflight:production": "node scripts/run-production-preflight.mjs",
     "preflight:production:self-test": "node scripts/run-production-preflight.self-test.mjs",
+    "mobile:local-check": "node scripts/run-mobile-local-check.mjs",
     "secret:session": "node scripts/generate-session-secret.mjs",
     "secret:session:self-test": "node scripts/generate-session-secret.self-test.mjs",
     "deploy:admin": "npm run build -w apps/admin && firebase deploy --only hosting:farmadelivery-admin",

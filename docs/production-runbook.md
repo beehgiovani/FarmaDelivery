@@ -55,6 +55,22 @@ npm test
 npm run build
 ```
 
+## Preflight Mobile Local
+
+Antes de instalar em aparelho ou emulador, rode a conferencia local dos apps de campo:
+
+```powershell
+npm run mobile:local-check
+```
+
+Para conferir a ordem sem executar:
+
+```powershell
+npm run mobile:local-check -- --list
+```
+
+Esse comando executa testes e build do PWA motoboy, depois `lintDebug`, `testDebugUnitTest` e `assembleDebug` do app Android. Ele nao substitui o smoke test real em aparelho, mas evita levar para campo um APK/PWA que ja falha localmente.
+
 ## Supabase
 
 1. Revisar manualmente no Supabase SQL Editor se o banco aplicado esta alinhado a `database/schema-full.sql`.
