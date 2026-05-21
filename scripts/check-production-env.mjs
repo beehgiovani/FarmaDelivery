@@ -173,18 +173,17 @@ function requireFirebaseAdminCredential() {
 
   const base64 = env.FIREBASE_SERVICE_ACCOUNT_BASE64?.trim();
   if (base64) {
-    try {
-      return validateFirebaseServiceAccountJson(
-        Buffer.from(base64, "base64").toString("utf8"),
-        "FIREBASE_SERVICE_ACCOUNT_BASE64",
-      );
-    } catch {
+    if (!looksLikeBase64(base64)) {
       return {
         status: "warn",
         name: "Firebase Admin credentials",
         reason: "invalid_base64_service_account",
       };
     }
+    return validateFirebaseServiceAccountJson(
+      Buffer.from(base64, "base64").toString("utf8"),
+      "FIREBASE_SERVICE_ACCOUNT_BASE64",
+    );
   }
 
   const googleCredentialsPath = env.GOOGLE_APPLICATION_CREDENTIALS?.trim();
@@ -270,6 +269,11 @@ function looksLikeFirebaseClientEmail(value) {
 
 function looksLikeFirebasePrivateKey(value) {
   return typeof value === "string" && value.includes("BEGIN PRIVATE KEY") && value.includes("END PRIVATE KEY");
+}
+
+function looksLikeBase64(value) {
+  const normalized = value.replace(/\s/g, "");
+  return normalized.length > 0 && normalized.length % 4 === 0 && /^[A-Za-z0-9+/]+={0,2}$/.test(normalized);
 }
 
 function requireFirebaseWebPushConfig() {

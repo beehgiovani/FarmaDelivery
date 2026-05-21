@@ -107,6 +107,14 @@ runScenario("warns on invalid Firebase Admin JSON", {
   expectWarningReason: "invalid_json_FIREBASE_SERVICE_ACCOUNT_JSON",
 });
 
+runScenario("warns on invalid Firebase Admin base64", {
+  env: {
+    ...baseEnv,
+    FIREBASE_SERVICE_ACCOUNT_BASE64: "not-valid-base64!",
+  },
+  expectWarningReason: "invalid_base64_service_account",
+});
+
 runScenario("passes Firebase Admin JSON with required service account fields", {
   env: {
     ...baseEnv,
@@ -146,7 +154,7 @@ process.stdout.write(
     {
       mode: "production-env-check-self-test",
       ok: true,
-      scenarios: 18,
+      scenarios: 19,
     },
     null,
     2,
