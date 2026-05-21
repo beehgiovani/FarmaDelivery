@@ -109,6 +109,8 @@ cd apps\motoboy
 
 Durante o teste real, registre apenas evidencias operacionais sem dados sensiveis: versao/commit testado, aparelho ou emulador usado, horario aproximado, perfil usado, praca escolhida, resultado de GPS, notificacao, fluxo de entrega, comprovante e logout. Prints podem ser usados desde que nao mostrem telefone completo, endereco completo, token, chave ou credencial.
 
+Use `docs/mobile-smoke-test-checklist.md` para registrar o resultado do teste real sem expor dados sensiveis.
+
 O app so deve ser considerado pronto para campo quando estes pontos passarem no aparelho real:
 
 1. Login, sessao expirada e logout sem travar em tela branca.

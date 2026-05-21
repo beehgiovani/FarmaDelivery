@@ -11,6 +11,7 @@ Este diretorio contem a documentacao tecnica canonica do projeto. A regra e mant
 | `architecture.md` | Arquitetura atual, apps, backend, banco, realtime, mobile e fluxos principais. |
 | `supabase.md` | Uso do Supabase, SQL canonico, connection string, RLS, realtime e checks manuais. |
 | `production-runbook.md` | Roteiro de preflight, deploy e smoke tests finais sem expor dados sensiveis. |
+| `mobile-smoke-test-checklist.md` | Checklist preenchivel para teste real Android/PWA iOS sem registrar dados sensiveis. |
 | `implementation-checklist.md` | Estado detalhado de implementacao e validacoes ja realizadas. |
 | `operational-contracts.md` | Contratos compartilhados entre API, admin, Android e PWA. |
 | `lgpd.md` | Politicas de privacidade, retencao, anonimizacao e cuidados com dados pessoais. |
