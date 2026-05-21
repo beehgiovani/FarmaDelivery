@@ -513,8 +513,6 @@ export function ManagementPanel({
       setFeedback("Este usuario precisa ter telefone ou email antes de redefinir a senha.");
       return;
     }
-    if (!window.confirm(`Redefinir a senha de ${user.name}?`)) return;
-
     setPasswordResetUserId(user.id);
     setSubmitState("loading");
     setFeedback("");
@@ -1273,6 +1271,8 @@ function UserGroup({
   resettingUserId?: string | null;
   onResetPassword?: (user: TeamUser) => void;
 }) {
+  const [pendingResetUserId, setPendingResetUserId] = useState<string | null>(null);
+
   return (
     <section className="teamGroup">
       <strong>{title}</strong>
@@ -1290,14 +1290,38 @@ function UserGroup({
             </div>
             <span className={`statusPill ${user.active ? "" : "issue"}`}>{user.active ? "Ativo" : "Inativo"}</span>
             {onResetPassword && requiresLoginCredentialsForRole(user.role) ? (
-              <button
-                className="secondaryButton compactButton"
-                type="button"
-                disabled={resettingUserId === user.id}
-                onClick={() => onResetPassword(user)}
-              >
-                {resettingUserId === user.id ? "Redefinindo..." : "Redefinir senha"}
-              </button>
+              pendingResetUserId === user.id ? (
+                <div className="teamRowActions" role="group" aria-label={`Confirmar redefinicao de senha de ${user.name}`}>
+                  <button
+                    className="inlineWarningButton"
+                    type="button"
+                    disabled={resettingUserId === user.id}
+                    onClick={() => {
+                      onResetPassword(user);
+                      setPendingResetUserId(null);
+                    }}
+                  >
+                    {resettingUserId === user.id ? "Redefinindo..." : "Confirmar"}
+                  </button>
+                  <button
+                    className="inlineActionButton"
+                    type="button"
+                    disabled={resettingUserId === user.id}
+                    onClick={() => setPendingResetUserId(null)}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              ) : (
+                <button
+                  className="secondaryButton compactButton"
+                  type="button"
+                  disabled={resettingUserId === user.id}
+                  onClick={() => setPendingResetUserId(user.id)}
+                >
+                  {resettingUserId === user.id ? "Redefinindo..." : "Redefinir senha"}
+                </button>
+              )
             ) : null}
           </article>
         ))

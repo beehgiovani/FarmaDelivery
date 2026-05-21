@@ -136,6 +136,7 @@ Atualizado em 2026-05-20.
 - Atalho de acesso por loja prepara o formulario correto, gera senha inicial, rola a tela ate `Novo acesso` e foca nos dados do acesso da loja.
 - Cadastro de acesso pelo admin ganhou gerador de senha inicial, validacao de telefone/email para login e cartao de confirmacao com dados do acesso criado para entregar a unidade.
 - Recuperacao de senha pelo admin foi integrada ao painel: a lista de equipe permite redefinir senha, gerar novo acesso copiavel e a API protege a acao para perfil `ADMIN`.
+- Redefinicao de senha no painel admin usa confirmacao inline no card do usuario, sem `confirm` nativo bloqueando a tela.
 - Regras do painel de acessos por loja foram isoladas em helper testavel, cobrindo agrupamento por loja, filtragem de usuarios ativos, cartao de acesso criado e geracao de senha inicial.
 - Revisao dos botoes do admin removeu acoes visuais sem funcao, trocando indicadores por badges e garantindo `type="button"` nas acoes que nao enviam formulario.
 - Prazo manual por entrega modelado como `PERTO`, `MEDIO` ou `LONGE`, retornado pela API e reconhecido pelos clientes motoboy, com limites visuais amarelo/vermelho no painel e sem automatizacao por distancia.
