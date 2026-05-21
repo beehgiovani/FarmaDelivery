@@ -92,15 +92,13 @@ Use este bloco com emulador ou aparelho que consiga acessar a API.
 
 1. Configurar `farmadelivery.apiUrl` em `apps/motoboy/local.properties`.
 2. Conferir se `apps/motoboy/app/google-services.json` existe localmente e segue fora do Git.
-3. Rodar:
+3. Rodar a validacao mobile na raiz do monorepo:
 
 ```powershell
-cd apps\motoboy
-.\gradlew.bat :app:testDebugUnitTest
-.\gradlew.bat :app:assembleDebug
+npm run mobile:local-check
 ```
 
-4. Instalar o APK no emulador/aparelho.
+4. Instalar no emulador/aparelho o APK indicado ao final do comando.
 5. Entrar com usuario `MOTOBOY` e confirmar bloqueio de perfis de loja/balconista no fluxo de campo.
 6. Escolher praca de atendimento e validar a lista de entregas livres.
 7. Ativar disponibilidade, permitir notificacoes quando solicitado e enviar localizacao manual.
