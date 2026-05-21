@@ -11,6 +11,7 @@ Este diretorio contem a documentacao tecnica canonica do projeto. A regra e mant
 | `architecture.md` | Arquitetura atual, apps, backend, banco, realtime, mobile e fluxos principais. |
 | `supabase.md` | Uso do Supabase, SQL canonico, connection string, RLS, realtime e checks manuais. |
 | `production-runbook.md` | Roteiro de preflight, deploy e smoke tests finais sem expor dados sensiveis. |
+| `production-readiness.md` | Resumo do que esta pronto localmente e do que ainda depende de ambiente real. |
 | `operational-smoke-test-checklist.md` | Checklist preenchivel para teste real do admin, loja, entregas, comanda e relatorios sem dados sensiveis. |
 | `mobile-smoke-test-checklist.md` | Checklist preenchivel para teste real Android/PWA iOS sem registrar dados sensiveis. |
 | `implementation-checklist.md` | Estado detalhado de implementacao e validacoes ja realizadas. |

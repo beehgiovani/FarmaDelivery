@@ -2,6 +2,8 @@
 
 Este roteiro concentra a conferencia final antes de publicar ou validar o FarmaDelivery em ambiente real. Nao registre aqui chaves, tokens, project IDs, enderecos reais, nomes reais de lojas ou credenciais.
 
+Para uma visao resumida do que ja esta pronto localmente e do que ainda depende de ambiente real, consulte `docs/production-readiness.md`.
+
 ## Preparacao
 
 1. Gerar um `API_SESSION_SECRET` novo:
