@@ -372,7 +372,7 @@ Atualizado em 2026-05-20.
 - Checagem `env:production:check` agora valida formato basico da credencial Firebase Admin sem expor valores, cobrindo JSON, base64, trio de variaveis e `GOOGLE_APPLICATION_CREDENTIALS`.
 - Autoteste `npm run env:production:check:self-test` criado e incluido no `npm test` raiz para validar cenarios falsos do precheck de producao, interface de ajuda/argumento invalido e garantir que credenciais Firebase nao sejam impressas.
 - Autoteste do precheck de producao tambem cobre `FIREBASE_SERVICE_ACCOUNT_BASE64` malformado, distinguindo base64 invalido de JSON invalido.
-- Comando `npm run preflight:production -- file=env/api.env file=env/admin.env` criado para orquestrar checagem de ambiente, RLS, testes e build antes do deploy.
+- Comando `npm run preflight:production -- file=env/api.env file=env/admin.env` criado para orquestrar autoteste do gerador de segredo, checagem de ambiente, arquivos sensiveis, RLS, testes e build antes do deploy.
 - Preflight de producao aceita `npm run preflight:production -- --list` para listar a ordem das etapas sem executar ambiente, RLS, testes ou build.
 - Preflight de producao executa explicitamente o autoteste do gerador de `API_SESSION_SECRET` antes da checagem de ambiente, falhando cedo se a ferramenta de segredo quebrar.
 - Autoteste `npm run preflight:production:self-test` criado e incluido no `npm test` raiz para validar ajuda, listagem e rejeicao de argumento invalido do runner sem rodar o preflight completo.
