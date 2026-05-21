@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 
 const args = parseArgs(process.argv.slice(2));
 const androidDir = join(process.cwd(), "apps", "motoboy");
@@ -34,6 +34,13 @@ for (const step of steps) {
     process.exitCode = result.status ?? 1;
     break;
   }
+}
+
+if (process.exitCode === undefined) {
+  const apkPath = join(androidDir, "app", "build", "outputs", "apk", "debug", "app-debug.apk");
+  process.stdout.write(
+    `\nMobile local check concluido. APK debug: ${relative(process.cwd(), apkPath)}\n`,
+  );
 }
 
 function parseArgs(rawArgs) {
