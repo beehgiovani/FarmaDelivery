@@ -78,14 +78,6 @@ export const createUserSchema = z
       });
     }
 
-    if (!value.email && !value.phone) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "phone or email is required.",
-        path: ["email"],
-      });
-    }
-
     if ((value.role === "GERENTE" || value.role === "MOTOBOY") && !value.storeId) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

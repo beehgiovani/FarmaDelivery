@@ -1,5 +1,5 @@
 export function availabilityActionLabel(available: boolean): string {
-  return available ? "Pausar corridas" : "Ativar corridas";
+  return available ? "Parar corridas" : "Comecar corridas";
 }
 
 export function availabilityShortActionLabel(): string {
@@ -7,9 +7,9 @@ export function availabilityShortActionLabel(): string {
 }
 
 export function automaticLocationActionLabel(trackingEnabled: boolean): string {
-  return trackingEnabled ? "Parar auto" : "Ligar auto";
+  return trackingEnabled ? "Parar GPS ao vivo" : "Ligar GPS ao vivo";
 }
 
 export function sendLocationActionLabel(loading: boolean): string {
-  return loading ? "Enviando..." : "Enviar GPS";
+  return loading ? "Enviando..." : "Enviar minha posicao";
 }

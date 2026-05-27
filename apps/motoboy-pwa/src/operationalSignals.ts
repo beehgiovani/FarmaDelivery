@@ -18,8 +18,12 @@ const statusLabels: Record<Delivery["status"], string> = {
 };
 
 /** Compara a carga anterior e atual para gerar uma notificacao local relevante ao motoboy. */
-export function summarizeOperationalChanges(previous: Delivery[], next: Delivery[]): LocalNotificationSignal | null {
-  if (!previous.length) return null;
+export function summarizeOperationalChanges(
+  previous: Delivery[],
+  next: Delivery[],
+  hasPreviousSnapshot = previous.length > 0,
+): LocalNotificationSignal | null {
+  if (!hasPreviousSnapshot) return null;
 
   const previousById = new Map(previous.map((delivery) => [delivery.id, delivery]));
   const newAvailable = next.find((delivery) => {
@@ -54,9 +58,10 @@ export function summarizeOperationalChangesForAvailability(
   previous: Delivery[],
   next: Delivery[],
   available: boolean,
+  hasPreviousSnapshot = previous.length > 0,
 ): LocalNotificationSignal | null {
   if (!available) return null;
-  return summarizeOperationalChanges(previous, next);
+  return summarizeOperationalChanges(previous, next, hasPreviousSnapshot);
 }
 
 /** Evita enviar GPS toda hora; so libera por tempo minimo ou deslocamento real. */
@@ -77,9 +82,9 @@ export function canTrackOpenAppLocation(input: {
   hasSession: boolean;
   hasCourier: boolean;
   trackingEnabled: boolean;
-  available: boolean;
+  operationallyActive: boolean;
 }) {
-  return input.hasSession && input.hasCourier && input.trackingEnabled && input.available;
+  return input.hasSession && input.hasCourier && input.trackingEnabled && input.operationallyActive;
 }
 
 /** Calcula distancia aproximada entre duas coordenadas para limitar envio de localizacao. */

@@ -13,12 +13,14 @@ import {
   updateCourierLocationSchema,
   uuidSchema,
 } from "../contracts";
+import { broadcastLiveEvent } from "../liveEvents";
 import { validationError } from "../http";
 import { prisma } from "../prisma";
 import { readBearerToken, requireAuth, signSessionToken, verifySessionToken, type SessionPayload } from "../auth";
 import { hashPassword, verifyPassword } from "../passwordHash";
 import { canUseSupabaseRest, supabaseRest, type SupabaseCourier, type SupabaseStore, type SupabaseUser } from "../supabaseRest";
 import { isStoreLoginRole, resolveUserStoreScope } from "../accessScope";
+import { isPhoneIdentifier, normalizePhoneForStorage, phoneLookupCandidates } from "../phone";
 
 const DEFAULT_COURIER_SERVICE_AREA = "ASTURIAS";
 
@@ -50,7 +52,7 @@ export async function userRoutes(app: FastifyInstance) {
         });
       }
 
-      return withSessionToken(mapUserSession(user));
+      return withSessionToken(mapUserSession(await ensureCourierProfile(user)));
     } catch (error) {
       app.log.error({ error }, "auth me error");
       if (canUseSupabaseRest()) {
@@ -81,12 +83,17 @@ export async function userRoutes(app: FastifyInstance) {
     if (!parsed.success) return validationError(reply, parsed.error);
 
     const identifier = parsed.data.identifier.trim();
+    const identifierPhones = isPhoneIdentifier(identifier) ? phoneLookupCandidates(identifier) : [];
 
     try {
       const user = await prisma.user.findFirst({
         where: {
           active: true,
-          OR: [{ email: identifier }, { phone: identifier }],
+          OR: [
+            { email: identifier },
+            { name: { equals: identifier, mode: "insensitive" } },
+            ...identifierPhones.map((phone) => ({ phone })),
+          ],
         },
         include: {
           store: true,
@@ -97,23 +104,28 @@ export async function userRoutes(app: FastifyInstance) {
       if (!user || !verifyPassword(parsed.data.password, user.passwordHash)) {
         return reply.status(401).send({
           error: "INVALID_CREDENTIALS",
-          message: "Email/telefone ou senha invalidos.",
+          message: "Nome, email, telefone ou senha invalidos.",
         });
       }
 
-      return withSessionToken(mapUserSession(user));
+      return withSessionToken(mapUserSession(await ensureCourierProfile(user)));
     } catch (error) {
       app.log.error({ error }, "auth login error");
       if (canUseSupabaseRest()) {
         try {
+          const phoneFilters = identifierPhones.map((phone) => `phone.eq.${encodeURIComponent(phone)}`);
           const users = await supabaseRest<SupabaseUser[]>("User", {
-            query: `select=*,Store(id,name,code),Courier(*)&active=eq.true&or=(email.eq.${encodeURIComponent(identifier)},phone.eq.${encodeURIComponent(identifier)})&limit=1`,
+            query: `select=*,Store(id,name,code),Courier(*)&active=eq.true&or=(${[
+              `email.eq.${encodeURIComponent(identifier)}`,
+              `name.ilike.${encodeURIComponent(identifier)}`,
+              ...phoneFilters,
+            ].join(",")})&limit=1`,
           });
           const user = users[0];
           if (!user || !verifyPassword(parsed.data.password, user.passwordHash)) {
             return reply.status(401).send({
               error: "INVALID_CREDENTIALS",
-              message: "Email/telefone ou senha invalidos.",
+              message: "Nome, email, telefone ou senha invalidos.",
             });
           }
           return withSessionToken(mapSupabaseUser(user));
@@ -132,6 +144,10 @@ export async function userRoutes(app: FastifyInstance) {
   app.post("/auth/bootstrap-admin", async (request, reply) => {
     const parsed = bootstrapAdminSchema.safeParse(request.body);
     if (!parsed.success) return validationError(reply, parsed.error);
+    const bootstrapData = {
+      ...parsed.data,
+      phone: normalizePhoneForStorage(parsed.data.phone),
+    };
 
     try {
       const existingUsers = await prisma.user.count();
@@ -144,10 +160,10 @@ export async function userRoutes(app: FastifyInstance) {
 
       const user = await prisma.user.create({
         data: {
-          name: parsed.data.name,
-          phone: parsed.data.phone,
-          email: parsed.data.email,
-          passwordHash: hashPassword(parsed.data.password),
+          name: bootstrapData.name,
+          phone: bootstrapData.phone,
+          email: bootstrapData.email,
+          passwordHash: hashPassword(bootstrapData.password),
           role: "ADMIN",
         },
         include: {
@@ -176,7 +192,7 @@ export async function userRoutes(app: FastifyInstance) {
             prefer: "return=representation",
             body: {
               name: parsed.data.name,
-              phone: parsed.data.phone,
+              phone: bootstrapData.phone,
               email: parsed.data.email,
               passwordHash: hashPassword(parsed.data.password),
               role: "ADMIN",
@@ -248,7 +264,7 @@ export async function userRoutes(app: FastifyInstance) {
 
     const parsed = updateCourierLocationSchema.safeParse(request.body);
     if (!parsed.success) return validationError(reply, parsed.error);
-    if (session.role === "MOTOBOY" && session.courierId !== parsed.data.courierId) {
+    if (!(await canSessionOperateCourier(session, parsed.data.courierId))) {
       return reply.status(403).send({
         error: "FORBIDDEN",
         message: "Motoboy so pode atualizar a propria localizacao.",
@@ -270,7 +286,7 @@ export async function userRoutes(app: FastifyInstance) {
         },
       });
 
-      return {
+      const response = {
         id: courier.id,
         name: courier.user.name,
         phone: courier.user.phone,
@@ -282,11 +298,14 @@ export async function userRoutes(app: FastifyInstance) {
         lastLocationAt: courier.lastLocationAt?.toISOString() ?? null,
         active: courier.user.active,
       };
+      broadcastLiveEvent("couriers", "courier-location");
+      return response;
     } catch (error) {
       app.log.error({ error }, "courier location update error");
       if (canUseSupabaseRest()) {
         try {
           const updated = await updateCourierLocationWithSupabaseRest(parsed.data);
+          broadcastLiveEvent("couriers", "courier-location");
           return reply.send(updated);
         } catch (restError) {
           app.log.error({ error: restError }, "courier location update supabase rest error");
@@ -306,7 +325,7 @@ export async function userRoutes(app: FastifyInstance) {
 
     const parsed = updateCourierAvailabilitySchema.safeParse(request.body);
     if (!parsed.success) return validationError(reply, parsed.error);
-    if (session.role === "MOTOBOY" && session.courierId !== parsed.data.courierId) {
+    if (!(await canSessionOperateCourier(session, parsed.data.courierId))) {
       return reply.status(403).send({
         error: "FORBIDDEN",
         message: "Motoboy so pode atualizar a propria disponibilidade.",
@@ -325,7 +344,7 @@ export async function userRoutes(app: FastifyInstance) {
         },
       });
 
-      return {
+      const response = {
         id: courier.id,
         name: courier.user.name,
         phone: courier.user.phone,
@@ -337,11 +356,14 @@ export async function userRoutes(app: FastifyInstance) {
         lastLocationAt: courier.lastLocationAt?.toISOString() ?? null,
         active: courier.user.active,
       };
+      broadcastLiveEvent("couriers", "courier-availability");
+      return response;
     } catch (error) {
       app.log.error({ error }, "courier availability update error");
       if (canUseSupabaseRest()) {
         try {
           const updated = await updateCourierAvailabilityWithSupabaseRest(parsed.data);
+          broadcastLiveEvent("couriers", "courier-availability");
           return reply.send(updated);
         } catch (restError) {
           app.log.error({ error: restError }, "courier availability update supabase rest error");
@@ -366,7 +388,7 @@ export async function userRoutes(app: FastifyInstance) {
     const parsed = registerCourierDeviceTokenSchema.safeParse(request.body);
     if (!parsed.success) return validationError(reply, parsed.error);
 
-    if (session.role === "MOTOBOY" && session.courierId !== parsedCourierId.data) {
+    if (!(await canSessionOperateCourier(session, parsedCourierId.data))) {
       return reply.status(403).send({
         error: "FORBIDDEN",
         message: "Motoboy so pode registrar o proprio dispositivo.",
@@ -749,18 +771,31 @@ export async function userRoutes(app: FastifyInstance) {
 
     const parsed = createUserSchema.safeParse(request.body);
     if (!parsed.success) return validationError(reply, parsed.error);
-    const passwordHash = hashPassword(passwordForCreatedUser(parsed.data));
+    const userData = {
+      ...parsed.data,
+      phone: normalizePhoneForStorage(parsed.data.phone),
+    };
+    const passwordHash = hashPassword(passwordForCreatedUser(userData));
 
     try {
       const result = await prisma.$transaction(async (tx) => {
+        const duplicateName = await tx.user.findFirst({
+          where: {
+            active: true,
+            name: { equals: userData.name, mode: "insensitive" },
+          },
+          select: { id: true },
+        });
+        if (duplicateName) return { duplicateName: true as const };
+
         const user = await tx.user.create({
           data: {
-            name: parsed.data.name,
-            phone: parsed.data.phone,
-            email: parsed.data.email,
+            name: userData.name,
+            phone: userData.phone,
+            email: userData.email,
             passwordHash,
-            role: parsed.data.role,
-            storeId: parsed.data.storeId,
+            role: userData.role,
+            storeId: userData.storeId,
           },
           include: {
             store: true,
@@ -805,6 +840,12 @@ export async function userRoutes(app: FastifyInstance) {
           courier,
         };
       });
+      if ("duplicateName" in result) {
+        return reply.status(409).send({
+          error: "DUPLICATE_USER_NAME",
+          message: "Ja existe um usuario ativo com este nome. Use um nome unico para login.",
+        });
+      }
 
       return reply.status(201).send({
         id: result.user.id,
@@ -837,9 +878,15 @@ export async function userRoutes(app: FastifyInstance) {
       app.log.error({ error }, "users create error");
       if (canUseSupabaseRest()) {
         try {
-          const result = await createUserWithSupabaseRest(parsed.data);
+          const result = await createUserWithSupabaseRest(userData);
           return reply.status(201).send(result);
         } catch (restError) {
+          if (restError instanceof Error && restError.name === "DUPLICATE_USER_NAME") {
+            return reply.status(409).send({
+              error: "DUPLICATE_USER_NAME",
+              message: "Ja existe um usuario ativo com este nome. Use um nome unico para login.",
+            });
+          }
           app.log.error({ error: restError }, "users create supabase rest error");
         }
       }
@@ -1129,7 +1176,7 @@ function mapUserSession(user: {
   email: string | null;
   role: string;
   active: boolean;
-  store: { id: string; name: string; code: string } | null;
+  store: { id: string; name: string; code: string; baseType?: string | null } | null;
   courier: {
     id: string;
     baseStoreName: string;
@@ -1188,6 +1235,15 @@ function withSessionToken<T extends SessionUser>(user: T) {
 
 /** Cria usuario pelo fallback REST e replica vinculo base/alocacao inicial quando existir loja. */
 async function createUserWithSupabaseRest(data: typeof createUserSchema._output) {
+  const duplicateUsers = await supabaseRest<Array<{ id: string }>>("User", {
+    query: `select=id&active=eq.true&name=ilike.${encodeURIComponent(data.name)}&limit=1`,
+  });
+  if (duplicateUsers[0]) {
+    const error = new Error("DUPLICATE_USER_NAME");
+    error.name = "DUPLICATE_USER_NAME";
+    throw error;
+  }
+
   const users = await supabaseRest<SupabaseUser[]>("User", {
     method: "POST",
     prefer: "return=representation",
@@ -1251,6 +1307,51 @@ async function createUserWithSupabaseRest(data: typeof createUserSchema._output)
 
 function passwordForCreatedUser(data: typeof createUserSchema._output) {
   return data.password ?? `reference-${randomUUID()}`;
+}
+
+async function canSessionOperateCourier(session: SessionPayload, courierId: string) {
+  if (session.role !== "MOTOBOY") return true;
+  if (session.courierId) return session.courierId === courierId;
+
+  const courier = await prisma.courier.findFirst({
+    where: {
+      id: courierId,
+      userId: session.sub,
+    },
+    select: { id: true },
+  });
+  return Boolean(courier);
+}
+
+type PrismaSessionUser = Parameters<typeof mapUserSession>[0];
+
+/** Repara usuarios MOTOBOY antigos que foram criados sem o vinculo operacional Courier. */
+async function ensureCourierProfile(user: PrismaSessionUser): Promise<PrismaSessionUser> {
+  if (user.role !== "MOTOBOY" || user.courier) return user;
+
+  const courier = await prisma.courier.create({
+    data: {
+      userId: user.id,
+      baseStoreName: user.store?.name ?? "Loja base",
+      preferredServiceArea: DEFAULT_COURIER_SERVICE_AREA,
+    },
+  });
+
+  if (user.store?.id) {
+    await prisma.courierStoreAssignment.create({
+      data: {
+        courierId: courier.id,
+        storeId: user.store.id,
+        kind: user.store.baseType === "DEDICADA" ? "DEDICADA" : "COBERTURA",
+        reason: "Vinculo operacional reparado automaticamente no login do motoboy.",
+      },
+    });
+  }
+
+  return {
+    ...user,
+    courier,
+  };
 }
 
 /** Busca dados minimos da loja no fallback REST para criar vinculos iniciais. */

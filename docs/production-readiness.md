@@ -10,6 +10,7 @@ Este resumo mostra o que ja esta coberto por automacao/localmente e o que ainda 
 - Auditoria estatica de RLS via `npm run db:rls:check`.
 - Preflight de producao orquestrado por `npm run preflight:production -- file=env/api.env file=env/admin.env`.
 - Preflight de producao validado localmente com arquivos `env/*.env` ignorados pelo Git, sem falhas bloqueantes.
+- Preflight de producao executado em 2026-05-27 com testes, RLS, checagem de sensiveis e build aprovados; restaram apenas warnings dependentes do deploy real.
 - Probe do runner via `npm run preflight:production -- --probe-runner` para validar execucao de Node/npm no Windows antes do preflight completo.
 - Preflight mobile local via `npm run mobile:local-check`.
 - Conferencia isolada do alvo da API Android via `npm run mobile:local-check -- --api-config`.
@@ -23,6 +24,7 @@ Este resumo mostra o que ja esta coberto por automacao/localmente e o que ainda 
 - Validar API publicada, armazenamento persistente de comprovantes e credencial Firebase Admin.
 - Testar admin, login de loja, criacao de entrega, comanda, relatorios e notificacoes usando `docs/operational-smoke-test-checklist.md`.
 - Testar Android em emulador/aparelho com API acessivel usando `docs/mobile-smoke-test-checklist.md`.
+- Mini smoke Android local no emulador confirmou app abrindo sem crash, sessao salva, GPS automatico, registro de dispositivo, envio de localizacao e listagem de entregas via API Docker local; fluxo completo de entrega ainda precisa ser validado manualmente.
 - Testar PWA iOS instalado pela Tela de Inicio com HTTPS, Firebase Web e VAPID configurados.
 - Revalidar politica final de localizacao no Play Console antes de publicacao externa.
 

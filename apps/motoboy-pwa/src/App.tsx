@@ -5,7 +5,6 @@ import {
   CheckCircle2,
   Clock3,
   LogOut,
-  MapPin,
   Navigation,
   Phone,
   RefreshCw,
@@ -27,6 +26,7 @@ import {
   registerDeliveryProblem,
   setAuthToken,
   startDeliveryRoute,
+  subscribeToLiveEvents,
   updateAvailability,
   updateLocation,
   uploadDeliveryProof,
@@ -49,7 +49,6 @@ import {
   automaticLocationActionLabel,
   availabilityActionLabel,
   availabilityShortActionLabel,
-  sendLocationActionLabel,
 } from "./locationActionLabels";
 import { motoboyOperationalStatus } from "./motoboyOperationalStatus";
 import {
@@ -81,9 +80,13 @@ import { userFacingError } from "./userMessages";
 const TOKEN_KEY = "farmadelivery.motoboy.token";
 const TRACKING_KEY = "farmadelivery.motoboy.tracking";
 const AUTO_REFRESH_KEY = "farmadelivery.motoboy.autoRefresh";
+const AVAILABILITY_KEY = "farmadelivery.motoboy.available";
 const SERVICE_AREA_KEY = "farmadelivery.motoboy.serviceArea";
 const WEB_PUSH_TOKEN_KEY = "farmadelivery.motoboy.webPushToken";
 const FIREBASE_WEB_PUSH_VAPID_KEY = import.meta.env.VITE_FIREBASE_WEB_PUSH_VAPID_KEY;
+const MOTOBOY_AUTO_REFRESH_INTERVAL_MS = 10000;
+const LOCATION_FORCE_SEND_INTERVAL_MS = 30000;
+const LOCATION_STALE_WARNING_MS = 90000;
 
 type View = "deliveries" | "route";
 type DeliveryListSection = "available" | "active";
@@ -101,15 +104,18 @@ export function App() {
   const [loading, setLoading] = useState(false);
   const [busyAction, setBusyAction] = useState<BusyAction>(null);
   const [available, setAvailable] = useState(false);
+  const [inDeliveryOperation, setInDeliveryOperation] = useState(false);
   const [serviceArea, setServiceArea] = useState<CourierServiceArea>(() =>
     normalizeCourierServiceArea(localStorage.getItem(SERVICE_AREA_KEY)),
   );
   const [trackingEnabled, setTrackingEnabled] = useState(() => localStorage.getItem(TRACKING_KEY) === "true");
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(() => localStorage.getItem(AUTO_REFRESH_KEY) !== "false");
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
+  const [lastLocationSentAt, setLastLocationSentAt] = useState<Date | null>(null);
   const watchIdRef = useRef<number | null>(null);
   const lastTrackedLocationRef = useRef<{ latitude: number; longitude: number; sentAt: number } | null>(null);
   const deliveriesRef = useRef<Delivery[]>([]);
+  const hasLoadedOperationalDataRef = useRef(false);
 
   const courierId = session?.courier?.id ?? null;
 
@@ -121,12 +127,18 @@ export function App() {
     }
     try {
       const [nextDeliveries, nextRoutes] = await Promise.all([fetchDeliveries(serviceArea), fetchCourierRoutes()]);
-      const notification = summarizeOperationalChangesForAvailability(deliveriesRef.current, nextDeliveries, available);
+      const notification = summarizeOperationalChangesForAvailability(
+        deliveriesRef.current,
+        nextDeliveries,
+        available,
+        hasLoadedOperationalDataRef.current,
+      );
       if (silent && notification) {
         setNotice(notification.body);
         showLocalNotification(notification.title, notification.body);
       }
       deliveriesRef.current = nextDeliveries;
+      hasLoadedOperationalDataRef.current = true;
       setDeliveries(nextDeliveries);
       setRoutes(nextRoutes);
       setLastSyncedAt(new Date());
@@ -146,14 +158,18 @@ export function App() {
 
     setAuthToken(token);
     fetchCurrentSession(token)
-      .then((nextSession) => {
+      .then(async (nextSession) => {
         if (nextSession.role !== "MOTOBOY") {
           throw new Error("Este acesso e exclusivo para motoboys.");
         }
         const nextServiceArea = normalizeCourierServiceArea(nextSession.courier?.preferredServiceArea ?? localStorage.getItem(SERVICE_AREA_KEY));
         setServiceArea(nextServiceArea);
         localStorage.setItem(SERVICE_AREA_KEY, nextServiceArea);
-        setAvailable(nextSession.courier?.available == true);
+        const nextAvailable = await preferredAvailability(nextSession, nextServiceArea);
+        setAvailable(nextAvailable);
+        syncCourierAvailabilityWithServiceWorker(nextAvailable);
+        void requestLocationPermission();
+        setOpenAppTracking(nextAvailable);
         setSession(nextSession);
       })
       .catch(() => {
@@ -185,14 +201,30 @@ export function App() {
   }, [courierId, session]);
 
   useEffect(() => {
+    syncCourierAvailabilityWithServiceWorker(available);
+  }, [available]);
+
+  useEffect(() => {
     if (!session || !autoRefreshEnabled) return;
     const interval = window.setInterval(() => {
       if (document.visibilityState === "visible") {
         void loadOperationalData(true);
       }
-    }, 30000);
+    }, MOTOBOY_AUTO_REFRESH_INTERVAL_MS);
     return () => window.clearInterval(interval);
   }, [autoRefreshEnabled, loadOperationalData, session]);
+
+  useEffect(() => {
+    if (!session) return;
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token) return;
+
+    return subscribeToLiveEvents(token, (type) => {
+      if (type === "deliveries" || type === "routes") {
+        void loadOperationalData(true);
+      }
+    });
+  }, [loadOperationalData, session]);
 
   useEffect(() => {
     const onUnauthorized = () => {
@@ -202,13 +234,22 @@ export function App() {
     return () => window.removeEventListener("farmadelivery:unauthorized", onUnauthorized);
   }, []);
 
+  const sections = useMemo(() => deliverySections(deliveries), [deliveries]);
+  const operationallyActive = available || sections.active.length > 0 || inDeliveryOperation;
+
+  useEffect(() => {
+    if (available || sections.active.length > 0 || !inDeliveryOperation || loading) return;
+    setInDeliveryOperation(false);
+    setOpenAppTracking(false);
+  }, [available, inDeliveryOperation, loading, sections.active.length]);
+
   useEffect(() => {
     if (
       !canTrackOpenAppLocation({
         hasSession: Boolean(session),
         hasCourier: Boolean(courierId),
         trackingEnabled,
-        available,
+        operationallyActive,
       })
     ) {
       stopOpenAppTracking(watchIdRef);
@@ -225,39 +266,48 @@ export function App() {
     const activeCourierId = courierId;
     if (!activeCourierId) return;
 
-    watchIdRef.current = navigator.geolocation.watchPosition(
-      (position) => {
-        const latitude = position.coords.latitude;
-        const longitude = position.coords.longitude;
-        if (!shouldSendTrackedLocation(lastTrackedLocationRef.current, latitude, longitude)) return;
+    const sendTrackedPosition = (position: GeolocationPosition, force = false) => {
+      const latitude = position.coords.latitude;
+      const longitude = position.coords.longitude;
+      if (!force && !shouldSendTrackedLocation(lastTrackedLocationRef.current, latitude, longitude)) return;
 
-        updateLocation({
-          courierId: activeCourierId,
-          latitude,
-          longitude,
-          serviceArea,
+      updateLocation({
+        courierId: activeCourierId,
+        latitude,
+        longitude,
+        serviceArea,
+      })
+        .then(() => {
+          const sentAt = Date.now();
+          lastTrackedLocationRef.current = { latitude, longitude, sentAt };
+          setLastLocationSentAt(new Date(sentAt));
         })
-          .then(() => {
-            lastTrackedLocationRef.current = {
-              latitude,
-              longitude,
-              sentAt: Date.now(),
-            };
-          })
-          .catch((err) => setError(messageFrom(err, "Nao foi possivel enviar a localizacao automatica agora.")));
-      },
+        .catch((err) => setError(messageFrom(err, "Nao consegui enviar sua localizacao ao vivo agora.")));
+    };
+
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      (position) => sendTrackedPosition(position),
       () => {
         setTrackingEnabled(false);
         localStorage.removeItem(TRACKING_KEY);
-        setError("GPS automatico pausado. Confira a permissao de localizacao do Safari.");
+        setError("GPS ao vivo desligado. Confira a permissao de localizacao do Safari.");
       },
       { enableHighAccuracy: true, maximumAge: 15000, timeout: 20000 },
     );
 
-    return () => stopOpenAppTracking(watchIdRef);
-  }, [available, courierId, serviceArea, session, trackingEnabled]);
+    const forcedInterval = window.setInterval(() => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => sendTrackedPosition(position, true),
+        () => setError("Nao consegui atualizar o GPS ao vivo. Confira a permissao de localizacao."),
+        { enableHighAccuracy: true, maximumAge: 15000, timeout: 20000 },
+      );
+    }, LOCATION_FORCE_SEND_INTERVAL_MS);
 
-  const sections = useMemo(() => deliverySections(deliveries), [deliveries]);
+    return () => {
+      window.clearInterval(forcedInterval);
+      stopOpenAppTracking(watchIdRef);
+    };
+  }, [courierId, operationallyActive, serviceArea, session, trackingEnabled]);
 
   async function handleLogin(input: { identifier: string; password: string }) {
     setError(null);
@@ -271,7 +321,11 @@ export function App() {
     const nextServiceArea = normalizeCourierServiceArea(nextSession.courier?.preferredServiceArea ?? localStorage.getItem(SERVICE_AREA_KEY));
     setServiceArea(nextServiceArea);
     localStorage.setItem(SERVICE_AREA_KEY, nextServiceArea);
-    setAvailable(nextSession.courier?.available == true);
+    const nextAvailable = await preferredAvailability(nextSession, nextServiceArea);
+    setAvailable(nextAvailable);
+    syncCourierAvailabilityWithServiceWorker(nextAvailable);
+    void requestLocationPermission();
+    setOpenAppTracking(nextAvailable);
     setSession(nextSession);
   }
 
@@ -289,10 +343,15 @@ export function App() {
     setAuthToken(null);
     setSession(null);
     setAvailable(false);
+    setInDeliveryOperation(false);
+    syncCourierAvailabilityWithServiceWorker(false);
     setTrackingEnabled(false);
     stopOpenAppTracking(watchIdRef);
     setDeliveries([]);
     deliveriesRef.current = [];
+    hasLoadedOperationalDataRef.current = false;
+    lastTrackedLocationRef.current = null;
+    setLastLocationSentAt(null);
     setRoutes([]);
     setEventsByDelivery({});
     setLastSyncedAt(null);
@@ -301,13 +360,13 @@ export function App() {
     setError(message ?? null);
   }
 
-  async function runAction(label: string, run: () => Promise<unknown>) {
+  async function runAction(label: string, run: () => Promise<unknown>, successMessage = "Acao registrada com sucesso.") {
     setBusyAction(label);
     setError(null);
     setNotice(null);
     try {
       await run();
-      setNotice("Acao registrada com sucesso.");
+      setNotice(successMessage);
       await loadOperationalData();
     } catch (err) {
       setError(messageFrom(err, "Nao foi possivel registrar a acao agora."));
@@ -325,54 +384,20 @@ export function App() {
     });
   }
 
-  async function sendCurrentLocation() {
-    if (!courierId) {
-      setError("Seu usuario nao tem motoboy vinculado.");
-      return;
-    }
-    if (!navigator.geolocation) {
-      setError("Este iPhone nao liberou geolocalizacao no navegador.");
-      return;
-    }
-
-    setBusyAction("location");
-    setError(null);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        updateLocation({
-          courierId,
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          serviceArea,
-        })
-          .then(() => {
-            setNotice("Localizacao enviada.");
-          })
-          .catch((err) => setError(messageFrom(err, "Nao foi possivel enviar a localizacao agora.")))
-          .finally(() => setBusyAction(null));
-      },
-      () => {
-        setBusyAction(null);
-        setError("Nao consegui acessar a localizacao. Confira a permissao do Safari.");
-      },
-      { enableHighAccuracy: true, timeout: 12000 },
-    );
-  }
-
   function toggleOpenAppTracking() {
-    if (!available) {
-      setNotice("Ative sua disponibilidade antes de ligar o GPS automatico.");
+    if (!operationallyActive) {
+      setNotice("Comece as corridas ou mantenha uma entrega em atendimento para ligar o GPS ao vivo.");
       return;
     }
     const nextValue = !trackingEnabled;
     setTrackingEnabled(nextValue);
     if (nextValue) {
       localStorage.setItem(TRACKING_KEY, "true");
-      setNotice("GPS automatico ativo enquanto o PWA estiver aberto.");
+      setNotice("GPS ao vivo ligado enquanto o app estiver aberto.");
     } else {
       localStorage.removeItem(TRACKING_KEY);
       stopOpenAppTracking(watchIdRef);
-      setNotice("GPS automatico pausado.");
+      setNotice("GPS ao vivo desligado.");
     }
   }
 
@@ -388,21 +413,35 @@ export function App() {
     setNotice(null);
     try {
       const courier = await updateAvailability({ courierId, available: nextAvailable, serviceArea });
-      setAvailable(Boolean(courier?.available));
-      if (!nextAvailable) {
-        setTrackingEnabled(false);
-        localStorage.removeItem(TRACKING_KEY);
+      const updatedAvailable = Boolean(courier?.available);
+      setAvailable(updatedAvailable);
+      localStorage.setItem(AVAILABILITY_KEY, String(updatedAvailable));
+      syncCourierAvailabilityWithServiceWorker(updatedAvailable);
+      if (updatedAvailable) {
+        void requestLocationPermission();
+      }
+      setOpenAppTracking(updatedAvailable);
+      if (!updatedAvailable) {
         stopOpenAppTracking(watchIdRef);
       }
       setNotice(
-        nextAvailable
-          ? "Voce esta disponivel para receber corridas."
-          : "Voce esta indisponivel. Novas corridas nao serao direcionadas para voce.",
+        updatedAvailable
+          ? "Corridas ligadas. As novas entregas vao aparecer aqui."
+          : "Corridas paradas. Voce nao recebera novas entregas.",
       );
     } catch (err) {
-      setError(messageFrom(err, "Nao foi possivel atualizar sua disponibilidade agora."));
+      setError(messageFrom(err, "Nao consegui mudar seu status agora."));
     } finally {
       setBusyAction(null);
+    }
+  }
+
+  function setOpenAppTracking(enabled: boolean) {
+    setTrackingEnabled(enabled);
+    if (enabled) {
+      localStorage.setItem(TRACKING_KEY, "true");
+    } else {
+      localStorage.removeItem(TRACKING_KEY);
     }
   }
 
@@ -424,6 +463,7 @@ export function App() {
     setServiceArea(nextServiceArea);
     localStorage.setItem(SERVICE_AREA_KEY, nextServiceArea);
     deliveriesRef.current = [];
+    hasLoadedOperationalDataRef.current = false;
     setDeliveries([]);
     setNotice(`${courierServiceAreaLabel(nextServiceArea)} selecionada.`);
     if (!courierId) return;
@@ -478,7 +518,7 @@ export function App() {
           <span>Situacao agora</span>
           <strong>{operationalStatus.title}</strong>
         </div>
-        <p>{operationalStatus.text}</p>
+        <p>{locationWatchText({ fallback: operationalStatus.text, trackingEnabled, operationallyActive, lastLocationSentAt })}</p>
       </section>
 
       <section className="serviceAreaSelector" aria-label="Praca de atendimento">
@@ -501,7 +541,7 @@ export function App() {
         </div>
       </section>
 
-      <section className="statusActions" aria-label="Acoes de disponibilidade e localizacao">
+      <section className="statusActions" aria-label="Acoes de corridas e localizacao">
         <button
           aria-label={availabilityActionLabel(available)}
           className={available ? "availableOn" : ""}
@@ -512,11 +552,7 @@ export function App() {
           <CheckCircle2 size={18} />
           {availabilityShortActionLabel()}
         </button>
-        <button type="button" onClick={sendCurrentLocation} disabled={!available || busyAction === "location"}>
-          <MapPin size={18} />
-          {sendLocationActionLabel(busyAction === "location")}
-        </button>
-        <button className={trackingEnabled ? "trackingOn" : ""} type="button" onClick={toggleOpenAppTracking} disabled={!available}>
+        <button className={trackingEnabled ? "trackingOn" : ""} type="button" onClick={toggleOpenAppTracking} disabled={!operationallyActive}>
           <Navigation size={18} />
           {automaticLocationActionLabel(trackingEnabled)}
         </button>
@@ -525,7 +561,7 @@ export function App() {
       {!available ? (
         <Banner
           tone="danger"
-          text="Voce esta indisponivel. Ative sua disponibilidade para receber novas corridas."
+          text="Corridas paradas. Toque em Comecar corridas para receber novas entregas."
         />
       ) : null}
 
@@ -554,7 +590,7 @@ export function App() {
 
       <button className="refreshButton" type="button" onClick={() => void loadOperationalData()} disabled={loading}>
         <RefreshCw size={18} className={loading ? "spin" : ""} />
-        Atualizar
+        Buscar agora
       </button>
 
       {view === "deliveries" ? (
@@ -577,38 +613,57 @@ export function App() {
               setError("Seu usuario nao tem motoboy vinculado.");
               return;
             }
-            void runAction(`accept:${deliveryId}`, async () => {
-              await acceptDelivery({ deliveryId, courierId, serviceArea });
-              setAvailable(false);
-              setTrackingEnabled(false);
-              localStorage.removeItem(TRACKING_KEY);
-              stopOpenAppTracking(watchIdRef);
-            });
+            void runAction(
+              `accept:${deliveryId}`,
+              async () => {
+                await acceptDelivery({ deliveryId, courierId, serviceArea });
+                setAvailable(false);
+                setInDeliveryOperation(true);
+                setOpenAppTracking(true);
+              },
+              "Entrega pega. A loja vai acompanhar o atendimento.",
+            );
           }}
           onCollect={(deliveryId) =>
-            void runAction(`collect:${deliveryId}`, async () => {
-              await collectDelivery({ deliveryId });
-              invalidateDeliveryEvents(deliveryId);
-            })
+            void runAction(
+              `collect:${deliveryId}`,
+              async () => {
+                await collectDelivery({ deliveryId });
+                invalidateDeliveryEvents(deliveryId);
+              },
+              "Retirada registrada.",
+            )
           }
           onStartRoute={(deliveryId) =>
-            void runAction(`start:${deliveryId}`, async () => {
-              await startDeliveryRoute({ deliveryId });
-              invalidateDeliveryEvents(deliveryId);
-            })
+            void runAction(
+              `start:${deliveryId}`,
+              async () => {
+                await startDeliveryRoute({ deliveryId });
+                invalidateDeliveryEvents(deliveryId);
+              },
+              "Entrega iniciada.",
+            )
           }
           onComplete={(deliveryId, notes, proof) =>
-            void runAction(`complete:${deliveryId}`, async () => {
-              const proofId = proof ? await uploadProofFile(deliveryId, proof) : undefined;
-              await completeDelivery(deliveryCompletionInput({ deliveryId, notes, proofId }));
-              invalidateDeliveryEvents(deliveryId);
-            })
+            void runAction(
+              `complete:${deliveryId}`,
+              async () => {
+                const proofId = proof ? await uploadProofFile(deliveryId, proof) : undefined;
+                await completeDelivery(deliveryCompletionInput({ deliveryId, notes, proofId }));
+                invalidateDeliveryEvents(deliveryId);
+              },
+              "Entrega concluida.",
+            )
           }
           onProblem={(deliveryId, notes) =>
-            void runAction(`problem:${deliveryId}`, async () => {
-              await registerDeliveryProblem({ deliveryId, notes });
-              invalidateDeliveryEvents(deliveryId);
-            })
+            void runAction(
+              `problem:${deliveryId}`,
+              async () => {
+                await registerDeliveryProblem({ deliveryId, notes });
+                invalidateDeliveryEvents(deliveryId);
+              },
+              "Problema avisado para a loja.",
+            )
           }
         />
       ) : (
@@ -666,7 +721,7 @@ function LoginScreen({
 
       <form className="loginForm" onSubmit={submit}>
         <label>
-          Email ou telefone
+          Nome, email ou telefone
           <input
             autoComplete="username"
             inputMode="email"
@@ -771,12 +826,12 @@ function DeliveryList(props: {
                   onClick={() => props.onAccept(delivery.id)}
                 >
                   <CheckCircle2 size={18} />
-                  {props.available ? "Aceitar" : "Indisponivel"}
+                  {props.available ? "Pegar entrega" : "Corridas paradas"}
                 </button>
               </DeliveryCard>
             ))
           ) : (
-            <EmptyState text="Nenhuma entrega disponivel agora." />
+            <EmptyState text="Nenhuma entrega nova agora." />
           )}
         </>
       ) : null}
@@ -886,19 +941,25 @@ function DeliveryActions(props: {
     }
   }, [historyError, historyLoading, props.events, showHistory]);
 
+  useEffect(() => {
+    setNotes("");
+    setProblemNotes("");
+    setProof(undefined);
+  }, [props.delivery.status]);
+
   return (
     <>
       {props.delivery.status === "ACEITA_PELO_MOTOBOY" ? (
         <button className="primaryButton" type="button" disabled={props.busyAction === `collect:${props.delivery.id}`} onClick={props.onCollect}>
           <Truck size={18} />
-          Coletar
+          Retirei na loja
         </button>
       ) : null}
 
       {props.delivery.status === "COLETADA" ? (
         <button className="primaryButton" type="button" disabled={props.busyAction === `start:${props.delivery.id}`} onClick={props.onStartRoute}>
           <Send size={18} />
-          Sair em rota
+          Comecar entrega
         </button>
       ) : null}
 
@@ -932,15 +993,15 @@ function DeliveryActions(props: {
         </div>
       ) : null}
 
-      <details className="problemBox">
-        <summary>
+      <div className="problemBox">
+        <strong>
           <AlertTriangle size={18} />
-          Registrar problema
-        </summary>
+          Avisar problema
+        </strong>
         <textarea
           value={problemNotes}
           onChange={(event) => setProblemNotes(event.target.value)}
-          placeholder="Descreva o problema"
+          placeholder="Conte o que aconteceu"
         />
         <button
           className="secondaryButton danger"
@@ -948,9 +1009,9 @@ function DeliveryActions(props: {
           disabled={!problemNotes.trim() || props.busyAction === `problem:${props.delivery.id}`}
           onClick={() => props.onProblem(problemNotes.trim())}
         >
-          Salvar problema
+          Avisar loja
         </button>
-      </details>
+      </div>
 
       <button
         className="secondaryButton"
@@ -962,7 +1023,7 @@ function DeliveryActions(props: {
         }}
       >
         <Clock3 size={18} />
-        {historyLoading ? "Carregando..." : "Historico"}
+        {historyLoading ? "Carregando..." : "Ver historico"}
       </button>
       {showHistory ? (
         <History
@@ -1142,8 +1203,10 @@ function StateBlock({
   text?: string;
   action?: React.ReactNode;
 }) {
+  const roleProps = tone === "danger" ? { role: "alert" } : { role: "status" };
+
   return (
-    <div className={`stateBlock ${tone}`} role={tone === "danger" ? "alert" : "status"}>
+    <div className={`stateBlock ${tone}`} {...roleProps}>
       {icon ? <span className={tone === "loading" ? "spin stateIcon" : "stateIcon"}>{icon}</span> : null}
       <strong>{title}</strong>
       {text ? <p>{text}</p> : null}
@@ -1178,6 +1241,51 @@ async function requestNotificationPermission() {
   }
 }
 
+async function preferredAvailability(session: AuthSession, serviceArea: CourierServiceArea) {
+  const savedAvailability = localStorage.getItem(AVAILABILITY_KEY);
+  const nextAvailable = savedAvailability == null ? true : savedAvailability === "true";
+  localStorage.setItem(AVAILABILITY_KEY, String(nextAvailable));
+  if (!session.courier?.id) return false;
+
+  await updateAvailability({
+    courierId: session.courier.id,
+    available: nextAvailable,
+    serviceArea,
+  }).catch(() => undefined);
+
+  return nextAvailable;
+}
+
+function locationWatchText(input: {
+  fallback: string;
+  trackingEnabled: boolean;
+  operationallyActive: boolean;
+  lastLocationSentAt: Date | null;
+}) {
+  if (!input.operationallyActive) return input.fallback;
+  if (!input.trackingEnabled) return "GPS ao vivo ainda nao ligou. Confira a permissao de localizacao.";
+  if (!input.lastLocationSentAt) return "Aguardando o primeiro envio automatico de localizacao.";
+
+  const ageMs = Date.now() - input.lastLocationSentAt.getTime();
+  if (ageMs <= LOCATION_STALE_WARNING_MS) {
+    return `GPS ao vivo atualizado ha ${Math.max(0, Math.round(ageMs / 1000))}s.`;
+  }
+
+  return `A loja esta sem localizacao nova ha ${Math.round(ageMs / 1000)}s. Mantenha o app aberto e confira o GPS.`;
+}
+
+async function requestLocationPermission() {
+  if (!navigator.geolocation) return false;
+
+  return new Promise<boolean>((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      () => resolve(true),
+      () => resolve(false),
+      { enableHighAccuracy: true, maximumAge: 30000, timeout: 8000 },
+    );
+  });
+}
+
 function showLocalNotification(title: string, body: string) {
   if (!("Notification" in window) || Notification.permission !== "granted") return;
   try {
@@ -1195,4 +1303,16 @@ function stopOpenAppTracking(watchIdRef: { current: number | null }) {
   if (watchIdRef.current === null || !navigator.geolocation) return;
   navigator.geolocation.clearWatch(watchIdRef.current);
   watchIdRef.current = null;
+}
+
+function syncCourierAvailabilityWithServiceWorker(available: boolean) {
+  if (!("serviceWorker" in navigator)) return;
+  navigator.serviceWorker.ready
+    .then((registration) => {
+      registration.active?.postMessage({
+        type: "FARMADELIVERY_COURIER_AVAILABILITY",
+        available,
+      });
+    })
+    .catch(() => undefined);
 }

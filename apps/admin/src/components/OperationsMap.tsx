@@ -3,6 +3,7 @@ import { Bike, Building2, Home, Route } from "lucide-react";
 import { useState } from "react";
 import { MapContainer, Marker, Polyline, Popup, TileLayer } from "react-leaflet";
 import { mapRawRouteStatusLabel } from "../apiMappers";
+import { courierGpsHealth, gpsHealthSummary } from "../gpsHealth";
 import { buildOperationsMapDeliverySummary } from "../operationsMapSummary";
 import { routeStopMapLabel } from "../routeStopDisplay";
 import type { Courier, CourierRoute, Delivery, DeliveryStatus, StoreUnit } from "../types";
@@ -85,6 +86,7 @@ export function OperationsMap({
     total: deliveries.length,
     located: deliveriesWithCoordinates.length,
   });
+  const gpsSummary = gpsHealthSummary(couriers);
   const activeRouteLines = buildRouteLines(courierRoutes, couriers);
   const hasMapData =
     storesWithCoordinates.length > 0 ||
@@ -97,9 +99,11 @@ export function OperationsMap({
       <div className="sectionHeader">
         <div>
           <span className="eyebrow">Mapa operacional</span>
-          <h2>Motoboys e lojas</h2>
+          <h2>Mapa ao vivo dos motoboys</h2>
         </div>
-        <span className="liveBadge">ao vivo</span>
+        <span className="liveBadge">
+          {couriers.length ? `${gpsSummary.fresh}/${couriers.length} GPS agora` : "ao vivo"}
+        </span>
       </div>
 
       <div className="mapFilters" aria-label="Filtros do mapa">
@@ -186,6 +190,8 @@ export function OperationsMap({
                   <strong>{courier.name}</strong>
                   <br />
                   {courier.status} - {courier.store}
+                  <br />
+                  {courierGpsHealth(courier.lastLocationAt).label}
                 </Popup>
               </Marker>
             ))}
@@ -226,7 +232,9 @@ export function OperationsMap({
         <div className="emptyMapState">
           <MapPinIcon />
           <strong>Nada para mostrar no mapa ainda</strong>
-          <span>Lojas, motoboys com localizacao e entregas com ponto no mapa aparecem aqui automaticamente.</span>
+          <span>
+            O motoboy aparece depois de abrir o app, permitir GPS, comecar corridas e aguardar o primeiro envio automatico.
+          </span>
         </div>
       ) : null}
 
@@ -250,20 +258,27 @@ export function OperationsMap({
       {activeSection === "couriers" ? (
         <div className="courierList" id="motoboys">
           {couriers.length === 0 ? (
-            <StateBlock title="Nenhum motoboy com localizacao" description="Quando o app do motoboy enviar a posicao, ele aparece aqui." />
+            <StateBlock
+              title="Nenhum motoboy com localizacao"
+              description="Abra o app do motoboy, libere GPS, ative corridas e aguarde o primeiro envio automatico de localizacao."
+            />
           ) : (
-            couriers.map((courier) => (
-              <div className="courierRow" key={courier.id ?? courier.name}>
-                <span className="avatar">{courier.name.slice(0, 1)}</span>
-                <div>
-                  <strong>{courier.name}</strong>
-                  <small>
-                    {courier.store} - {courier.deliveries} entregas
-                  </small>
+            couriers.map((courier) => {
+              const locationFreshness = courierGpsHealth(courier.lastLocationAt);
+              return (
+                <div className="courierRow" key={courier.id ?? courier.name}>
+                  <span className="avatar">{courier.name.slice(0, 1)}</span>
+                  <div>
+                    <strong>{courier.name}</strong>
+                    <small>
+                      {courier.store} - {courier.deliveries} entregas
+                    </small>
+                    <small className={`locationFreshness ${locationFreshness.tone}`}>Ultimo GPS: {locationFreshness.label}</small>
+                  </div>
+                  <span className={`statusPill ${courier.status === "Ocorrencia" ? "issue" : ""}`}>{courier.status}</span>
                 </div>
-                <span className={`statusPill ${courier.status === "Ocorrencia" ? "issue" : ""}`}>{courier.status}</span>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       ) : null}

@@ -1,7 +1,4 @@
 import { createHash, randomUUID } from "node:crypto";
-import { constants, createReadStream } from "node:fs";
-import { access, mkdir, unlink, writeFile } from "node:fs/promises";
-import path from "node:path";
 import type { FastifyBaseLogger, FastifyInstance, FastifyReply } from "fastify";
 import type { Prisma } from "@prisma/client";
 import {
@@ -20,11 +17,17 @@ import {
   uploadDeliveryProofSchema,
   uuidSchema,
 } from "../contracts";
+import { broadcastLiveEvent } from "../liveEvents";
 import { validationError } from "../http";
 import { prisma } from "../prisma";
 import { buildDeliveryPublicCode, resolveDeliverySequenceDate } from "../deliveryPublicCode";
 import { formatDeliveryMutationResponse } from "../deliveryMutationResponse";
-import { resolveDeliveryProofStorageRoot } from "../deliveryProofStorage";
+import {
+  buildDeliveryProofStoragePath,
+  readDeliveryProofBinary,
+  removeDeliveryProofBinaryIfExists,
+  writeDeliveryProofBinary,
+} from "../deliveryProofStorage";
 import { buildDeliveryReport, buildDeliveryReportCsv } from "../deliveryReport";
 import { requireAuth } from "../auth";
 import {
@@ -50,6 +53,8 @@ import {
 } from "../supabaseRest";
 import { isCourierPushConfigured, sendCourierPushNotification } from "../notifications";
 import { deliveryCreationNotes } from "../deliveryCreationAudit";
+import { normalizePhoneForStorage, phoneLookupCandidates } from "../phone";
+import { addressHasDifferentCoordinates, findMatchingCustomerAddress } from "../customerAddressIdentity";
 
 const DELIVERY_REPORT_EXPORT_DEFAULT_LIMIT = 5000;
 const DELIVERY_REPORT_EXPORT_PAGE_SIZE = 5000;
@@ -490,17 +495,19 @@ export async function deliveryRoutes(app: FastifyInstance) {
     if (!session) return;
 
     const query = request.query as { phone?: string };
-    const phone = query.phone?.trim();
+    const phone = normalizePhoneForStorage(query.phone);
     if (!phone || phone.length < 8) {
       return reply.status(400).send({
         error: "VALIDATION_ERROR",
         message: "Informe um telefone com pelo menos 8 caracteres.",
       });
     }
+    const phoneCandidates = phoneLookupCandidates(query.phone);
+    const phoneRestFilters = phoneCandidates.map((candidate) => `phone.eq.${encodeURIComponent(candidate)}`).join(",");
 
     try {
-      const customer = await prisma.customer.findUnique({
-        where: { phone },
+      const customer = await prisma.customer.findFirst({
+        where: { phone: { in: phoneCandidates } },
         include: {
           addresses: {
             where: { active: true },
@@ -531,7 +538,7 @@ export async function deliveryRoutes(app: FastifyInstance) {
       app.log.error({ error }, "customer lookup error");
       if (canUseSupabaseRest()) {
         const customers = await supabaseRest<SupabaseCustomer[]>("Customer", {
-          query: `select=*,CustomerAddress(*)&phone=eq.${encodeURIComponent(phone)}`,
+          query: `select=*,CustomerAddress(*)&or=(${phoneRestFilters})`,
         });
         const customer = customers[0];
         if (!customer) return reply.send(null);
@@ -570,13 +577,21 @@ export async function deliveryRoutes(app: FastifyInstance) {
 
     const parsed = createCustomerSchema.safeParse(request.body);
     if (!parsed.success) return validationError(reply, parsed.error);
+    const customerData = {
+      ...parsed.data,
+      phone: normalizePhoneForStorage(parsed.data.phone) ?? parsed.data.phone,
+    };
 
     try {
-      const customer = await prisma.customer.upsert({
-        where: { phone: parsed.data.phone },
-        update: { name: parsed.data.name },
-        create: parsed.data,
+      const existingCustomer = await prisma.customer.findFirst({
+        where: { phone: { in: phoneLookupCandidates(parsed.data.phone) } },
       });
+      const customer = existingCustomer
+        ? await prisma.customer.update({
+            where: { id: existingCustomer.id },
+            data: { name: customerData.name, phone: customerData.phone },
+          })
+        : await prisma.customer.create({ data: customerData });
 
       return reply.status(201).send({
         id: customer.id,
@@ -589,13 +604,8 @@ export async function deliveryRoutes(app: FastifyInstance) {
       app.log.error({ error }, "customer create error");
       if (canUseSupabaseRest()) {
         try {
-          const customers = await supabaseRest<SupabaseCustomer[]>("Customer", {
-            method: "POST",
-            query: "on_conflict=phone",
-            prefer: "resolution=merge-duplicates,return=representation",
-            body: parsed.data,
-          });
-          return reply.status(201).send({ ...customers[0], source: "supabase-rest" });
+          const customer = await upsertCustomerWithSupabaseRest(customerData);
+          return reply.status(201).send({ ...customer, source: "supabase-rest" });
         } catch (restError) {
           app.log.error({ error: restError }, "customer create supabase rest error");
         }
@@ -719,9 +729,11 @@ export async function deliveryRoutes(app: FastifyInstance) {
         deliveryId: result.id,
         publicCode: result.publicCode,
         earliestDispatchAt: result.earliestDispatchAt,
+        details: deliveryNotificationDetails(result),
         log: request.log,
       });
 
+      broadcastLiveEvent("deliveries", "delivery-created");
       return reply.status(201).send({
         ...formatCreatedDelivery(result),
         notification,
@@ -742,8 +754,10 @@ export async function deliveryRoutes(app: FastifyInstance) {
             deliveryId: result.id,
             publicCode: result.publicCode,
             earliestDispatchAt: result.earliestDispatchAt,
+            details: deliveryNotificationDetails(result),
             log: request.log,
           });
+          broadcastLiveEvent("deliveries", "delivery-created");
           return reply.status(201).send({
             ...result,
             notification,
@@ -766,6 +780,10 @@ export async function deliveryRoutes(app: FastifyInstance) {
 
     const parsed = createDeliveryWithCustomerSchema.safeParse(request.body);
     if (!parsed.success) return validationError(reply, parsed.error);
+    const deliveryData = {
+      ...parsed.data,
+      phone: normalizePhoneForStorage(parsed.data.phone) ?? parsed.data.phone,
+    };
     const sourceStoreId = await resolveWritableStoreId(session, parsed.data.storeId, reply);
     if (!sourceStoreId) return;
     const requestedRedirectStoreId = parsed.data.redirectStoreId;
@@ -775,35 +793,50 @@ export async function deliveryRoutes(app: FastifyInstance) {
         const targetStoreId = requestedRedirectStoreId ?? sourceStoreId;
         const redirectedFromStoreId =
           requestedRedirectStoreId && requestedRedirectStoreId !== sourceStoreId ? sourceStoreId : undefined;
-        const customer = await tx.customer.upsert({
-          where: { phone: parsed.data.phone },
-          update: { name: parsed.data.customerName },
-          create: {
-            name: parsed.data.customerName,
-            phone: parsed.data.phone,
-          },
+        const existingCustomer = await tx.customer.findFirst({
+          where: { phone: { in: phoneLookupCandidates(parsed.data.phone) } },
         });
+        const customer = existingCustomer
+          ? await tx.customer.update({
+              where: { id: existingCustomer.id },
+              data: { name: deliveryData.customerName, phone: deliveryData.phone },
+            })
+          : await tx.customer.create({
+              data: {
+                name: deliveryData.customerName,
+                phone: deliveryData.phone,
+              },
+            });
 
-        const address = parsed.data.customerAddressId
-          ? await tx.customerAddress
-              .findFirstOrThrow({
+        const existingAddress = parsed.data.customerAddressId
+          ? await tx.customerAddress.findFirstOrThrow({
+              where: {
+                id: parsed.data.customerAddressId,
+                customerId: customer.id,
+                active: true,
+              },
+            })
+          : findMatchingCustomerAddress(
+              await tx.customerAddress.findMany({
                 where: {
-                  id: parsed.data.customerAddressId,
                   customerId: customer.id,
                   active: true,
                 },
+                orderBy: { updatedAt: "desc" },
+              }),
+              parsed.data,
+            );
+
+        const address = existingAddress
+          ? parsed.data.coordinates
+            ? await tx.customerAddress.update({
+                where: { id: existingAddress.id },
+                data: {
+                  latitude: parsed.data.coordinates.latitude,
+                  longitude: parsed.data.coordinates.longitude,
+                },
               })
-              .then((existingAddress) =>
-                parsed.data.coordinates
-                  ? tx.customerAddress.update({
-                      where: { id: existingAddress.id },
-                      data: {
-                        latitude: parsed.data.coordinates.latitude,
-                        longitude: parsed.data.coordinates.longitude,
-                      },
-                    })
-                  : existingAddress,
-              )
+            : existingAddress
           : await tx.customerAddress.create({
               data: {
                 customerId: customer.id,
@@ -888,9 +921,11 @@ export async function deliveryRoutes(app: FastifyInstance) {
         deliveryId: result.id,
         publicCode: result.publicCode,
         earliestDispatchAt: result.earliestDispatchAt,
+        details: deliveryNotificationDetails(result),
         log: request.log,
       });
 
+      broadcastLiveEvent("deliveries", "delivery-created");
       return reply.status(201).send({
         id: result.id,
         publicCode: result.publicCode,
@@ -930,7 +965,7 @@ export async function deliveryRoutes(app: FastifyInstance) {
         try {
           const result = await createDeliveryWithSupabaseRest(
             {
-              ...parsed.data,
+              ...deliveryData,
               storeId: sourceStoreId,
               redirectStoreId: requestedRedirectStoreId,
             },
@@ -941,8 +976,10 @@ export async function deliveryRoutes(app: FastifyInstance) {
             deliveryId: result.id,
             publicCode: result.publicCode,
             earliestDispatchAt: result.earliestDispatchAt,
+            details: deliveryNotificationDetails(result),
             log: request.log,
           });
+          broadcastLiveEvent("deliveries", "delivery-created");
           return reply.status(201).send({
             ...result,
             notification,
@@ -965,7 +1002,7 @@ export async function deliveryRoutes(app: FastifyInstance) {
 
     const parsed = acceptDeliverySchema.safeParse(request.body);
     if (!parsed.success) return validationError(reply, parsed.error);
-    if (session.role === "MOTOBOY" && session.courierId !== parsed.data.courierId) {
+    if (!(await canSessionOperateCourier(session, parsed.data.courierId))) {
       return reply.status(403).send({
         error: "FORBIDDEN",
         message: "Motoboy so pode aceitar entregas para o proprio usuario.",
@@ -1022,6 +1059,8 @@ export async function deliveryRoutes(app: FastifyInstance) {
         return delivery;
       });
 
+      broadcastLiveEvent("deliveries", "delivery-accepted");
+      broadcastLiveEvent("routes", "route-updated");
       return reply.send(formatDeliveryMutationResponse(result));
     } catch (error) {
       if (error instanceof CourierUnavailableError) {
@@ -1060,6 +1099,8 @@ export async function deliveryRoutes(app: FastifyInstance) {
             body: { available: false },
           });
           await attachDeliveryToCourierRouteWithSupabaseRest(parsed.data.courierId, parsed.data.deliveryId);
+          broadcastLiveEvent("deliveries", "delivery-accepted");
+          broadcastLiveEvent("routes", "route-updated");
           return reply.send(result);
         } catch (restError) {
           app.log.error({ error: restError }, "delivery accept supabase rest error");
@@ -1257,14 +1298,14 @@ export async function deliveryRoutes(app: FastifyInstance) {
         });
       }
 
-      await access(proof.storagePath, constants.R_OK);
+      const proofBinary = await readDeliveryProofBinary(proof.storagePath, proof.mimeType);
 
       return reply
-        .header("Content-Type", proof.mimeType)
+        .header("Content-Type", proofBinary.mimeType)
         .header("Cache-Control", "private, no-store")
         .header("X-Content-Type-Options", "nosniff")
         .header("Content-Disposition", `inline; filename="${sanitizeDownloadFileName(proof.fileName)}"`)
-        .send(createReadStream(proof.storagePath));
+        .send(proofBinary.bytes);
     } catch (error) {
       app.log.error({ error }, "delivery proof file error");
       return reply.status(404).send({
@@ -1630,12 +1671,13 @@ async function resolveWritableStoreId(
 
 /** Garante que motoboy so altere entregas ja aceitas por ele. */
 async function canMotoboyOperateDelivery(
-  session: { role: string; courierId?: string | null },
+  session: { sub: string; role: string; courierId?: string | null },
   deliveryId: string,
   reply: FastifyReply,
 ) {
   if (session.role !== "MOTOBOY") return true;
-  if (!session.courierId) {
+  const courierId = await resolveSessionCourierId(session);
+  if (!courierId) {
     reply.status(403).send({
       error: "FORBIDDEN",
       message: "Motoboy sem cadastro operacional vinculado.",
@@ -1646,7 +1688,7 @@ async function canMotoboyOperateDelivery(
   const delivery = await loadDeliveryAccess(deliveryId, reply);
   if (!delivery) return false;
 
-  if (delivery?.courierId !== session.courierId) {
+  if (delivery?.courierId !== courierId) {
     reply.status(403).send({
       error: "FORBIDDEN",
       message: "Motoboy so pode alterar entregas aceitas por ele.",
@@ -1655,6 +1697,32 @@ async function canMotoboyOperateDelivery(
   }
 
   return true;
+}
+
+async function canSessionOperateCourier(session: { sub: string; role: string; courierId?: string | null }, courierId: string) {
+  if (session.role !== "MOTOBOY") return true;
+  const sessionCourierId = await resolveSessionCourierId(session);
+  return sessionCourierId === courierId;
+}
+
+async function resolveSessionCourierId(session: { sub: string; role: string; courierId?: string | null }) {
+  if (session.role !== "MOTOBOY") return session.courierId ?? null;
+  if (session.courierId) return session.courierId;
+
+  try {
+    const courier = await prisma.courier.findUnique({
+      where: { userId: session.sub },
+      select: { id: true },
+    });
+    return courier?.id ?? null;
+  } catch (error) {
+    if (!canUseSupabaseRest()) throw error;
+  }
+
+  const couriers = await supabaseRest<Array<{ id: string }>>("Courier", {
+    query: `select=id&userId=eq.${session.sub}&limit=1`,
+  });
+  return couriers[0]?.id ?? null;
 }
 
 /** Garante que usuario de loja so altere entrega de loja vinculada ou alocada. */
@@ -1996,6 +2064,8 @@ async function transitionDelivery({
 
     await syncRouteForDeliveryTransition(result.id, status);
 
+    broadcastLiveEvent("deliveries", "delivery-updated");
+    broadcastLiveEvent("routes", "route-updated");
     return reply.send(formatDeliveryMutationResponse(result));
   } catch (error) {
     app.log.error({ error }, "delivery transition error");
@@ -2013,6 +2083,8 @@ async function transitionDelivery({
           ),
         });
         await syncRouteForDeliveryTransitionWithSupabaseRest(deliveryId, status);
+        broadcastLiveEvent("deliveries", "delivery-updated");
+        broadcastLiveEvent("routes", "route-updated");
         return reply.send(result);
       } catch (restError) {
         app.log.error({ error: restError }, "delivery transition supabase rest error");
@@ -2052,12 +2124,10 @@ async function saveDeliveryProof({
   const extension = extensionForImageMimeType(detectedMimeType);
   const proofId = randomUUID();
   const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, "_").replace(/\.(jpg|jpeg|png|webp)$/i, "").slice(0, 80);
-  const storageDirectory = path.join(resolveDeliveryProofStorageRoot(), deliveryId);
   const storedFileName = `${proofId}-${safeName || "proof"}.${extension}`;
-  const storagePath = path.join(storageDirectory, storedFileName);
+  const storagePath = buildDeliveryProofStoragePath(deliveryId, storedFileName);
 
-  await mkdir(storageDirectory, { recursive: true });
-  await writeFile(storagePath, bytes);
+  await writeDeliveryProofBinary(storagePath, bytes, detectedMimeType);
 
   const proofData = {
     id: proofId,
@@ -2106,18 +2176,9 @@ async function saveDeliveryProof({
       if (!proof) throw new Error("Delivery proof was not returned by Supabase REST.");
       return proof;
     } catch (databaseError) {
-      await removeFileIfExists(storagePath);
+      await removeDeliveryProofBinaryIfExists(storagePath);
       throw databaseError;
     }
-  }
-}
-
-/** Remove arquivo fisico quando o banco falha depois de gravar o comprovante no disco. */
-async function removeFileIfExists(filePath: string) {
-  try {
-    await unlink(filePath);
-  } catch {
-    // Best-effort cleanup: the caller should still receive the original database error.
   }
 }
 
@@ -2249,6 +2310,42 @@ function formatAddress(address: {
   neighborhood?: string | null;
 }) {
   return [address.street, address.number, address.complement, address.neighborhood].filter(Boolean).join(", ");
+}
+
+function deliveryNotificationDetails(delivery: {
+  customer?: { id?: string | null; name?: string | null } | null;
+  address?: {
+    id?: string | null;
+    street?: string | null;
+    number?: string | null;
+    complement?: string | null;
+    neighborhood?: string | null;
+    latitude?: number | string | null;
+    longitude?: number | string | null;
+  } | null;
+  customerAddress?: {
+    street?: string | null;
+    number?: string | null;
+    complement?: string | null;
+    neighborhood?: string | null;
+    latitude?: unknown;
+    longitude?: unknown;
+  } | null;
+}) {
+  const address = delivery.customerAddress ?? delivery.address;
+  return {
+    customerName: delivery.customer?.name ?? null,
+    address: address
+      ? formatAddress({
+          street: address.street ?? "",
+          number: address.number ?? "",
+          complement: address.complement,
+          neighborhood: address.neighborhood,
+        })
+      : null,
+    latitude: address?.latitude == null ? null : String(address.latitude),
+    longitude: address?.longitude == null ? null : String(address.longitude),
+  };
 }
 
 /** Normaliza endereco de cliente para o contrato do painel e do app motoboy. */
@@ -2496,42 +2593,22 @@ async function createDeliveryWithSupabaseRest(data: typeof createDeliveryWithCus
   const operationalActorId = requireOperationalActorId(actorUserId);
   const targetStoreId = data.redirectStoreId ?? data.storeId;
   const redirectedFromStoreId = data.redirectStoreId && data.redirectStoreId !== data.storeId ? data.storeId : undefined;
-  const customers = await supabaseRest<SupabaseCustomer[]>("Customer", {
-    method: "POST",
-    query: "on_conflict=phone",
-    prefer: "resolution=merge-duplicates,return=representation",
-    body: {
-      name: data.customerName,
-      phone: data.phone,
-    },
+  const customer = await upsertCustomerWithSupabaseRest({
+    name: data.customerName,
+    phone: data.phone,
   });
-  const customer = customers[0];
-  if (!customer) throw new Error("Customer was not returned by Supabase REST.");
 
   const addresses = data.customerAddressId
     ? await supabaseRest<SupabaseCustomerAddress[]>("CustomerAddress", {
         query: `select=*&id=eq.${data.customerAddressId}&customerId=eq.${customer.id}&active=eq.true`,
       })
-    : await supabaseRest<SupabaseCustomerAddress[]>("CustomerAddress", {
-        method: "POST",
-        prefer: "return=representation",
-        body: {
-          customerId: customer.id,
-          street: data.street,
-          number: data.number,
-          complement: data.complement,
-          neighborhood: data.neighborhood,
-          reference: data.reference,
-          latitude: data.coordinates?.latitude,
-          longitude: data.coordinates?.longitude,
-        },
-      });
+    : await resolveCustomerAddressWithSupabaseRest(customer.id, data);
   const address = addresses[0];
   if (!address) throw new Error("CustomerAddress was not returned by Supabase REST.");
-  if (data.customerAddressId && data.coordinates) {
+  if (data.coordinates && addressHasDifferentCoordinates(address, data.coordinates)) {
     await supabaseRest("CustomerAddress", {
       method: "PATCH",
-      query: `id=eq.${data.customerAddressId}`,
+      query: `id=eq.${address.id}`,
       body: {
         latitude: data.coordinates.latitude,
         longitude: data.coordinates.longitude,
@@ -2647,6 +2724,67 @@ async function createDeliveryWithSupabaseRest(data: typeof createDeliveryWithCus
     })),
     source: "supabase-rest",
   };
+}
+
+async function resolveCustomerAddressWithSupabaseRest(
+  customerId: string,
+  data: typeof createDeliveryWithCustomerSchema._output,
+) {
+  const existingAddresses = await supabaseRest<SupabaseCustomerAddress[]>("CustomerAddress", {
+    query: `select=*&customerId=eq.${customerId}&active=eq.true&order=updatedAt.desc`,
+  });
+  const existingAddress = findMatchingCustomerAddress(existingAddresses, data);
+  if (existingAddress) return [existingAddress];
+
+  return supabaseRest<SupabaseCustomerAddress[]>("CustomerAddress", {
+    method: "POST",
+    prefer: "return=representation",
+    body: {
+      customerId,
+      street: data.street,
+      number: data.number,
+      complement: data.complement,
+      neighborhood: data.neighborhood,
+      reference: data.reference,
+      latitude: data.coordinates?.latitude,
+      longitude: data.coordinates?.longitude,
+    },
+  });
+}
+
+async function upsertCustomerWithSupabaseRest(data: { name: string; phone: string }) {
+  const phone = normalizePhoneForStorage(data.phone) ?? data.phone;
+  const phoneFilters = phoneLookupCandidates(data.phone).map((candidate) => `phone.eq.${encodeURIComponent(candidate)}`).join(",");
+  const existingCustomers = await supabaseRest<SupabaseCustomer[]>("Customer", {
+    query: `select=*&or=(${phoneFilters})&limit=1`,
+  });
+  const existingCustomer = existingCustomers[0];
+
+  if (existingCustomer) {
+    const customers = await supabaseRest<SupabaseCustomer[]>("Customer", {
+      method: "PATCH",
+      query: `id=eq.${existingCustomer.id}`,
+      prefer: "return=representation",
+      body: {
+        name: data.name,
+        phone,
+      },
+    });
+    return customers[0] ?? { ...existingCustomer, name: data.name, phone };
+  }
+
+  const customers = await supabaseRest<SupabaseCustomer[]>("Customer", {
+    method: "POST",
+    query: "on_conflict=phone",
+    prefer: "resolution=merge-duplicates,return=representation",
+    body: {
+      name: data.name,
+      phone,
+    },
+  });
+  const customer = customers[0];
+  if (!customer) throw new Error("Customer was not returned by Supabase REST.");
+  return customer;
 }
 
 async function updateDeliveryStatusWithSupabaseRest({
@@ -2886,6 +3024,12 @@ async function notifyNewDeliveryIfDispatchable(data: {
   deliveryId: string;
   publicCode: string;
   earliestDispatchAt?: Date | string | null;
+  details?: {
+    customerName?: string | null;
+    address?: string | null;
+    latitude?: number | string | null;
+    longitude?: number | string | null;
+  };
   log: FastifyBaseLogger;
 }) {
   if (data.earliestDispatchAt && new Date(data.earliestDispatchAt).getTime() > Date.now()) {
@@ -2941,6 +3085,10 @@ async function notifyNewDeliveryIfDispatchable(data: {
             deliveryId: data.deliveryId,
             publicCode: data.publicCode,
             storeId: data.storeId,
+            customerName: data.details?.customerName,
+            address: data.details?.address,
+            latitude: data.details?.latitude == null ? null : String(data.details.latitude),
+            longitude: data.details?.longitude == null ? null : String(data.details.longitude),
           },
           log: data.log,
         }),

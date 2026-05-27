@@ -38,7 +38,6 @@ export function buildThermalReceiptHtml(delivery: Delivery, options: ThermalRece
     ["Prioridade", delivery.priority],
     ["Prazo", delivery.deadlineTier],
     ...(delivery.notes?.trim() ? [["Pagamento/obs.", delivery.notes.trim()]] : []),
-    ["Motoboy", delivery.courier],
     ...(delivery.dispatchedAt ? [["Aceite", delivery.dispatchedAt]] : []),
     ...(delivery.collectedAt ? [["Coleta", delivery.collectedAt]] : []),
     ...(delivery.deliveredAt ? [["Entrega", delivery.deliveredAt]] : []),
@@ -115,6 +114,12 @@ export function buildThermalReceiptHtml(delivery: Delivery, options: ThermalRece
         break-inside: avoid;
       }
 
+      .row.stacked {
+        grid-template-columns: 1fr;
+        gap: 1px;
+        margin-top: 4px;
+      }
+
       .label {
         font-weight: 800;
       }
@@ -175,7 +180,8 @@ export function printThermalReceipt(delivery: Delivery, options: ThermalReceiptO
 
 /** Monta uma linha label/valor da comanda, destacando endereco por ser o dado mais importante. */
 function receiptRow(label: string, value: string, important = false) {
-  return `<div class="row${important ? " address" : ""}">
+  const stacked = label === "Pagamento/obs.";
+  return `<div class="row${important ? " address" : ""}${stacked ? " stacked" : ""}">
     <span class="label">${escapeHtml(label)}</span>
     <span class="value">${escapeHtml(value || "-")}</span>
   </div>`;

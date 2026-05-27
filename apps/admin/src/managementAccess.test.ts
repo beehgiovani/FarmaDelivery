@@ -184,6 +184,26 @@ test("builds courier access card with phone login when email is absent", () => {
   );
 });
 
+test("builds access card with name login when email and phone are absent", () => {
+  assert.deepEqual(
+    buildCreatedAccessCard({
+      name: "Loja Operacional",
+      email: "",
+      phone: "",
+      password: "FarmaLoja123",
+      role: "GERENTE",
+      storeName: "Loja Operacional",
+    }),
+    {
+      name: "Loja Operacional",
+      login: "Loja Operacional",
+      password: "FarmaLoja123",
+      role: "GERENTE",
+      storeName: "Loja Operacional",
+    },
+  );
+});
+
 test("generates initial passwords with stable prefix and requested entropy length", () => {
   const password = generateInitialPassword(() => Uint8Array.from([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]));
 

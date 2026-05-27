@@ -1,6 +1,6 @@
 import type { FormEvent, ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
-import { LocateFixed, MapPin, MapPinned, Phone, Printer, Search, UserRound } from "lucide-react";
+import { LocateFixed, MapPin, MapPinned, Phone, PlusCircle, Printer, Search, UserRound } from "lucide-react";
 import { createDelivery, geocodeAddress, lookupCustomerByPhone, type CreatedDeliveryResult } from "../api";
 import { apiDeadlineTierFromDeliveryDeadlineTier, mapDeliveryDeadlineTier, mapDeliveryPriority, mapDeliveryStatus } from "../apiMappers";
 import { buildAttendantReferenceOptions } from "../attendantReferences";
@@ -204,6 +204,11 @@ export function DeliveryForm({ stores, redirectStores = stores, attendants = [],
       setForm((current) => ({ ...current, [key]: formatBrazilianMoneyInput(String(value)) }));
       return;
     }
+    if (key === "phone") {
+      setCustomerLookup(null);
+      setSelectedAddressId("");
+      setLookupState("idle");
+    }
     if (["street", "number", "complement", "neighborhood", "latitude", "longitude"].includes(key)) {
       setSelectedAddressId("");
     }
@@ -352,6 +357,23 @@ export function DeliveryForm({ stores, redirectStores = stores, attendants = [],
     }));
   }
 
+  function startNewAddressForCustomer() {
+    setSelectedAddressId("");
+    setGeocodeOptions([]);
+    setGeocodeState("idle");
+    setForm((current) => ({
+      ...current,
+      street: "",
+      number: "",
+      complement: "",
+      neighborhood: "",
+      latitude: "",
+      longitude: "",
+    }));
+    setActiveSection("endereco");
+    setFeedback("Preencha o novo endereco; ele ficara salvo neste telefone.");
+  }
+
   return (
     <section className="deliveryForm" aria-label="Criar entrega">
       <div className="sectionHeader">
@@ -398,27 +420,48 @@ export function DeliveryForm({ stores, redirectStores = stores, attendants = [],
                 disabled={formBusy}
                 onChange={(value) => update("customerName", value)}
               />
-              {customerLookup?.addresses.length ? (
-                <label className="inputGroup wide">
-                  <span>Enderecos do cliente</span>
-                  <select
-                    value={selectedAddressId}
-                    disabled={formBusy}
-                    onChange={(event) => {
-                      const address = customerLookup.addresses.find((item) => item.id === event.target.value);
-                      if (address) {
-                        applyAddress(address);
-                        setActiveSection("endereco");
-                      }
-                    }}
-                  >
-                    {customerLookup.addresses.map((address) => (
-                      <option key={address.id} value={address.id}>
-                        {formatAddressOption(address)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+              {customerLookup ? (
+                <div className="customerLookupCard wideHint">
+                  <div>
+                    <strong>Cliente encontrado</strong>
+                    <span>
+                      {customerLookup.name} - {customerLookup.phone}
+                    </span>
+                  </div>
+                  {customerLookup.addresses.length ? (
+                    <label className="inputGroup">
+                      <span>Enderecos salvos</span>
+                      <select
+                        value={selectedAddressId}
+                        disabled={formBusy}
+                        onChange={(event) => {
+                          if (!event.target.value) {
+                            startNewAddressForCustomer();
+                            return;
+                          }
+                          const address = customerLookup.addresses.find((item) => item.id === event.target.value);
+                          if (address) {
+                            applyAddress(address);
+                            setActiveSection("endereco");
+                          }
+                        }}
+                      >
+                        {customerLookup.addresses.map((address) => (
+                          <option key={address.id} value={address.id}>
+                            {formatAddressOption(address)}
+                          </option>
+                        ))}
+                        <option value="">Novo endereco para este cliente</option>
+                      </select>
+                    </label>
+                  ) : (
+                    <div className="fieldHint">Cliente encontrado, mas sem endereco salvo.</div>
+                  )}
+                  <button className="secondaryButton" type="button" disabled={formBusy} onClick={startNewAddressForCustomer}>
+                    <PlusCircle size={16} />
+                    Novo endereco para este cliente
+                  </button>
+                </div>
               ) : lookupState === "found" ? (
                 <div className="fieldHint wideHint">Cliente encontrado, mas sem endereco salvo. Preencha um novo endereco.</div>
               ) : null}
@@ -443,6 +486,11 @@ export function DeliveryForm({ stores, redirectStores = stores, attendants = [],
                 onChange={(value) => update("complement", value)}
               />
               <Field label="Bairro" value={form.neighborhood} disabled={formBusy} onChange={(value) => update("neighborhood", value)} />
+              {selectedAddressId ? (
+                <div className="fieldHint wideHint">Usando endereco salvo deste cliente. Qualquer alteracao aqui vira um novo endereco.</div>
+              ) : customerLookup ? (
+                <div className="fieldHint wideHint">Novo endereco para este cliente. Ao lancar, ele ficara disponivel nas proximas entregas.</div>
+              ) : null}
               <div className="geocodeActions">
                 <button
                   className="secondaryButton"

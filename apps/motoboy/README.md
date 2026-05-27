@@ -41,7 +41,8 @@ Configurado no projeto Android local.
 - Tela de rota atual consumindo `GET /courier-routes`, com paradas pendentes agrupadas e ordenadas.
 - Protecao para rotas sem parada navegavel, omitindo botao de mapas e mostrando aviso.
 - Envio manual da localizacao atual para `POST /couriers/location`.
-- Envio automatico de localizacao por `ForegroundService` a cada 60 segundos enquanto ativado.
+- Envio automatico de localizacao por `ForegroundService` a cada 15 segundos enquanto o motoboy estiver disponivel ou com entrega em atendimento.
+- Bloco de permissao "GPS em tempo integral" para orientar o motoboy a liberar localizacao o tempo todo quando o Android exigir configuracao manual.
 - Registro automatico do token FCM em `POST /couriers/{courierId}/device-token`.
 - Atualizacao do token FCM quando o Firebase gera um novo token.
 - Canal Android `deliveries` e `FirebaseMessagingService` para notificacoes de nova entrega, cancelamento e atualizacoes.
@@ -142,7 +143,7 @@ Use este roteiro quando houver API publicada ou API local acessivel pelo emulado
 4. Abrir o app, fazer login com um usuario `MOTOBOY` e confirmar que usuarios de loja ou balconista/caixa nao entram no fluxo de campo.
 5. Escolher a praca de atendimento e conferir se a lista de entregas livres muda conforme a praca selecionada.
 6. Ativar disponibilidade e permitir notificacoes no Android 13+ quando o sistema solicitar.
-7. Permitir localizacao, enviar localizacao manualmente e confirmar no painel que o motoboy aparece atualizado.
+7. Permitir localizacao, conferir o bloco `GPS em tempo integral` quando aparecer, ativar disponibilidade e confirmar no painel que o motoboy aparece atualizado automaticamente no mapa; o envio manual fica apenas como apoio.
 8. Aceitar uma entrega, coletar, sair em rota e abrir o app de mapas por rota/parada navegavel.
 9. Conferir na tela da entrega os dados operacionais de pagamento, valor, telefone, endereco, observacoes e numero diario quando a API enviar.
 10. Concluir entrega com confirmacao textual; quando aplicavel, anexar foto de comprovante e confirmar que o historico no painel mostra o evento.
@@ -161,18 +162,17 @@ Use este roteiro quando houver API publicada ou API local acessivel pelo emulado
 
 Estado atual do app Android:
 
-- O Manifest declara `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION`, `FOREGROUND_SERVICE` e `FOREGROUND_SERVICE_LOCATION`.
-- O Manifest nao declara `ACCESS_BACKGROUND_LOCATION`.
-- O rastreamento automatico roda em `ForegroundService` do tipo `location`, com notificacao persistente, iniciado pelo fluxo do motoboy logado e parado no logout/parada manual.
+- O Manifest declara `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION`, `ACCESS_BACKGROUND_LOCATION`, `FOREGROUND_SERVICE` e `FOREGROUND_SERVICE_LOCATION`.
+- O rastreamento automatico roda em `ForegroundService` do tipo `location`, com notificacao persistente, iniciado pelo fluxo do motoboy logado quando ele fica disponivel e parado no logout, indisponibilidade ou parada manual.
+- Em Android 11+, o app orienta o motoboy a abrir as configuracoes do app para liberar `Permitir o tempo todo`, pois o sistema nao mostra essa opcao no mesmo dialogo inicial de localizacao.
 - A localizacao e usada para atualizar a posicao operacional do motoboy durante atendimento/disponibilidade, nao para rastreamento invisivel fora do fluxo de campo.
 
 Para publicacao externa na Play Store:
 
 1. Declarar no Play Console o tipo de foreground service `location` quando exigido pelo target SDK.
 2. Manter texto de permissao e tela de contexto explicando que a localizacao atualiza a posicao do motoboy durante a operacao de entrega.
-3. Nao adicionar `ACCESS_BACKGROUND_LOCATION` enquanto o produto nao exigir localizacao com o app fechado ou iniciado a partir do background.
-4. Se `ACCESS_BACKGROUND_LOCATION` virar requisito, preparar disclosure especifico, declaracao de permissao sensivel no Play Console, revisao de LGPD e teste em Android 10+ antes do envio.
-5. Revalidar no aparelho que o servico so permanece ativo com notificacao visivel e que o logout/parada encerra o envio de localizacao.
+3. Como `ACCESS_BACKGROUND_LOCATION` esta declarado, preparar disclosure especifico, declaracao de permissao sensivel no Play Console, revisao de LGPD e teste em Android 10+ antes do envio externo.
+4. Revalidar no aparelho que o servico so permanece ativo com notificacao visivel e que logout, indisponibilidade ou parada manual encerram o envio de localizacao.
 
 ## Cuidados
 
@@ -182,6 +182,6 @@ Para publicacao externa na Play Store:
 - Token FCM e dado sensivel: nao registrar em log, tela ou documentacao.
 - Android 13+ exige permissao `POST_NOTIFICATIONS`.
 - O servico automatico usa notificacao persistente e para no logout.
-- Nao solicitar localizacao em background sem decisao explicita de produto, justificativa de core feature e preparacao de declaracao na Play Store.
+- A permissao de background location exige justificativa de core feature, tela de contexto clara e preparacao de declaracao na Play Store antes de publicacao externa.
 - Foto de comprovante e enviada ao backend somente quando o motoboy confirma a entrega.
 - Manter paridade de contrato com `apps/motoboy-pwa` e com os tipos/respostas da API.

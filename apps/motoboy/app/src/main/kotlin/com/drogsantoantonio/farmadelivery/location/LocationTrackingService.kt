@@ -91,6 +91,7 @@ class LocationTrackingService : Service() {
               longitude = location.longitude,
               available = null,
             )
+            sessionPreferences.setLastLocationSentAt(System.currentTimeMillis())
           }
         }
         delay(LOCATION_SEND_INTERVAL_MS)
@@ -119,8 +120,8 @@ class LocationTrackingService : Service() {
 
     return NotificationCompat.Builder(this, LOCATION_NOTIFICATION_CHANNEL_ID)
       .setSmallIcon(R.drawable.ic_logo)
-      .setContentTitle("Localizacao ativa")
-      .setContentText("Atualizando sua posicao para a loja.")
+      .setContentTitle("GPS ao vivo ligado")
+      .setContentText("A loja esta recebendo sua localizacao automaticamente.")
       .setOngoing(true)
       .setPriority(NotificationCompat.PRIORITY_LOW)
       .setContentIntent(pendingIntent)
@@ -138,7 +139,7 @@ class LocationTrackingService : Service() {
     private const val ACTION_STOP = "com.drogsantoantonio.farmadelivery.location.STOP"
     private const val EXTRA_COURIER_ID = "courier_id"
     private const val LOCATION_NOTIFICATION_ID = 3001
-    private const val LOCATION_SEND_INTERVAL_MS = 60_000L
+    private const val LOCATION_SEND_INTERVAL_MS = 15_000L
 
     fun start(context: Context, courierId: String) {
       val intent = Intent(context, LocationTrackingService::class.java).apply {

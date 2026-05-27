@@ -9,6 +9,20 @@ export function setAuthToken(token: string | null) {
   authToken = token;
 }
 
+export type LiveEventType = "deliveries" | "couriers" | "routes";
+
+export function subscribeToLiveEvents(token: string, onEvent: (type: LiveEventType) => void) {
+  const url = new URL(`${API_URL}/live/events`);
+  url.searchParams.set("token", token);
+  const source = new EventSource(url.toString());
+
+  (["deliveries", "couriers", "routes"] as LiveEventType[]).forEach((type) => {
+    source.addEventListener(type, () => onEvent(type));
+  });
+
+  return () => source.close();
+}
+
 function authHeaders(): Record<string, string> {
   return authToken ? { Authorization: `Bearer ${authToken}` } : {};
 }

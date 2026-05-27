@@ -355,6 +355,52 @@ h2 {
   flex-wrap: wrap;
 }
 
+.liveSyncPill {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  color: #0f5132;
+  background: #e9f7ef;
+  border: 1px solid #b7e4c7;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+.liveSyncPill svg {
+  flex: 0 0 auto;
+}
+
+.liveSyncPill span {
+  font-weight: 900;
+}
+
+.liveSyncPill small {
+  color: #286445;
+  font-weight: 800;
+}
+
+.liveSyncPill.syncing {
+  color: var(--brand-blue-dark);
+  background: #eef4ff;
+  border-color: #c8d8f5;
+}
+
+.liveSyncPill.syncing small {
+  color: #38537a;
+}
+
+.liveSyncPill.offline {
+  color: #8a1f1f;
+  background: #fff1f1;
+  border-color: #ffc9c9;
+}
+
+.liveSyncPill.offline small {
+  color: #9b3a3a;
+}
+
 .searchBox {
   min-width: min(360px, 100%);
   height: 44px;
@@ -449,6 +495,35 @@ h2 {
   gap: 14px;
 }
 
+.liveMapShortcut {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 18px;
+  border: 1px solid var(--brand-border);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 14px 34px rgba(16, 34, 75, 0.07);
+}
+
+.liveMapShortcut>div {
+  display: grid;
+  gap: 4px;
+}
+
+.liveMapShortcut strong {
+  color: var(--brand-blue-dark);
+  font-size: 1.08rem;
+}
+
+.liveMapShortcut small {
+  color: #52635e;
+  font-size: 0.84rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
 .viewPane,
 .dedicatedStack,
 .singlePanel {
@@ -473,6 +548,7 @@ h2 {
 .routeStrategyPanel,
 .courierRoutesPanel,
 .analyticsPanel,
+.operationalAlertsPanel,
 .notificationPanel,
 .reportsPanel {
   background: #ffffff;
@@ -543,9 +619,77 @@ h2 {
 .routeStrategyPanel,
 .courierRoutesPanel,
 .analyticsPanel,
+.operationalAlertsPanel,
 .notificationPanel,
 .reportsPanel {
   padding: 18px;
+}
+
+.operationalAlertsPanel {
+  display: grid;
+  gap: 14px;
+}
+
+.alertCount {
+  min-width: 36px;
+  height: 32px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: #f3f6fb;
+  color: #16213a;
+  font-weight: 800;
+}
+
+.operationalAlertList {
+  display: grid;
+  gap: 10px;
+}
+
+.operationalAlert {
+  width: 100%;
+  border: 1px solid var(--brand-border);
+  border-radius: 8px;
+  background: #ffffff;
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 10px;
+  text-align: left;
+  padding: 12px;
+  cursor: pointer;
+}
+
+.operationalAlert svg {
+  margin-top: 2px;
+}
+
+.operationalAlert strong,
+.operationalAlert small {
+  display: block;
+}
+
+.operationalAlert small {
+  color: #59665f;
+  margin-top: 3px;
+  line-height: 1.35;
+}
+
+.operationalAlert.critical {
+  border-color: #fecdd3;
+  background: #fff1f2;
+  color: #991b1b;
+}
+
+.operationalAlert.warning {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.operationalAlert.info {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
 }
 
 .reportFilters {
@@ -918,6 +1062,31 @@ h2 {
 .fieldHint.error {
   color: var(--brand-red-dark);
   background: #ffe4e6;
+}
+
+.customerLookupCard {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #d8e1de;
+  border-radius: 8px;
+  background: #f8fbff;
+}
+
+.customerLookupCard>div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.customerLookupCard strong {
+  color: var(--brand-blue-dark);
+}
+
+.customerLookupCard span,
+.customerLookupCard small {
+  color: #52635e;
+  font-size: 0.84rem;
+  font-weight: 800;
 }
 
 .formFeedback.success {
@@ -1506,6 +1675,30 @@ h2 {
 .storeAddress,
 .deliveryRow span {
   color: #6b7974;
+}
+
+.locationFreshness {
+  width: fit-content;
+  margin-top: 4px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  font-weight: 900;
+}
+
+.locationFreshness.fresh {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.locationFreshness.recent {
+  color: #1d4ed8;
+  background: #dbeafe;
+}
+
+.locationFreshness.stale,
+.locationFreshness.missing {
+  color: #92400e;
+  background: #fef3c7;
 }
 
 .storeAddress {
@@ -2918,6 +3111,12 @@ h2 {
   background: #fbfdfc;
 }
 
+.deliveryRow.liveChanged {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+}
+
 .deliveryRow.overdue {
   border-color: #fecaca;
   background: #fff7f7;
@@ -2926,6 +3125,28 @@ h2 {
 .deliveryRow.slaWarning {
   border-color: #fde68a;
   background: #fffbeb;
+}
+
+.deliveryRow.liveChanged.overdue {
+  border-color: #fca5a5;
+  background: #fff1f2;
+}
+
+.deliveryRow.liveChanged.slaWarning {
+  border-color: #facc15;
+  background: #fff7d6;
+}
+
+.liveUpdatePill {
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  border-radius: 999px;
+  color: #1d4ed8;
+  background: #dbeafe;
+  font-size: 0.72rem;
+  font-weight: 900;
 }
 
 .deliveryRow strong {
@@ -3077,6 +3298,13 @@ h2 {
   .accessFlowGrid,
   .loginFormGrid {
     grid-template-columns: 1fr;
+  }
+
+  .liveSyncPill {
+    width: 100%;
+    justify-content: center;
+    white-space: normal;
+    text-align: center;
   }
 
   .navList {

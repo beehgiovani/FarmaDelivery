@@ -160,6 +160,7 @@ export type Courier = {
   status: "Disponivel" | "Em rota" | "Voltando" | "Ocorrencia";
   deliveries: number;
   coordinates: Coordinates;
+  lastLocationAt?: string | null;
 };
 
 export type UserStoreAssignment = {

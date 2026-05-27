@@ -216,31 +216,22 @@ test("validates delivery report date range query", () => {
   assert.equal(deliveryReportQuerySchema.parse({ exportLimit: "50000" }).exportLimit, 50000);
 });
 
-test("requires a real login identifier when creating access users", () => {
+test("allows the unique user name as the primary login identifier", () => {
   assert.deepEqual(
     createUserSchema.parse({
       name: "Acesso Loja Asturias",
-      email: "asturias@loja.com",
       password: "Farma0012870",
       role: "GERENTE",
       storeId,
     }),
     {
       name: "Acesso Loja Asturias",
-      email: "asturias@loja.com",
       password: "Farma0012870",
       role: "GERENTE",
       storeId,
     },
   );
 
-  assert.throws(() =>
-    createUserSchema.parse({
-      name: "Acesso sem login",
-      password: "Farma0012870",
-      role: "GERENTE",
-    }),
-  );
   assert.throws(() =>
     createUserSchema.parse({
       name: "Motoboy sem loja",

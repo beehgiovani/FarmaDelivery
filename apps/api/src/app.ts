@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { deliveryRoutes } from "./routes/deliveries";
 import { geocodingRoutes } from "./routes/geocoding";
 import { healthRoutes } from "./routes/health";
+import { liveEventRoutes } from "./liveEvents";
 import { notificationRoutes } from "./routes/notifications";
 import { courierRouteRoutes } from "./routes/routes";
 import { storeRoutes } from "./routes/stores";
@@ -20,6 +21,8 @@ export async function createApp(options: { logger?: boolean } = {}) {
 
   await app.register(cors, {
     origin: true,
+    methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Authorization", "Content-Type", "X-Request-Id"],
   });
 
   app.addHook("onRequest", async (request, reply) => {
@@ -59,6 +62,7 @@ export async function createApp(options: { logger?: boolean } = {}) {
   });
 
   await app.register(healthRoutes);
+  await app.register(liveEventRoutes);
   await app.register(storeRoutes);
   await app.register(userRoutes);
   await app.register(deliveryRoutes);

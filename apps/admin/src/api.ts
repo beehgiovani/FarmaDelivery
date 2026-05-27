@@ -739,6 +739,7 @@ export async function fetchCouriers(): Promise<Courier[]> {
         lat: courier.currentLat!,
         lng: courier.currentLng!,
       },
+      lastLocationAt: courier.lastLocationAt,
     }));
 }
 
@@ -1006,6 +1007,28 @@ export function subscribeToUserChanges(onChange: () => void) {
   };
 }
 
+export function subscribeToCourierLocationChanges(onChange: () => void) {
+  if (!supabase) return () => undefined;
+  const client = supabase;
+
+  const channel = client
+    .channel(nextRealtimeChannelName("courier-location-db-changes"))
+    .on(
+      "postgres_changes",
+      {
+        event: "UPDATE",
+        schema: "public",
+        table: "Courier",
+      },
+      () => onChange(),
+    )
+    .subscribe();
+
+  return () => {
+    void client.removeChannel(channel);
+  };
+}
+
 export function subscribeToDeliveryCancellation(onCancel: () => void) {
   if (!supabase) return () => undefined;
   const client = supabase;
@@ -1081,6 +1104,15 @@ export function subscribeToRouteChanges(onChange: () => void) {
         event: "*",
         schema: "public",
         table: "RouteStop",
+      },
+      () => onChange(),
+    )
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "Courier",
       },
       () => onChange(),
     )

@@ -12,23 +12,23 @@ export function motoboyOperationalStatus(input: {
 }): MotoboyOperationalStatus {
   if (!input.available) {
     return {
-      title: "Pausado",
-      text: "Novas entregas nao serao direcionadas para voce ate ativar a disponibilidade.",
+      title: "Corridas paradas",
+      text: "Voce nao recebera novas entregas ate tocar em Comecar corridas.",
       tone: "paused",
     };
   }
 
   if (input.trackingEnabled) {
     return {
-      title: "Disponivel com GPS automatico",
-      text: "Voce esta recebendo entregas e sua localizacao sera enviada enquanto o PWA estiver aberto.",
+      title: "Recebendo corridas",
+      text: "Novas entregas podem aparecer aqui. Sua localizacao ajuda a loja a acompanhar o atendimento.",
       tone: "active",
     };
   }
 
   return {
-    title: "Disponivel para corridas",
-    text: "Voce pode aceitar entregas. Ligue o Auto se quiser enviar localizacao sem apertar GPS toda vez.",
+    title: "Recebendo corridas",
+    text: "Novas entregas podem aparecer aqui. Ligue o GPS ao vivo para a loja acompanhar sua posicao.",
     tone: "ready",
   };
 }

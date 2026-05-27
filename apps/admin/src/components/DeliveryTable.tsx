@@ -19,6 +19,7 @@ type DeliveryTableProps = {
   loading?: boolean;
   error?: string | null;
   actionDeliveryId?: string | null;
+  highlightedDeliveryIds?: ReadonlySet<string>;
   onRetry?: () => void;
 };
 
@@ -45,6 +46,7 @@ export function DeliveryTable({
   loading = false,
   error,
   actionDeliveryId,
+  highlightedDeliveryIds,
   onRetry,
 }: DeliveryTableProps) {
   const [selectedCouriers, setSelectedCouriers] = useState<Record<string, string>>({});
@@ -83,9 +85,10 @@ export function DeliveryTable({
         deliveries.map((delivery) => {
           const slaState = getDeliverySlaState(delivery);
           const deadlineWindow = deliveryDeadlineWindowsMinutes[delivery.deadlineTier];
+          const recentlyChanged = highlightedDeliveryIds?.has(delivery.id) ?? false;
           return (
           <article
-            className={`deliveryRow${slaState === "warning" ? " slaWarning" : ""}${slaState === "critical" ? " overdue" : ""}`}
+            className={`deliveryRow${slaState === "warning" ? " slaWarning" : ""}${slaState === "critical" ? " overdue" : ""}${recentlyChanged ? " liveChanged" : ""}`}
             key={delivery.id}
           >
             <div>
@@ -111,6 +114,7 @@ export function DeliveryTable({
               {slaState === "critical" ? <span className="slaPill critical">Prazo estourado</span> : null}
               {delivery.proofCount ? <span className="proofPill">Comprovante</span> : null}
               {!delivery.coordinates ? <span className="mapMissingPill">Sem ponto no mapa</span> : null}
+              {recentlyChanged ? <span className="liveUpdatePill">Atualizado agora</span> : null}
             </div>
             <div>
               <strong>{delivery.courier}</strong>

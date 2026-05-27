@@ -67,7 +67,7 @@ export function LoginScreen({ onAuthenticated }: LoginScreenProps) {
             <h1>{mode === "login" ? "Entrar no painel" : "Configurar primeiro admin"}</h1>
             <p>
               {mode === "login"
-                ? "Use email ou telefone cadastrado pela administracao."
+                ? "Use nome, email ou telefone cadastrado pela administracao."
                 : "Use esta opcao somente na primeira configuracao do sistema."}
             </p>
           </div>
@@ -99,7 +99,7 @@ export function LoginScreen({ onAuthenticated }: LoginScreenProps) {
             ) : null}
 
             <label className="inputGroup wide">
-              <span>{mode === "login" ? "Email ou telefone" : "Email"}</span>
+              <span>{mode === "login" ? "Nome, email ou telefone" : "Email"}</span>
               <input
                 className="plainInput"
                 disabled={loading}

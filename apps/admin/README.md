@@ -19,11 +19,11 @@ Este app nao deve documentar nomes reais de lojas, enderecos, coordenadas, chave
 - Login, primeiro acesso admin, sessao salva e logout automatico em `401`.
 - Fila operacional de entregas por status e escopo de loja.
 - Criacao de entrega com cliente, telefone, endereco, loja origem, prioridade, prazo manual, agendamento, atendente/balconista e impressao de comanda.
-- Busca de cliente por telefone e reaproveitamento de enderecos.
+- Busca de cliente por telefone com escolha de endereco salvo, cadastro de novo endereco para o mesmo cliente e reaproveitamento anti-duplicidade validado pela API.
 - Mascara de telefone que preserva digitacao parcial e valida por digitos.
 - Geocodificacao automatica pelo backend, escolha entre alternativas e criacao explicita sem ponto no mapa quando necessario.
 - Ajuste manual de latitude/longitude por modal Leaflet antes de lancar entrega.
-- Mapa operacional com lojas, motoboys, entregas, rotas ativas e indicadores de entregas sem ponto.
+- Mapa ao vivo com lojas, motoboys, entregas, rotas ativas, ultimo GPS recebido, atalho no painel inicial e indicadores de entregas sem ponto.
 - Despacho, historico, comprovantes, cancelamento, problemas e acoes operacionais.
 - Cadastros administrativos de lojas/unidades, acessos, horarios, alocacoes e equipe operacional.
 - `BALCONISTA_CAIXA` tratado como referencia operacional/autocomplete, sem login individual de loja.

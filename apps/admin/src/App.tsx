@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   BarChart3,
@@ -10,6 +10,7 @@ import {
   MapPin,
   Plus,
   Search,
+  Wifi,
   Users,
 } from "lucide-react";
 import {
@@ -30,6 +31,7 @@ import {
   registerDeliveryProblem,
   setAuthToken,
   startDeliveryRoute,
+  subscribeToCourierLocationChanges,
   subscribeToDeliveryChanges,
   subscribeToRouteChanges,
   subscribeToStoreChanges,
@@ -48,12 +50,14 @@ import { ManagementPanel } from "./components/ManagementPanel";
 import { Metric } from "./components/Metric";
 import { NotificationMonitorPanel } from "./components/NotificationMonitorPanel";
 import { OperationsMap } from "./components/OperationsMap";
+import { OperationalAlertsPanel } from "./components/OperationalAlertsPanel";
 import { RouteBoard } from "./components/RouteBoard";
 import { RouteStrategyPanel } from "./components/RouteStrategyPanel";
 import { ReportsPanel } from "./components/ReportsPanel";
 import { StoreVolume } from "./components/StoreVolume";
 import { ToastStack, type ToastMessage } from "./components/ToastStack";
 import { isDeliveryOverdue } from "./deliverySla";
+import { buildOperationalAlerts } from "./operationalAlerts";
 import { deliveryMatchesReportDateRange, reportDateLabel } from "./reportPeriod";
 import { userFacingError } from "./userMessages";
 import type {
@@ -113,6 +117,9 @@ export function App() {
   const [actionDeliveryId, setActionDeliveryId] = useState<string | null>(null);
   const [recalculatingRouteId, setRecalculatingRouteId] = useState<string | null>(null);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const [lastLiveSyncAt, setLastLiveSyncAt] = useState<Date | null>(null);
+  const [recentlyChangedDeliveryIds, setRecentlyChangedDeliveryIds] = useState<Set<string>>(() => new Set());
+  const previousDeliveriesRef = useRef<Delivery[] | null>(null);
   const [deliveryActionDialog, setDeliveryActionDialog] = useState<{
     mode: DeliveryActionDialogMode;
     delivery: Delivery;
@@ -270,13 +277,14 @@ export function App() {
     if (!session) return;
     let active = true;
 
-    const loadCouriers = () => {
-      setCouriersLoading(true);
+    const loadCouriers = (silent = false) => {
+      if (!silent) setCouriersLoading(true);
       setCouriersError(null);
       fetchCouriers()
         .then((apiCouriers) => {
           if (!active) return;
           setLiveCouriers(apiCouriers);
+          setLastLiveSyncAt(new Date());
         })
         .catch(() => {
           if (!active) return;
@@ -285,15 +293,17 @@ export function App() {
         })
         .finally(() => {
           if (!active) return;
-          setCouriersLoading(false);
+          if (!silent) setCouriersLoading(false);
         });
     };
 
     loadCouriers();
-    const unsubscribeCouriers = subscribeToUserChanges(loadCouriers);
+    const unsubscribeCouriers = subscribeToCourierLocationChanges(() => loadCouriers(true));
+    const interval = window.setInterval(() => loadCouriers(true), 10_000);
 
     return () => {
       active = false;
+      window.clearInterval(interval);
       unsubscribeCouriers();
     };
   }, [session]);
@@ -334,13 +344,16 @@ export function App() {
     if (!session) return;
     let active = true;
 
-    const loadDeliveries = () => {
-      setDeliveriesLoading(true);
+    const loadDeliveries = (silent = false) => {
+      if (!silent) setDeliveriesLoading(true);
       setDeliveriesError(null);
       fetchDeliveries()
         .then((apiDeliveries) => {
           if (!active) return;
+          notifyDeliveryChanges(previousDeliveriesRef.current, apiDeliveries);
+          previousDeliveriesRef.current = apiDeliveries;
           setDeliveries(apiDeliveries);
+          setLastLiveSyncAt(new Date());
         })
         .catch(() => {
           if (!active) return;
@@ -349,15 +362,17 @@ export function App() {
         })
         .finally(() => {
           if (!active) return;
-          setDeliveriesLoading(false);
+          if (!silent) setDeliveriesLoading(false);
         });
     };
 
     loadDeliveries();
     const unsubscribeDelivery = subscribeToDeliveryChanges(loadDeliveries);
+    const interval = window.setInterval(() => loadDeliveries(true), 5_000);
 
     return () => {
       active = false;
+      window.clearInterval(interval);
       unsubscribeDelivery();
     };
   }, [session]);
@@ -366,13 +381,14 @@ export function App() {
     if (!session) return;
     let active = true;
 
-    const loadCourierRoutes = () => {
-      setRoutesLoading(true);
+    const loadCourierRoutes = (silent = false) => {
+      if (!silent) setRoutesLoading(true);
       setRoutesError(null);
       fetchCourierRoutes()
         .then((routes) => {
           if (!active) return;
           setCourierRoutes(routes);
+          setLastLiveSyncAt(new Date());
         })
         .catch(() => {
           if (!active) return;
@@ -381,15 +397,17 @@ export function App() {
         })
         .finally(() => {
           if (!active) return;
-          setRoutesLoading(false);
+          if (!silent) setRoutesLoading(false);
         });
     };
 
     loadCourierRoutes();
     const unsubscribeRoutes = subscribeToRouteChanges(loadCourierRoutes);
+    const interval = window.setInterval(() => loadCourierRoutes(true), 10_000);
 
     return () => {
       active = false;
+      window.clearInterval(interval);
       unsubscribeRoutes();
     };
   }, [session]);
@@ -427,8 +445,11 @@ export function App() {
     try {
       const apiDeliveries = await fetchDeliveries();
       loadedDeliveries = apiDeliveries;
+      notifyDeliveryChanges(previousDeliveriesRef.current, apiDeliveries);
+      previousDeliveriesRef.current = apiDeliveries;
       setDeliveries(apiDeliveries);
       setCourierRoutes(await fetchCourierRoutes().catch(() => []));
+      setLastLiveSyncAt(new Date());
     } catch (error) {
       console.error("deliveries reload error", error);
       setDeliveriesError("Nao foi possivel atualizar as entregas.");
@@ -439,6 +460,66 @@ export function App() {
       const updatedDelivery = loadedDeliveries?.find((delivery) => delivery.id === selectedDelivery.id) ?? selectedDelivery;
       await loadDeliveryEvents(updatedDelivery);
     }
+  }
+
+  function notifyDeliveryChanges(previous: Delivery[] | null, next: Delivery[]) {
+    if (!previous) return;
+
+    const previousById = new Map(previous.map((delivery) => [delivery.id, delivery]));
+    for (const delivery of next) {
+      if (!deliveryMatchesDate(delivery, dateFilter)) continue;
+      if (!isAdmin && delivery.store !== selectedStore) continue;
+
+      const before = previousById.get(delivery.id);
+      if (!before) {
+        highlightDeliveryChange(delivery.id);
+        pushToast({
+          tone: "info",
+          title: "Nova entrega na fila",
+          description: `${delivery.store} - ${delivery.customer}`,
+        });
+        continue;
+      }
+
+      if (before.status !== delivery.status && delivery.status !== "Problema") {
+        highlightDeliveryChange(delivery.id);
+        pushToast({
+          tone: "info",
+          title: `Entrega ${delivery.status.toLowerCase()}`,
+          description: `${delivery.publicCode ?? delivery.id} - ${delivery.customer}`,
+        });
+      }
+
+      if (delivery.status === "Problema" && before.status !== "Problema") {
+        highlightDeliveryChange(delivery.id);
+        pushToast({
+          tone: "error",
+          title: "Ocorrencia registrada",
+          description: `${delivery.store} - ${delivery.customer}`,
+        });
+      }
+
+      if (!isDeliveryOverdue(before) && isDeliveryOverdue(delivery)) {
+        highlightDeliveryChange(delivery.id);
+        pushToast({
+          tone: "error",
+          title: "Entrega atrasada",
+          description: `${delivery.publicCode ?? delivery.id} - ${delivery.customer}`,
+        });
+      }
+    }
+  }
+
+  function highlightDeliveryChange(deliveryId: string) {
+    setRecentlyChangedDeliveryIds((current) => new Set(current).add(deliveryId));
+    window.setTimeout(() => {
+      setRecentlyChangedDeliveryIds((current) => {
+        if (!current.has(deliveryId)) return current;
+        const next = new Set(current);
+        next.delete(deliveryId);
+        return next;
+      });
+    }, 12_000);
   }
 
   async function reloadUsers() {
@@ -618,7 +699,13 @@ export function App() {
 
   function pushToast(message: Omit<ToastMessage, "id">) {
     const id = crypto.randomUUID();
-    setToasts((current) => [...current.slice(-3), { ...message, id }]);
+    setToasts((current) => {
+      const duplicated = current.some(
+        (toast) => toast.tone === message.tone && toast.title === message.title && toast.description === message.description,
+      );
+      if (duplicated) return current;
+      return [...current.slice(-3), { ...message, id }];
+    });
     if (message.tone !== "loading") {
       window.setTimeout(() => dismissToast(id), 5200);
     }
@@ -699,22 +786,52 @@ export function App() {
       ),
     [mapStatusFilter, visibleDeliveriesForDate],
   );
-  const visibleCouriers = useMemo(
-    () => (isAdmin ? liveCouriers : liveCouriers.filter((courier) => courier.store.includes(selectedStore))),
-    [isAdmin, liveCouriers, selectedStore],
-  );
+  const visibleDeliveryIds = useMemo(() => new Set(visibleDeliveriesForDate.map((delivery) => delivery.id)), [visibleDeliveriesForDate]);
   const visibleCourierRoutes = useMemo(
     () =>
       isAdmin
         ? courierRoutes
-        : courierRoutes.filter((route) => normalizeText(route.courier.baseStoreName).includes(normalizeText(selectedStore))),
-    [courierRoutes, isAdmin, selectedStore],
+        : courierRoutes.filter(
+            (route) =>
+              normalizeText(route.courier.baseStoreName).includes(normalizeText(selectedStore)) ||
+              route.stops.some((stop) => stop.delivery?.id && visibleDeliveryIds.has(stop.delivery.id)),
+          ),
+    [courierRoutes, isAdmin, selectedStore, visibleDeliveryIds],
+  );
+  const visibleRouteCourierIds = useMemo(
+    () => new Set(visibleCourierRoutes.map((route) => route.courier.id)),
+    [visibleCourierRoutes],
+  );
+  const activeDeliveryCourierNames = useMemo(
+    () =>
+      new Set(
+        visibleDeliveriesForDate
+          .filter((delivery) => delivery.courier && delivery.courier !== "Sem motoboy")
+          .map((delivery) => normalizeText(delivery.courier)),
+      ),
+    [visibleDeliveriesForDate],
+  );
+  const visibleCouriers = useMemo(
+    () =>
+      isAdmin
+        ? liveCouriers
+        : liveCouriers.filter(
+            (courier) =>
+              normalizeText(courier.store).includes(normalizeText(selectedStore)) ||
+              (courier.id ? visibleRouteCourierIds.has(courier.id) : false) ||
+              activeDeliveryCourierNames.has(normalizeText(courier.name)),
+          ),
+    [activeDeliveryCourierNames, isAdmin, liveCouriers, selectedStore, visibleRouteCourierIds],
   );
 
   const pendingCount = visibleDeliveriesForDate.filter((delivery) => delivery.status === "Aguardando").length;
   const routeCount = visibleDeliveriesForDate.filter((delivery) => delivery.status === "Em rota").length;
   const issueCount = visibleDeliveriesForDate.filter((delivery) => delivery.status === "Problema").length;
   const overdueCount = visibleDeliveriesForDate.filter(isDeliveryOverdue).length;
+  const operationalAlerts = useMemo(
+    () => buildOperationalAlerts(visibleDeliveriesForDate, Date.now(), visibleCouriers),
+    [visibleDeliveriesForDate, visibleCouriers],
+  );
   const routeableDeliveries = visibleDeliveriesForDate.filter((delivery) => delivery.status === "Aguardando");
   const deliveredTodayCount = visibleDeliveriesForDate.filter((delivery) => delivery.status === "Entregue").length;
   const metricScope = isAdmin ? "todas as lojas" : selectedStore;
@@ -725,7 +842,7 @@ export function App() {
   const navItems = [
     { view: "dashboard" as const, label: "Painel", icon: <BarChart3 size={18} /> },
     { view: "delivery" as const, label: "Nova entrega", icon: <Plus size={18} /> },
-    { view: "map" as const, label: "Mapa", icon: <MapPin size={18} /> },
+    { view: "map" as const, label: "Mapa ao vivo", icon: <MapPin size={18} /> },
     { view: "queue" as const, label: "Fila", icon: <ClipboardList size={18} /> },
     { view: "routes" as const, label: "Rotas", icon: <Bike size={18} /> },
     { view: "reports" as const, label: "Relatorios", icon: <ClipboardList size={18} /> },
@@ -739,6 +856,8 @@ export function App() {
   const activeNavItem = navItems.find((item) => item.view === activeView) ?? navItems[0];
   const pageTitle = activeView === "dashboard" ? (isAdmin ? "Visao geral das entregas" : `Operacao ${selectedStore}`) : activeNavItem.label;
   const pageEyebrow = isAdmin ? "Painel admin" : `Painel da loja ${selectedStore}`;
+  const isSyncingLiveData = deliveriesLoading || couriersLoading || routesLoading;
+  const liveSyncLabel = getLiveSyncLabel({ isOnline, isSyncing: isSyncingLiveData, lastLiveSyncAt });
   const activeViewContent = (() => {
     switch (activeView) {
       case "delivery":
@@ -816,6 +935,7 @@ export function App() {
                   loading={deliveriesLoading}
                   error={deliveriesError}
                   actionDeliveryId={actionDeliveryId}
+                  highlightedDeliveryIds={recentlyChangedDeliveryIds}
                   onRetry={reloadDeliveries}
                   onAccept={handleAcceptDelivery}
                   onCollect={handleCollectDelivery}
@@ -914,12 +1034,37 @@ export function App() {
               <Metric icon={<AlertTriangle size={20} />} label={`SLA atrasado - ${metricScope}`} value={overdueCount} tone="red" />
               <Metric icon={<CheckCircle2 size={20} />} label={`Entregues - ${metricScope}`} value={deliveredTodayCount} tone="blue" />
             </section>
+            <section className="liveMapShortcut" aria-label="Atalho do mapa ao vivo">
+              <div>
+                <span className="eyebrow">GPS dos motoboys</span>
+                <strong>Mapa ao vivo</strong>
+                <small>
+                  {visibleCouriers.length
+                    ? `${visibleCouriers.length} motoboy(s) com localizacao no filtro atual.`
+                    : "Motoboys aparecem apos abrir o app, liberar GPS e enviar a primeira localizacao."}
+                </small>
+              </div>
+              <button className="secondaryButton" type="button" onClick={() => setActiveView("map")}>
+                <MapPin size={16} />
+                Ver motoboys no mapa
+              </button>
+            </section>
             <DeliveryAnalytics
               deliveries={visibleDeliveriesForDate}
               stores={visibleStores}
               scopeLabel={metricScope}
               loading={deliveriesLoading || storesLoading}
               error={deliveriesError}
+            />
+            <OperationalAlertsPanel
+              alerts={operationalAlerts}
+              onSelectDelivery={(deliveryId) => {
+                const delivery = visibleDeliveriesForDate.find((item) => item.id === deliveryId);
+                if (!delivery) return;
+                setActiveView("queue");
+                setQueueSection("history");
+                void loadDeliveryEvents(delivery);
+              }}
             />
             <StoreVolume
               stores={visibleStores}
@@ -1012,6 +1157,11 @@ export function App() {
           </div>
 
           <div className="topActions">
+            <div className={`liveSyncPill${!isOnline ? " offline" : ""}${isSyncingLiveData ? " syncing" : ""}`}>
+              <Wifi size={16} />
+              <span>{liveSyncLabel.status}</span>
+              <small>{liveSyncLabel.detail}</small>
+            </div>
             <label className="searchBox">
               <Search size={17} />
               <input
@@ -1073,6 +1223,35 @@ function deliveryMatchesDate(delivery: Delivery, dateFilter: string) {
   ].filter(Boolean) as string[];
 
   return timestamps.some((timestamp) => toDateInputValue(new Date(timestamp)) === dateFilter);
+}
+
+function getLiveSyncLabel({
+  isOnline,
+  isSyncing,
+  lastLiveSyncAt,
+}: {
+  isOnline: boolean;
+  isSyncing: boolean;
+  lastLiveSyncAt: Date | null;
+}) {
+  if (!isOnline) {
+    return { status: "Offline", detail: "ultimo estado carregado" };
+  }
+
+  if (!lastLiveSyncAt) {
+    return { status: "Conectando", detail: "aguardando dados" };
+  }
+
+  const time = lastLiveSyncAt.toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+
+  return {
+    status: isSyncing ? "Sincronizando" : "Ao vivo",
+    detail: `Atualizado ${time}`,
+  };
 }
 
 function deliveryMatchesSearch(delivery: Delivery, searchQuery: string) {

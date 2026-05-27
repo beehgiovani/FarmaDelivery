@@ -12,6 +12,13 @@ test("does not notify on initial delivery load", () => {
   assert.equal(summarizeOperationalChanges([], [delivery({ id: "delivery-1" })]), null);
 });
 
+test("notifies when delivery appears after an already loaded empty state", () => {
+  assert.deepEqual(summarizeOperationalChanges([], [delivery({ id: "delivery-1" })], true), {
+    title: "Nova entrega disponivel",
+    body: "FD-001 - Cliente Teste",
+  });
+});
+
 test("notifies when a delivery becomes available", () => {
   const previous = [delivery({ id: "delivery-1", status: "RASCUNHO" })];
   const next = [delivery({ id: "delivery-1", status: "AGUARDANDO_MOTOBOY", publicCode: "AST-20260517-009", storeDailyNumber: 9 })];
@@ -60,13 +67,13 @@ test("sends tracked location after interval or meaningful displacement", () => {
   assert.equal(shouldSendTrackedLocation(lastLocation, -23.962, -46.333, 2000), true);
 });
 
-test("only allows open-app tracking while courier is available", () => {
+test("allows open-app tracking while courier is available or handling a delivery", () => {
   assert.equal(
     canTrackOpenAppLocation({
       hasSession: true,
       hasCourier: true,
       trackingEnabled: true,
-      available: true,
+      operationallyActive: true,
     }),
     true,
   );
@@ -76,7 +83,7 @@ test("only allows open-app tracking while courier is available", () => {
       hasSession: true,
       hasCourier: true,
       trackingEnabled: true,
-      available: false,
+      operationallyActive: false,
     }),
     false,
   );

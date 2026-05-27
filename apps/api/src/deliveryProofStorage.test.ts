@@ -4,8 +4,10 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import {
+  buildDeliveryProofStoragePath,
   checkDeliveryProofStorage,
   isDeliveryProofStorageConfigured,
+  isSupabaseDeliveryProofStorageConfigured,
   resolveDeliveryProofStorageFilePath,
   resolveDeliveryProofStorageRoot,
 } from "./deliveryProofStorage";
@@ -26,10 +28,37 @@ test("resolves configured delivery proof storage path", async () => {
 });
 
 test("uses local delivery proof storage fallback when env is not configured", async () => {
-  await withProofStorageDir(undefined, async () => {
+  await withProofStorageEnv({ dir: undefined, bucket: undefined, url: undefined, serviceKey: undefined }, async () => {
     assert.equal(isDeliveryProofStorageConfigured(), false);
+    assert.equal(isSupabaseDeliveryProofStorageConfigured(), false);
     assert.equal(resolveDeliveryProofStorageRoot(), path.join(process.cwd(), "uploads", "delivery-proofs"));
   });
+});
+
+test("uses Supabase Storage path when bucket and credentials are configured", async () => {
+  await withProofStorageEnv(
+    {
+      dir: undefined,
+      bucket: "delivery-proofs",
+      url: "https://project.supabase.co",
+      serviceKey: "service-key",
+    },
+    async () => {
+      assert.equal(isDeliveryProofStorageConfigured(), true);
+      assert.equal(isSupabaseDeliveryProofStorageConfigured(), true);
+      assert.equal(
+        buildDeliveryProofStoragePath("delivery/1", "proof client.jpg"),
+        "supabase://delivery-proofs/delivery_1/proof_client.jpg",
+      );
+      assert.throws(() => resolveDeliveryProofStorageFilePath("supabase://delivery-proofs/delivery-1/proof.jpg"), /Supabase Storage/);
+
+      const status = await checkDeliveryProofStorage();
+      assert.deepEqual(status, {
+        configured: true,
+        writable: true,
+      });
+    },
+  );
 });
 
 test("resolves only proof files inside the configured storage root", async () => {
@@ -71,20 +100,44 @@ test("deletes local proof binaries only inside configured storage root", async (
 });
 
 async function withProofStorageDir(value: string | undefined, run: () => Promise<void>) {
-  const previous = process.env.DELIVERY_PROOF_STORAGE_DIR;
-  if (value === undefined) {
-    delete process.env.DELIVERY_PROOF_STORAGE_DIR;
-  } else {
-    process.env.DELIVERY_PROOF_STORAGE_DIR = value;
-  }
+  await withProofStorageEnv({ dir: value, bucket: undefined, url: undefined, serviceKey: undefined }, run);
+}
+
+async function withProofStorageEnv(
+  values: {
+    dir?: string;
+    bucket?: string;
+    url?: string;
+    serviceKey?: string;
+  },
+  run: () => Promise<void>,
+) {
+  const previous = {
+    dir: process.env.DELIVERY_PROOF_STORAGE_DIR,
+    bucket: process.env.DELIVERY_PROOF_STORAGE_BUCKET,
+    url: process.env.SUPABASE_URL,
+    serviceKey: process.env.SUPABASE_SERVICE_ROLE_JWT,
+  };
+
+  setOptionalEnv("DELIVERY_PROOF_STORAGE_DIR", values.dir);
+  setOptionalEnv("DELIVERY_PROOF_STORAGE_BUCKET", values.bucket);
+  setOptionalEnv("SUPABASE_URL", values.url);
+  setOptionalEnv("SUPABASE_SERVICE_ROLE_JWT", values.serviceKey);
 
   try {
     await run();
   } finally {
-    if (previous === undefined) {
-      delete process.env.DELIVERY_PROOF_STORAGE_DIR;
-    } else {
-      process.env.DELIVERY_PROOF_STORAGE_DIR = previous;
-    }
+    setOptionalEnv("DELIVERY_PROOF_STORAGE_DIR", previous.dir);
+    setOptionalEnv("DELIVERY_PROOF_STORAGE_BUCKET", previous.bucket);
+    setOptionalEnv("SUPABASE_URL", previous.url);
+    setOptionalEnv("SUPABASE_SERVICE_ROLE_JWT", previous.serviceKey);
+  }
+}
+
+function setOptionalEnv(name: string, value: string | undefined) {
+  if (value === undefined) {
+    delete process.env[name];
+  } else {
+    process.env[name] = value;
   }
 }

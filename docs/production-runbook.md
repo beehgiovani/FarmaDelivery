@@ -103,7 +103,7 @@ npm run mobile:local-check
 4. Instalar no emulador/aparelho o APK indicado ao final do comando.
 5. Entrar com usuario `MOTOBOY` e confirmar bloqueio de perfis de loja/balconista no fluxo de campo.
 6. Escolher praca de atendimento e validar a lista de entregas livres.
-7. Ativar disponibilidade, permitir notificacoes quando solicitado e enviar localizacao manual.
+7. Ativar disponibilidade, permitir notificacoes/localizacao quando solicitado e confirmar que o mapa do painel mostra o GPS automatico do motoboy; o envio manual fica apenas como apoio.
 8. Aceitar entrega, coletar, sair em rota, abrir mapa, conferir pagamento/valor/telefone/endereco/numero diario e concluir com observacao.
 9. Testar comprovante fotografico opcional e ocorrencia.
 10. Confirmar recebimento de FCM no canal `deliveries`.

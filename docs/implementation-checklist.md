@@ -1,6 +1,6 @@
 # FarmaDelivery - checklist de implementacao
 
-Atualizado em 2026-05-21.
+Atualizado em 2026-05-27.
 
 ## Feito
 
@@ -13,6 +13,8 @@ Atualizado em 2026-05-21.
 - Agendamento no formulario sugere automaticamente horario conforme a loja selecionada, recalcula ao trocar a loja enquanto o horario nao foi editado manualmente e respeita abertura/fechamento semanal quando disponivel.
 - Criacao direta de cliente, endereco e entrega por IDs existentes conectada ao banco/fallback REST.
 - Busca de cliente por telefone e reutilizacao de enderecos existentes.
+- Criacao de entrega deixa explicito quando o telefone encontrou cliente salvo, permite usar endereco existente ou cadastrar novo endereco para o mesmo cliente.
+- API evita duplicar endereco igual para o mesmo cliente ao criar entrega por telefone, comparando rua, numero, bairro e complemento normalizados nos caminhos Prisma e Supabase REST.
 - Geocodificacao de endereco via backend com alternativas para escolha.
 - Criacao de entrega localiza o endereco automaticamente pelo backend antes de lancar, sem exigir latitude/longitude no preenchimento da loja.
 - Formulario de criacao de entrega formata telefone local sem travar clientes de outros DDDs/paises, valida por digitos e facilita busca/criacao de cliente no balcao.
@@ -27,6 +29,8 @@ Atualizado em 2026-05-21.
 - Geocodificacao usa Nominatim/OpenStreetMap no backend, com cache e consultas progressivas sem chamadas simultaneas ao servico publico.
 - Cache em memoria para geocodificacao de enderecos ja encontrados, com TTL e limite de entradas.
 - Mapa Leaflet com lojas, motoboys, entregas e rotas ativas.
+- Mapa ao vivo dos motoboys ficou acessivel pelo menu e por atalho no painel inicial, com estado vazio explicando app aberto, permissao de GPS, disponibilidade e primeiro envio de localizacao.
+- Filtro do mapa para login de loja considera motoboys vinculados a rotas/entregas visiveis, evitando esconder motoboy compartilhado apenas pela loja base.
 - Filtros de mapa por status e dia.
 - Metricas por status, loja e periodo selecionado.
 - Alerta visual de atraso/SLA no painel, considerando agendamento/criacao e tolerancia por status ativo.
@@ -89,6 +93,7 @@ Atualizado em 2026-05-21.
 - Painel admin centraliza labels operacionais de rotas, paradas e eventos em `apps/admin/src/apiMappers.ts`, reduzindo mapas locais divergentes entre componentes.
 - Painel admin centraliza titulo/detalhe de paradas de rota em `apps/admin/src/routeStopDisplay.ts`, usando codigo publico, cliente e status quando disponiveis e fallback seguro para tipo da parada.
 - Painel admin usa nomes unicos por assinatura Realtime do Supabase, evitando erro ao reinscrever callbacks `postgres_changes` depois de remount/reload da UI.
+- Mapa operacional do admin escuta atualizacoes de localizacao de motoboys por assinatura Realtime dedicada em `Courier` e mantem polling silencioso como fallback, evitando refresh manual para acompanhar o GPS.
 - Leituras principais do painel admin agora usam o mesmo tratamento de resposta da API, mantendo logout automatico e mensagem do backend quando a sessao expira.
 - Painel admin foi quebrado em telas dedicadas pelo menu lateral, evitando a pagina unica continua e mantendo identidade visual com as cores reais do logo.
 - Painel admin usa `StateBlock` padrao tambem nos estados de historico da entrega, pre-rota e listas vazias de cadastros/alocacoes, alinhando carregando, erro, vazio e selecao pendente.
@@ -250,7 +255,8 @@ Atualizado em 2026-05-21.
 - App motoboy formata horario do historico em `dd/MM HH:mm` no fuso `America/Sao_Paulo`, com helper testado e fallback para data inesperada.
 - App motoboy possui acoes rapidas para ligar para o cliente e abrir o endereco no mapa do aparelho, com telefone normalizado antes de abrir o discador e mapa usando coordenadas quando disponiveis.
 - App motoboy possui envio manual de localizacao atual para `POST /couriers/location`.
-- App motoboy possui servico de primeiro plano para envio periodico de localizacao a cada 60 segundos, com toggle persistido na tela, parada no logout e limpeza automatica da preferencia quando o motoboy fica indisponivel.
+- App motoboy possui servico de primeiro plano para envio periodico de localizacao a cada 15 segundos, com toggle persistido na tela, inicio automatico quando o motoboy fica disponivel, continuidade durante entrega em atendimento, parada no logout e limpeza automatica da preferencia quando o motoboy fica indisponivel sem entrega ativa.
+- App motoboy orienta liberacao de `GPS em tempo integral`, abrindo a permissao de background diretamente no Android 10 e as configuracoes do app no Android 11+ quando o sistema exige configuracao manual.
 - Motoboy precisa ativar disponibilidade para receber/aceitar corridas; pausa/fim de expediente envia `available=false`, para GPS automatico e bloqueia aceite ate reativar.
 - Backend respeita `Courier.available`: motoboy indisponivel lista apenas entregas ja vinculadas a ele, nao recebe fila de novas corridas aguardando.
 - Logout do app Android e do PWA tenta marcar o motoboy como indisponivel antes de limpar a sessao local.
@@ -303,7 +309,7 @@ Atualizado em 2026-05-21.
 - PWA iPhone possui loading, erro/retry e vazio no historico auditavel de cada entrega, sem chamada duplicada enquanto os eventos carregam.
 - App Android motoboy usa layout operacional compartilhado para carregando, erro/retry e vazio nas entregas, rota e historico da entrega.
 - PWA iPhone e app Android motoboy filtram mensagens tecnicas de backend/rede antes de exibir erros ao motoboy, com testes diretos dos helpers.
-- Texto de GPS automatico do app Android foi alinhado a politica atual de localizacao, sem prometer uso de localizacao em background.
+- Texto de GPS automatico do app Android foi alinhado a politica atual de localizacao, explicando envio ao vivo enquanto o motoboy estiver disponivel e com notificacao persistente.
 - PWA iPhone invalida o historico local da entrega apos acoes operacionais e recarrega automaticamente quando o historico estiver aberto.
 - Android e PWA mostram o responsavel pelo evento no historico quando a API retorna `actor`, com helper testado para nomes ausentes.
 - PWA iPhone exibe tipos de evento do historico com helper testado e fallback seguro para eventos novos.
@@ -342,6 +348,7 @@ Atualizado em 2026-05-21.
 - PWA iPhone exibe e formata agendamento da parada de rota em `America/Sao_Paulo` com helper testado.
 - PWA iPhone exibe codigo publico, cliente e status da entrega nas paradas de rota quando esse contexto vem da API, mantendo fallback seguro para tipo da parada.
 - PWA iPhone possui toggle de GPS automatico enquanto o app estiver aberto, com envio limitado por tempo/deslocamento para reduzir uso de bateria e chamadas.
+- PWA iPhone mantem GPS automatico durante entrega em atendimento mesmo apos pausar novas corridas, evitando perder o motoboy do mapa da loja no trajeto.
 - PWA iPhone possui atualizacao automatica a cada 30 segundos enquanto aberto e notificacao local para nova entrega disponivel ou alteracao de entrega em atendimento.
 - PWA iPhone preparado para registrar token Web Push do Firebase Messaging quando `VITE_FIREBASE_WEB_PUSH_VAPID_KEY` estiver configurada e o navegador suportar.
 - PWA iPhone le a configuracao Firebase Web por variaveis `VITE_FIREBASE_*`, sem chave hardcoded no codigo, e so tenta registrar Web Push quando VAPID e config minima estao completas.
@@ -365,7 +372,7 @@ Atualizado em 2026-05-21.
 - Preflight de producao documentado no README e checklist de banco documentado em `docs/supabase.md`, cobrindo segredo de sessao, pooler, comprovantes, Firebase Admin, VAPID, RLS, testes e build.
 - Roteiro de smoke test manual do app Android documentado em `apps/motoboy/README.md`, cobrindo API acessivel, login de motoboy, praca, GPS, rota, pagamento, comprovante, problema, FCM e logout.
 - Roteiro de smoke test Web Push do PWA no iOS documentado em `apps/motoboy-pwa/README.md`, cobrindo deploy HTTPS, app instalado na Tela de Inicio, VAPID, Firebase Admin, registro de token e recebimento de notificacao.
-- Politica atual de localizacao Android documentada em `apps/motoboy/README.md`: foreground service com notificacao persistente, sem `ACCESS_BACKGROUND_LOCATION`, e checklist para Play Store se background real virar requisito.
+- Politica atual de localizacao Android documentada em `apps/motoboy/README.md`: foreground service com notificacao persistente, `ACCESS_BACKGROUND_LOCATION` declarado para o fluxo de campo e checklist de Play Store/LGPD antes de publicacao externa.
 - Checagem `env:production:check` agora sinaliza como warning quando um arquivo informado por `file=` nao existe, evitando typo silencioso no preflight de deploy.
 - Checagem `env:production:check` valida formato/protocolo das URLs de Supabase/API, falhando Supabase sem HTTPS e avisando frontend local ou sem HTTPS.
 - Checagem `env:production:check` sinaliza `DATABASE_URL` que nao seja PostgreSQL com usuario, senha, host e `sslmode=require`.
@@ -418,7 +425,7 @@ Atualizado em 2026-05-21.
 - Executar smoke test completo do app Android em emulador/aparelho com API publicada ou API local acessivel pelo dispositivo.
 - Evoluir app Kotlin com mapa nativo/embarcado da rota e offline. 
 - Executar teste real de Web Push do PWA em dispositivo iOS instalado pela Tela de Inicio apos configurar VAPID key e deploy HTTPS.
-- Revalidar permissao/background policy final de localizacao no Play Console antes de publicacao externa, mantendo a decisao atual sem `ACCESS_BACKGROUND_LOCATION` enquanto nao houver requisito de app fechado.
+- Revalidar permissao/background policy final de localizacao no Play Console antes de publicacao externa, incluindo disclosure de background location, LGPD e teste em Android 10+.
 - Deploy da API e estrategia final de banco/producao, usando `npm run secret:session` para gerar o segredo e `npm run preflight:production -- file=env/api.env file=env/admin.env` como conferencia local final.
 
 ## Observacoes tecnicas

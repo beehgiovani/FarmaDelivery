@@ -219,7 +219,7 @@ export function ManagementPanel({
     setForm((current) => buildStoreLoginAccessForm({ current, store, initialPassword: generateInitialPassword() }));
     setSubmitState("idle");
     setCreatedAccess(null);
-    setFeedback(`Formulario preparado para criar o login operacional da loja ${store.name}. Use um telefone ou email da unidade como identificador.`);
+    setFeedback(`Formulario preparado para criar o login operacional da loja ${store.name}. O nome sera o login principal; telefone e email ficam opcionais.`);
     window.setTimeout(() => {
       accessFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       accessFormRef.current?.querySelector<HTMLInputElement>("input[name='team-user-name']")?.focus();
@@ -267,12 +267,6 @@ export function ManagementPanel({
     if (requiresLogin && form.password.length < 8) {
       setSubmitState("error");
       setFeedback("Informe senha inicial com pelo menos 8 caracteres.");
-      return;
-    }
-    if (requiresLogin && !emailForLogin && !phoneForLogin) {
-      setSubmitState("error");
-      setFeedback("Informe telefone ou email para a pessoa conseguir entrar.");
-      setForm((current) => ({ ...current, phone: normalizedPhone }));
       return;
     }
     if (requiresBaseStoreForRole(form.role) && !form.storeId) {
@@ -373,7 +367,7 @@ export function ManagementPanel({
       });
       onStoreChanged?.();
       prepareStoreLogin(createdStore);
-      setFeedback(`Loja ${createdStore.name} cadastrada. Informe telefone ou email para criar o login operacional da unidade.`);
+      setFeedback(`Loja ${createdStore.name} cadastrada. Confira o nome unico e a senha para criar o login operacional da unidade.`);
     } catch (error) {
       console.error("store create error", error);
       setStoreSubmitState("error");
@@ -507,10 +501,10 @@ export function ManagementPanel({
 
   async function handleResetPassword(user: TeamUser) {
     const password = generateInitialPassword();
-    const login = user.email?.trim() || user.phone?.trim();
+    const login = user.email?.trim() || user.phone?.trim() || user.name.trim();
     if (!login) {
       setSubmitState("error");
-      setFeedback("Este usuario precisa ter telefone ou email antes de redefinir a senha.");
+      setFeedback("Este usuario precisa ter um nome valido antes de redefinir a senha.");
       return;
     }
     setPasswordResetUserId(user.id);
@@ -773,10 +767,10 @@ export function ManagementPanel({
                 {isCounterReference
                   ? "Este cadastro alimenta o autocomplete do campo Atendente no lancamento de entrega. Nao gera usuario de entrada no sistema."
                   : isStoreLogin
-                    ? "Escolha a unidade, defina o identificador do login e entregue a senha inicial para o responsavel da loja."
+                    ? "Escolha a unidade, mantenha um nome unico e entregue a senha inicial para o responsavel da loja. Telefone e email sao opcionais."
                     : isCourierAccess
-                      ? "Informe nome, telefone ou email, senha inicial e loja base. A praca de atendimento sera escolhida pelo motoboy no app."
-                    : "Use telefone ou email como identificador do acesso. A senha inicial pode ser alterada depois pelo admin."}
+                      ? "Informe nome unico, senha inicial e loja base. Telefone e email ficam opcionais para entrada alternativa."
+                    : "Use um nome unico como login principal. Telefone e email continuam como opcoes de entrada."}
               </small>
             </div>
           </div>
@@ -789,7 +783,7 @@ export function ManagementPanel({
               </span>
               <span>
                 <strong>2</strong>
-                Telefone para login
+                Nome unico
               </span>
               <span>
                 <strong>3</strong>
@@ -828,22 +822,22 @@ export function ManagementPanel({
             ) : (
               <>
                 <label className="inputGroup">
-                  <span>{isStoreLogin ? "Telefone do login" : isCourierAccess ? "Telefone do motoboy" : "Telefone"}</span>
+                  <span>{isStoreLogin ? "Telefone opcional" : isCourierAccess ? "Telefone opcional" : "Telefone"}</span>
                   <input
                     className="plainInput"
                     inputMode="tel"
                     value={form.phone}
-                    placeholder={isStoreLogin ? "Telefone da unidade" : isCourierAccess ? "Usado para entrar no app" : undefined}
+                    placeholder={isStoreLogin ? "Opcional" : isCourierAccess ? "Opcional" : undefined}
                     onChange={(event) => setForm({ ...form, phone: normalizeDeliveryPhoneInput(event.target.value) })}
                   />
-                  {isCourierAccess ? <small className="inputHint">O motoboy pode usar este telefone como login no app.</small> : null}
+                  {isCourierAccess ? <small className="inputHint">O motoboy tambem pode usar este telefone para entrar no app.</small> : null}
                 </label>
                 <label className="inputGroup">
-                  <span>{isStoreLogin ? "Email do login" : isCourierAccess ? "Email do motoboy" : "Email"}</span>
+                  <span>{isStoreLogin ? "Email opcional" : isCourierAccess ? "Email opcional" : "Email"}</span>
                   <input
                     className="plainInput"
                     value={form.email}
-                    placeholder={isStoreLogin ? "Email da unidade" : isCourierAccess ? "Opcional se usar telefone" : undefined}
+                    placeholder={isStoreLogin ? "Opcional" : isCourierAccess ? "Opcional" : undefined}
                     onChange={(event) => setForm({ ...form, email: event.target.value })}
                   />
                 </label>
@@ -1269,7 +1263,7 @@ function UserGroup({
   title: string;
   users: TeamUser[];
   resettingUserId?: string | null;
-  onResetPassword?: (user: TeamUser) => void;
+  onResetPassword?: (user: TeamUser) => Promise<void>;
 }) {
   const [pendingResetUserId, setPendingResetUserId] = useState<string | null>(null);
 
@@ -1296,8 +1290,8 @@ function UserGroup({
                     className="inlineWarningButton"
                     type="button"
                     disabled={resettingUserId === user.id}
-                    onClick={() => {
-                      onResetPassword(user);
+                    onClick={async () => {
+                      await onResetPassword(user);
                       setPendingResetUserId(null);
                     }}
                   >

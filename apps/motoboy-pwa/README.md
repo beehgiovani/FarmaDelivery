@@ -24,7 +24,7 @@ Este app nao deve documentar nomes reais de lojas, enderecos, coordenadas, chave
 - Mensagens tecnicas de backend/rede sao filtradas antes de aparecer para o motoboy.
 - Disponibilidade do motoboy antes de receber/aceitar novas corridas.
 - Envio manual de localizacao.
-- GPS automatico enquanto o PWA estiver aberto, com limites por tempo/deslocamento.
+- GPS automatico enquanto o PWA estiver aberto, com pedido de permissao no login/ativacao, mantendo envio durante entrega em atendimento e limites por tempo/deslocamento.
 - Acoes de entrega: aceitar, coletar, sair em rota, concluir, problema e cancelamento conforme permissao da API.
 - Confirmacao textual obrigatoria ao concluir entrega.
 - Foto opcional de comprovante, com compressao/redimensionamento local antes do upload.

@@ -25,7 +25,7 @@ android {
     versionCode = 1
     versionName = "0.1.0"
 
-    val apiUrl = localProperties.getProperty("farmadelivery.apiUrl") ?: "http://10.0.2.2:3333"
+    val apiUrl = localProperties.getProperty("farmadelivery.apiUrl") ?: "http://10.0.2.2:3433"
     buildConfigField("String", "FARMADELIVERY_API_URL", "\"$apiUrl\"")
   }
 
@@ -57,6 +57,7 @@ dependencies {
   implementation("com.google.android.gms:play-services-location:21.3.0")
 
   implementation("com.squareup.okhttp3:okhttp:5.3.2")
+  implementation("com.squareup.okhttp3:okhttp-sse:5.3.2")
   implementation("com.squareup.okhttp3:logging-interceptor:5.3.2")
   implementation("com.squareup.retrofit2:retrofit:3.0.0")
   implementation("com.squareup.retrofit2:converter-kotlinx-serialization:3.0.0")

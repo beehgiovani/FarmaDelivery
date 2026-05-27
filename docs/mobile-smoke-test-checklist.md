@@ -5,21 +5,21 @@ Use este arquivo para registrar o teste real dos apps de campo antes de liberar 
 ## Evidencia Segura
 
 - Commit testado:
-- Data/hora aproximada:
-- Ambiente da API: local, rede local ou HTTPS publicado
-- Dispositivo Android/emulador:
+- Data/hora aproximada: 2026-05-27 18:50
+- Ambiente da API: local via Docker, acessada pelo emulador Android em `10.0.2.2:3433`
+- Dispositivo Android/emulador: Android Emulator `emulator-5554`
 - Dispositivo iOS/PWA:
 - Perfil usado: motoboy de teste
-- Praca selecionada:
-- Resultado geral: pendente, aprovado ou reprovado
+- Praca selecionada: praca operacional carregada da sessao/app
+- Resultado geral: pendente; mini smoke Android local passou, fluxo completo ainda depende de teste manual de entrega
 
 ## Preflight
 
 | Item | Resultado | Observacao sem dado sensivel |
 | --- | --- | --- |
-| `npm run mobile:local-check -- --api-config` conferido | Pendente |  |
-| `npm run mobile:local-check` passou | Pendente |  |
-| APK instalado no Android/emulador | Pendente |  |
+| `npm run mobile:local-check -- --api-config` conferido | Aprovado | Android apontando para host do emulador. |
+| `npm run mobile:local-check` passou | Aprovado | Validacao local mobile executada antes do teste no emulador. |
+| APK instalado no Android/emulador | Aprovado | APK debug instalado com sucesso no emulador. |
 | PWA publicado em HTTPS quando Web Push for testado | Pendente |  |
 | Firebase Admin configurado na API para FCM HTTP v1 | Pendente |  |
 | Variaveis Firebase Web e VAPID configuradas no PWA | Pendente |  |
@@ -28,13 +28,13 @@ Use este arquivo para registrar o teste real dos apps de campo antes de liberar 
 
 | Item | Resultado | Observacao sem dado sensivel |
 | --- | --- | --- |
-| Login de motoboy funciona | Pendente |  |
+| Login de motoboy funciona | Parcial | Sessao salva validada com `/auth/me` 200 no app instalado. Login manual ainda precisa ser repetido no smoke completo. |
 | Login de loja/balconista nao entra no fluxo de campo | Pendente |  |
-| Escolha de praca filtra entregas livres | Pendente |  |
-| Estados de carregando, vazio, erro/retry e lista preenchida estao legiveis | Pendente |  |
-| Disponibilidade bloqueia/libera aceite corretamente | Pendente |  |
-| GPS manual atualiza a posicao no painel | Pendente |  |
-| GPS automatico mostra notificacao persistente e para no logout | Pendente |  |
+| Escolha de praca filtra entregas livres | Parcial | Listagem de entregas por praca respondeu 200 no emulador. Conferencia visual/manual ainda pendente. |
+| Estados de carregando, vazio, erro/retry e lista preenchida estao legiveis | Parcial | Estado vazio de entregas e atualizacao recente conferidos no emulador; erro/retry e lista preenchida ainda pendentes. |
+| Disponibilidade bloqueia/libera aceite corretamente | Parcial | Tela mostrou motoboy disponivel com GPS automatico; bloqueio/aceite ainda pendente por falta de entrega disponivel no mini smoke. |
+| GPS manual atualiza a posicao no painel | Parcial | Envio de localizacao para API retornou 200; conferencia visual no mapa do painel ainda pendente. |
+| GPS automatico mostra notificacao persistente e para no logout | Parcial | Foreground service iniciou e enviou localizacao; parada no logout ainda pendente. |
 | Aceitar, coletar e sair em rota refletem no painel | Pendente |  |
 | Atalho de mapa abre rota/parada navegavel | Pendente |  |
 | Valor, pagamento, troco/conta, telefone, endereco, observacoes e numero diario aparecem no card | Pendente |  |

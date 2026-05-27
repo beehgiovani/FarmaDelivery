@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -27,6 +28,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,11 +41,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
+import com.drogsantoantonio.farmadelivery.data.api.LiveEventClient
 import com.drogsantoantonio.farmadelivery.data.models.AuthSession
 import com.drogsantoantonio.farmadelivery.data.models.DeliveryDto
 import com.drogsantoantonio.farmadelivery.data.models.DeliveryEventDto
 import com.drogsantoantonio.farmadelivery.data.repository.CourierRepository
 import com.drogsantoantonio.farmadelivery.data.repository.DeliveryRepository
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -70,6 +75,7 @@ fun DeliveriesScreen(
   courierRepository: CourierRepository,
   available: Boolean,
   onAvailabilityChanged: (Boolean) -> Unit,
+  onActiveDeliveryPresenceChanged: (Boolean) -> Unit,
   onLogout: () -> Unit,
 ) {
   val scope = rememberCoroutineScope()
@@ -79,24 +85,63 @@ fun DeliveriesScreen(
   var selectedSection by remember { mutableStateOf(DeliveryListSection.Available) }
   var serviceArea by remember { mutableStateOf(CourierServiceArea.fromValue(session.courier?.preferredServiceArea)) }
   var lastSyncedAt by remember { mutableStateOf<Instant?>(null) }
+  var notice by remember { mutableStateOf<String?>(null) }
+  var hasLoadedDeliveries by remember { mutableStateOf(false) }
 
-  fun refresh() {
+  fun refresh(silent: Boolean = false) {
     scope.launch {
-      loading = true
-      error = null
+      if (!silent) {
+        loading = true
+        error = null
+      }
       try {
-        deliveries = deliveryRepository.list(serviceArea.value)
+        val nextDeliveries = deliveryRepository.list(serviceArea.value)
+        if (silent && available) {
+          deliveryAutoRefreshNotice(
+            previous = deliveries,
+            next = nextDeliveries,
+            hasPreviousSnapshot = hasLoadedDeliveries,
+          )?.let { message ->
+            notice = message
+            selectedSection = DeliveryListSection.Available
+          }
+        }
+        if (deliveries != nextDeliveries) {
+          deliveries = nextDeliveries
+        }
+        hasLoadedDeliveries = true
         lastSyncedAt = Instant.now()
       } catch (failure: Exception) {
-        error = courierFacingError(failure, "Nao foi possivel carregar entregas.")
+        if (!silent) {
+          error = courierFacingError(failure, "Nao foi possivel carregar entregas.")
+        }
       } finally {
-        loading = false
+        if (!silent) {
+          loading = false
+        }
       }
     }
   }
 
   LaunchedEffect(serviceArea) {
     refresh()
+    while (true) {
+      delay(DELIVERY_AUTO_REFRESH_INTERVAL_MS)
+      refresh(silent = true)
+    }
+  }
+
+  DisposableEffect(session.token, serviceArea) {
+    val eventSource = LiveEventClient().connect(session.token) {
+      refresh(silent = true)
+    }
+    onDispose {
+      eventSource.cancel()
+    }
+  }
+
+  LaunchedEffect(deliveries) {
+    onActiveDeliveryPresenceChanged(deliverySections(deliveries).active.isNotEmpty())
   }
 
   Surface {
@@ -117,7 +162,7 @@ fun DeliveriesScreen(
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
           OutlinedButton(enabled = !loading, onClick = { refresh() }) {
-            Text("Atualizar")
+            Text("Buscar agora")
           }
           OutlinedButton(onClick = onLogout) {
             Text("Sair")
@@ -132,6 +177,7 @@ fun DeliveriesScreen(
         onSelected = { nextArea ->
           serviceArea = nextArea
           deliveries = emptyList()
+          hasLoadedDeliveries = false
           session.courier?.id?.let { courierId ->
             scope.launch {
               runCatching {
@@ -150,6 +196,21 @@ fun DeliveriesScreen(
 
       Spacer(Modifier.height(16.dp))
 
+      notice?.let { message ->
+        Surface(
+          color = MaterialTheme.colorScheme.primaryContainer,
+          contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+          modifier = Modifier.fillMaxWidth(),
+        ) {
+          Text(
+            text = message,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(10.dp),
+          )
+        }
+        Spacer(Modifier.height(12.dp))
+      }
+
       when {
         loading -> LoadingState("Carregando entregas...")
         error != null -> ErrorState(
@@ -157,7 +218,7 @@ fun DeliveriesScreen(
           onRetry = { refresh() },
         )
         deliveries.isEmpty() -> EmptyState(
-          message = "Nenhuma entrega disponivel agora.",
+          message = "Nenhuma entrega nova agora.",
           onRefresh = { refresh() },
         )
         else -> {
@@ -172,26 +233,33 @@ fun DeliveriesScreen(
 
             when (selectedSection) {
               DeliveryListSection.Available -> DeliverySectionList(
-                title = "Entregas disponiveis",
-                emptyMessage = "Nenhuma entrega disponivel agora.",
+                title = "Novas entregas",
+                emptyMessage = "Nenhuma entrega nova agora.",
                 deliveries = sections.available,
                 courierId = session.courier?.id,
                 available = available,
                 serviceArea = serviceArea.value,
                 onAvailabilityChanged = onAvailabilityChanged,
-                onAccepted = { refresh() },
+                onActiveDeliveryPresenceChanged = onActiveDeliveryPresenceChanged,
+                onAccepted = {
+                  selectedSection = DeliveryListSection.Active
+                  refresh()
+                },
+                onActionSuccess = { message -> notice = message },
                 repository = deliveryRepository,
               )
 
               DeliveryListSection.Active -> DeliverySectionList(
-                title = "Minhas entregas",
+                title = "Em atendimento",
                 emptyMessage = "Voce ainda nao tem entregas em atendimento.",
                 deliveries = sections.active,
                 courierId = session.courier?.id,
                 available = available,
                 serviceArea = serviceArea.value,
                 onAvailabilityChanged = onAvailabilityChanged,
+                onActiveDeliveryPresenceChanged = onActiveDeliveryPresenceChanged,
                 onAccepted = { refresh() },
+                onActionSuccess = { message -> notice = message },
                 repository = deliveryRepository,
               )
             }
@@ -244,21 +312,21 @@ private fun DeliverySectionTabs(
   Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
     if (selectedSection == DeliveryListSection.Available) {
       Button(modifier = Modifier.weight(1f), onClick = { onSelected(DeliveryListSection.Available) }) {
-        Text("Disponiveis ($availableCount)")
+        Text("Novas ($availableCount)")
       }
     } else {
       OutlinedButton(modifier = Modifier.weight(1f), onClick = { onSelected(DeliveryListSection.Available) }) {
-        Text("Disponiveis ($availableCount)")
+        Text("Novas ($availableCount)")
       }
     }
 
     if (selectedSection == DeliveryListSection.Active) {
       Button(modifier = Modifier.weight(1f), onClick = { onSelected(DeliveryListSection.Active) }) {
-        Text("Minhas ($activeCount)")
+        Text("Pegas ($activeCount)")
       }
     } else {
       OutlinedButton(modifier = Modifier.weight(1f), onClick = { onSelected(DeliveryListSection.Active) }) {
-        Text("Minhas ($activeCount)")
+        Text("Pegas ($activeCount)")
       }
     }
   }
@@ -273,8 +341,10 @@ private fun DeliverySectionList(
   available: Boolean,
   serviceArea: String,
   onAvailabilityChanged: (Boolean) -> Unit,
+  onActiveDeliveryPresenceChanged: (Boolean) -> Unit,
   repository: DeliveryRepository,
   onAccepted: () -> Unit,
+  onActionSuccess: (String) -> Unit,
 ) {
   if (deliveries.isEmpty()) {
     EmptyState(message = emptyMessage, onRefresh = onAccepted)
@@ -290,10 +360,12 @@ private fun DeliverySectionList(
         delivery = delivery,
         courierId = courierId,
         available = available,
-        serviceArea = serviceArea,
-        onAvailabilityChanged = onAvailabilityChanged,
-        onAccepted = onAccepted,
-        repository = repository,
+      serviceArea = serviceArea,
+      onAvailabilityChanged = onAvailabilityChanged,
+      onActiveDeliveryPresenceChanged = onActiveDeliveryPresenceChanged,
+      onAccepted = onAccepted,
+      onActionSuccess = onActionSuccess,
+      repository = repository,
       )
     }
   }
@@ -323,7 +395,7 @@ private fun ErrorState(message: String, onRetry: () -> Unit) {
 private fun EmptyState(message: String, onRefresh: () -> Unit) {
   OperationalStateLayout(
     title = message,
-    actionLabel = "Atualizar",
+    actionLabel = "Buscar agora",
     onAction = onRefresh,
   )
 }
@@ -335,8 +407,10 @@ private fun DeliveryCard(
   available: Boolean,
   serviceArea: String,
   onAvailabilityChanged: (Boolean) -> Unit,
+  onActiveDeliveryPresenceChanged: (Boolean) -> Unit,
   repository: DeliveryRepository,
   onAccepted: () -> Unit,
+  onActionSuccess: (String) -> Unit,
 ) {
   val context = LocalContext.current
   val scope = rememberCoroutineScope()
@@ -464,7 +538,7 @@ private fun DeliveryCard(
           if (!showHistory && events.isEmpty()) loadHistory()
         },
       ) {
-        Text(if (showHistory) "Ocultar historico" else "Historico")
+        Text(if (showHistory) "Fechar historico" else "Ver historico")
       }
 
       if (showHistory) {
@@ -491,10 +565,12 @@ private fun DeliveryCard(
               submitting = true
               actionError = null
               try {
-                repository.accept(delivery.id, acceptingCourierId, serviceArea)
-                markHistoryStale()
-                onAvailabilityChanged(false)
-                onAccepted()
+               repository.accept(delivery.id, acceptingCourierId, serviceArea)
+               markHistoryStale()
+               onAvailabilityChanged(false)
+               onActiveDeliveryPresenceChanged(true)
+               onActionSuccess("Entrega pega. A loja vai acompanhar o atendimento.")
+               onAccepted()
               } catch (failure: Exception) {
                 actionError = courierFacingError(failure, "Nao foi possivel aceitar.")
               } finally {
@@ -503,11 +579,11 @@ private fun DeliveryCard(
             }
           },
         ) {
-          Text(if (submitting) "Aceitando..." else "Aceitar")
+          Text(if (submitting) "Pegando..." else "Pegar entrega")
         }
       } else if (acceptingCourierId != null && !available) {
         Spacer(Modifier.height(12.dp))
-        Text("Ative sua disponibilidade para aceitar corridas.", style = MaterialTheme.typography.bodySmall)
+      Text("Toque em Comecar corridas para pegar entregas.", style = MaterialTheme.typography.bodySmall)
       }
 
       if (!canAccept && primaryAction != null && primaryAction.action != "deliver") {
@@ -521,6 +597,7 @@ private fun DeliveryCard(
               try {
                 runDeliveryAction(repository, primaryAction, delivery.id)
                 markHistoryStale()
+                onActionSuccess(primaryAction.successMessage)
                 onAccepted()
               } catch (failure: Exception) {
                 actionError = courierFacingError(failure, "Nao foi possivel atualizar.")
@@ -544,7 +621,7 @@ private fun DeliveryCard(
               if (showProblemForm) showProblemForm = false
             },
           ) {
-            Text("Entregar")
+          Text("Entreguei")
           }
           OutlinedButton(
             enabled = !submitting,
@@ -553,54 +630,64 @@ private fun DeliveryCard(
               if (showDeliveryForm) showDeliveryForm = false
             },
           ) {
-            Text("Problema")
+          Text("Avisar problema")
           }
         }
       }
 
-      if (showDeliveryForm) {
-        Spacer(Modifier.height(8.dp))
-        OutlinedTextField(
-          value = deliveryNotes,
-          onValueChange = { deliveryNotes = it },
-          label = { Text("Confirmacao da entrega") },
-          placeholder = { Text("Ex: recebido por Maria, portaria, casa 2") },
-          modifier = Modifier.fillMaxWidth(),
-          minLines = 2,
-        )
-        Spacer(Modifier.height(8.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-          OutlinedButton(
-            enabled = !submitting,
-            onClick = {
-              actionError = null
-              val photo = createProofPhotoUri(context, delivery.id)
-              proofPhotoUri = photo.uri
-              proofPhotoName = photo.fileName
-              proofReady = false
-              proofCameraLauncher.launch(photo.uri)
-            },
-          ) {
-            Text(if (proofReady) "Trocar foto opcional" else "Adicionar foto opcional")
-          }
-          if (proofReady) {
+    }
+  }
+
+  if (showDeliveryForm) {
+    AlertDialog(
+      onDismissRequest = {
+        if (!submitting) showDeliveryForm = false
+      },
+      title = { Text("Confirmar entrega") },
+      text = {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+          Text("Escreva quem recebeu ou onde deixou a entrega.")
+          OutlinedTextField(
+            value = deliveryNotes,
+            onValueChange = { deliveryNotes = it },
+            label = { Text("Quem recebeu?") },
+            placeholder = { Text("Ex: recebido por Maria, portaria, casa 2") },
+            modifier = Modifier.fillMaxWidth(),
+            minLines = 2,
+          )
+          Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(
               enabled = !submitting,
               onClick = {
-                proofPhotoUri = null
-                proofPhotoName = null
+                actionError = null
+                val photo = createProofPhotoUri(context, delivery.id)
+                proofPhotoUri = photo.uri
+                proofPhotoName = photo.fileName
                 proofReady = false
+                proofCameraLauncher.launch(photo.uri)
               },
             ) {
-              Text("Remover foto")
+              Text(if (proofReady) "Trocar foto" else "Adicionar foto")
+            }
+            if (proofReady) {
+              OutlinedButton(
+                enabled = !submitting,
+                onClick = {
+                  proofPhotoUri = null
+                  proofPhotoName = null
+                  proofReady = false
+                },
+              ) {
+                Text("Remover")
+              }
             }
           }
+          if (proofReady) {
+            Text("Foto pronta.", style = MaterialTheme.typography.bodySmall)
+          }
         }
-        if (proofReady) {
-          Spacer(Modifier.height(4.dp))
-          Text("Foto pronta para envio.", style = MaterialTheme.typography.bodySmall)
-        }
-        Spacer(Modifier.height(8.dp))
+      },
+      confirmButton = {
         Button(
           enabled = !submitting && deliveryNotes.trim().length >= 3,
           onClick = {
@@ -621,6 +708,7 @@ private fun DeliveryCard(
                 }
                 repository.deliver(delivery.id, deliveryNotes.trim(), proofId)
                 markHistoryStale()
+                onActionSuccess("Entrega concluida.")
                 deliveryNotes = ""
                 showDeliveryForm = false
                 proofPhotoUri = null
@@ -635,20 +723,36 @@ private fun DeliveryCard(
             }
           },
         ) {
-          Text(if (submitting) "Concluindo..." else "Confirmar entrega")
+          Text(if (submitting) "Salvando..." else "Confirmar entrega")
         }
-      }
+      },
+      dismissButton = {
+        TextButton(enabled = !submitting, onClick = { showDeliveryForm = false }) {
+          Text("Cancelar")
+        }
+      },
+    )
+  }
 
-      if (showProblemForm) {
-        Spacer(Modifier.height(8.dp))
-        OutlinedTextField(
-          value = problemNotes,
-          onValueChange = { problemNotes = it },
-          label = { Text("Observacao do problema") },
-          modifier = Modifier.fillMaxWidth(),
-          minLines = 2,
-        )
-        Spacer(Modifier.height(8.dp))
+  if (showProblemForm) {
+    AlertDialog(
+      onDismissRequest = {
+        if (!submitting) showProblemForm = false
+      },
+      title = { Text("Avisar problema") },
+      text = {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+          Text("Conte o que aconteceu para a loja acompanhar.")
+          OutlinedTextField(
+            value = problemNotes,
+            onValueChange = { problemNotes = it },
+            label = { Text("O que aconteceu?") },
+            modifier = Modifier.fillMaxWidth(),
+            minLines = 2,
+          )
+        }
+      },
+      confirmButton = {
         Button(
           enabled = !submitting && problemNotes.trim().length >= 3,
           onClick = {
@@ -658,6 +762,7 @@ private fun DeliveryCard(
               try {
                 repository.problem(delivery.id, problemNotes.trim())
                 markHistoryStale()
+                onActionSuccess("Problema avisado para a loja.")
                 problemNotes = ""
                 showProblemForm = false
                 onAccepted()
@@ -669,10 +774,15 @@ private fun DeliveryCard(
             }
           },
         ) {
-          Text("Registrar problema")
+          Text(if (submitting) "Salvando..." else "Avisar loja")
         }
-      }
-    }
+      },
+      dismissButton = {
+        TextButton(enabled = !submitting, onClick = { showProblemForm = false }) {
+          Text("Cancelar")
+        }
+      },
+    )
   }
 }
 
@@ -724,13 +834,14 @@ private fun DeliveryHistory(
 private data class LifecycleAction(
   val label: String,
   val action: String,
+  val successMessage: String,
 )
 
 private fun lifecyclePrimaryAction(status: String): LifecycleAction? {
   return when (status) {
-    "ACEITA_PELO_MOTOBOY" -> LifecycleAction(label = "Coletar", action = "collect")
-    "COLETADA" -> LifecycleAction(label = "Sair em rota", action = "startRoute")
-    "EM_ROTA" -> LifecycleAction(label = "Entregar", action = "deliver")
+    "ACEITA_PELO_MOTOBOY" -> LifecycleAction(label = "Retirei na loja", action = "collect", successMessage = "Retirada registrada.")
+    "COLETADA" -> LifecycleAction(label = "Comecar entrega", action = "startRoute", successMessage = "Entrega iniciada.")
+    "EM_ROTA" -> LifecycleAction(label = "Entreguei", action = "deliver", successMessage = "Entrega concluida.")
     else -> null
   }
 }
@@ -793,6 +904,7 @@ private fun encodeJpeg(bitmap: Bitmap, quality: Int): ByteArray {
 }
 
 private const val MAX_PROOF_PHOTO_BYTES = 4 * 1024 * 1024
+private const val DELIVERY_AUTO_REFRESH_INTERVAL_MS = 10_000L
 
 private suspend fun runDeliveryAction(
   repository: DeliveryRepository,

@@ -335,6 +335,28 @@ test("admin password reset validates payload before database work", async () => 
   }
 });
 
+test("password reset preflight allows PATCH with auth headers", async () => {
+  const app = await createApp({ logger: false });
+  try {
+    const response = await app.inject({
+      method: "OPTIONS",
+      url: "/users/22222222-2222-4222-8222-222222222222/password",
+      headers: {
+        origin: "http://localhost:5173",
+        "access-control-request-method": "PATCH",
+        "access-control-request-headers": "content-type,authorization",
+      },
+    });
+
+    assert.equal(response.statusCode, 204);
+    assert.match(response.headers["access-control-allow-methods"] as string, /PATCH/);
+    assert.match(response.headers["access-control-allow-headers"] as string, /Authorization/i);
+    assert.match(response.headers["access-control-allow-headers"] as string, /Content-Type/i);
+  } finally {
+    await app.close();
+  }
+});
+
 test("admin user creation validates courier base store before database work", async () => {
   const app = await createApp({ logger: false });
   try {

@@ -29,6 +29,7 @@ import com.drogsantoantonio.farmadelivery.data.models.AuthSession
 import com.drogsantoantonio.farmadelivery.data.preferences.SessionPreferences
 import com.drogsantoantonio.farmadelivery.data.repository.CourierRepository
 import com.drogsantoantonio.farmadelivery.location.LocationTrackingService
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
@@ -36,6 +37,7 @@ fun LocationPanel(
   session: AuthSession,
   courierRepository: CourierRepository,
   available: Boolean,
+  trackingAllowed: Boolean,
   onAvailabilityChanged: (Boolean) -> Unit,
 ) {
   val context = LocalContext.current
@@ -43,20 +45,35 @@ fun LocationPanel(
   val locationProvider = remember { DeviceLocationProvider(context) }
   val sessionPreferences = remember { SessionPreferences(context) }
   var feedback by remember { mutableStateOf<String?>(null) }
-  var loading by remember { mutableStateOf(false) }
   var availabilityLoading by remember { mutableStateOf(false) }
   var tracking by remember { mutableStateOf(false) }
+  var lastLocationSentAt by remember { mutableStateOf<Long?>(null) }
 
-  LaunchedEffect(session.courier?.id, available) {
+  LaunchedEffect(session.courier?.id, trackingAllowed) {
     val courierId = session.courier?.id
-    val enabled = sessionPreferences.locationTrackingEnabled()
-    tracking = enabled && available
-    if (tracking && courierId != null && locationProvider.hasLocationPermission()) {
-      LocationTrackingService.start(context, courierId)
-    } else if (!available) {
+    if (!trackingAllowed) {
       sessionPreferences.setLocationTrackingEnabled(false)
       LocationTrackingService.stop(context)
       tracking = false
+      return@LaunchedEffect
+    }
+
+    if (courierId != null && locationProvider.hasLocationPermission()) {
+      sessionPreferences.setLocationTrackingEnabled(true)
+      tracking = true
+      LocationTrackingService.start(context, courierId)
+      feedback = "GPS ao vivo ligado enquanto voce estiver recebendo corridas ou em atendimento."
+    } else if (courierId != null) {
+      sessionPreferences.setLocationTrackingEnabled(false)
+      tracking = false
+      feedback = "Libere a localizacao para a loja acompanhar voce no mapa."
+    }
+  }
+
+  LaunchedEffect(tracking, trackingAllowed) {
+    while (tracking && trackingAllowed) {
+      lastLocationSentAt = sessionPreferences.lastLocationSentAt()
+      delay(LOCATION_WATCH_INTERVAL_MS)
     }
   }
 
@@ -65,7 +82,17 @@ fun LocationPanel(
   ) { permissions ->
     val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
       permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
-    feedback = if (granted) "Permissao concedida. Envie a localizacao." else "Permissao de localizacao negada."
+    val courierId = session.courier?.id
+    if (granted && trackingAllowed && courierId != null) {
+      scope.launch {
+        sessionPreferences.setLocationTrackingEnabled(true)
+      }
+      LocationTrackingService.start(context, courierId)
+      tracking = true
+      feedback = "Permissao liberada. GPS ao vivo ligado."
+    } else {
+      feedback = if (granted) "Permissao concedida." else "Permissao de localizacao negada."
+    }
   }
 
   Surface(color = MaterialTheme.colorScheme.surface) {
@@ -76,20 +103,32 @@ fun LocationPanel(
         .padding(horizontal = 16.dp, vertical = 8.dp),
     ) {
       val operationalStatus = motoboyOperationalStatus(available = available, trackingEnabled = tracking)
+      val hasCourierLink = session.courier?.id != null
       Text(operationalStatus.title, style = MaterialTheme.typography.titleSmall)
       Text(
-        feedback ?: operationalStatus.text,
+        locationWatchMessage(
+          feedback = feedback,
+          tracking = tracking,
+          trackingAllowed = trackingAllowed,
+          lastLocationSentAt = lastLocationSentAt,
+          now = System.currentTimeMillis(),
+        ) ?: if (hasCourierLink) {
+          operationalStatus.text
+        } else {
+          "Este login ainda nao esta ligado a um motoboy. Ajuste o cadastro no painel para liberar corridas e localizacao."
+        },
         style = MaterialTheme.typography.bodySmall,
+        color = if (hasCourierLink) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.error,
       )
       Spacer(Modifier.height(2.dp))
       Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
         Button(
           modifier = Modifier.weight(1f),
-          enabled = !availabilityLoading && session.courier?.id != null,
+          enabled = !availabilityLoading && hasCourierLink,
           onClick = {
             val courierId = session.courier?.id
             if (courierId == null) {
-              feedback = "Sessao de motoboy indisponivel."
+              feedback = "Nao encontrei o cadastro deste motoboy."
               return@Button
             }
 
@@ -100,18 +139,25 @@ fun LocationPanel(
                 val nextAvailable = !available
                 val updatedCourier = courierRepository.updateAvailability(courierId, nextAvailable)
                 onAvailabilityChanged(updatedCourier.available)
+                sessionPreferences.setCourierAvailable(updatedCourier.available)
                 if (!updatedCourier.available) {
                   sessionPreferences.setLocationTrackingEnabled(false)
                   LocationTrackingService.stop(context)
                   tracking = false
+                } else if (locationProvider.hasLocationPermission()) {
+                  sessionPreferences.setLocationTrackingEnabled(true)
+                  LocationTrackingService.start(context, courierId)
+                  tracking = true
+                } else {
+                  permissionLauncher.launch(locationPermissions)
                 }
                 feedback = if (updatedCourier.available) {
-                  "Disponivel para receber corridas."
+                  "Corridas ligadas. As novas entregas vao aparecer aqui."
                 } else {
-                  "Indisponivel. Novas corridas nao serao direcionadas para voce."
+                  "Corridas paradas. Voce nao recebera novas entregas."
                 }
               } catch (failure: Exception) {
-                feedback = courierFacingError(failure, "Nao foi possivel atualizar disponibilidade.")
+                feedback = courierFacingError(failure, "Nao consegui mudar seu status agora.")
               } finally {
                 availabilityLoading = false
               }
@@ -120,72 +166,35 @@ fun LocationPanel(
         ) {
           Text(availabilityActionLabel(available = available, loading = availabilityLoading))
         }
-        Button(
-          modifier = Modifier.weight(1f),
-          enabled = available && session.courier?.id != null,
-          onClick = {
-            val courierId = session.courier?.id
-            if (courierId == null) {
-              feedback = "Sessao de motoboy indisponivel."
-              return@Button
-            }
-            if (!locationProvider.hasLocationPermission()) {
-              permissionLauncher.launch(locationPermissions)
-              return@Button
-            }
-
-            if (tracking) {
-              scope.launch {
-                sessionPreferences.setLocationTrackingEnabled(false)
-              }
-              LocationTrackingService.stop(context)
-              tracking = false
-              feedback = "Atualizacao automatica pausada."
-            } else {
-              scope.launch {
-                sessionPreferences.setLocationTrackingEnabled(true)
-              }
-              LocationTrackingService.start(context, courierId)
-              tracking = true
-              feedback = "Atualizacao automatica ativa."
-            }
-          },
-        ) {
-          Text(automaticLocationActionLabel(trackingEnabled = tracking))
-        }
-        Button(
-          modifier = Modifier.weight(1f),
-          enabled = available && !loading && session.courier?.id != null,
-          onClick = {
-            if (!locationProvider.hasLocationPermission()) {
-              permissionLauncher.launch(locationPermissions)
-              return@Button
-            }
-
-            scope.launch {
-              loading = true
-              feedback = null
-              try {
-                val location = locationProvider.currentLocation()
-                val courierId = session.courier?.id
-                if (location == null || courierId == null) {
-                  feedback = "Localizacao indisponivel agora."
-                } else {
-                  courierRepository.updateLocation(courierId, location.latitude, location.longitude, available = null)
-                  feedback = "Localizacao enviada."
-                }
-              } catch (failure: Exception) {
-                feedback = courierFacingError(failure, "Nao foi possivel enviar.")
-              } finally {
-                loading = false
-              }
-            }
-          },
-        ) {
-          Text(sendLocationActionLabel(loading = loading))
+        if (trackingAllowed && hasCourierLink && !locationProvider.hasLocationPermission()) {
+          Button(
+            modifier = Modifier.weight(1f),
+            onClick = { permissionLauncher.launch(locationPermissions) },
+          ) {
+            Text("Liberar localizacao")
+          }
         }
       }
     }
+  }
+}
+
+fun locationWatchMessage(
+  feedback: String?,
+  tracking: Boolean,
+  trackingAllowed: Boolean,
+  lastLocationSentAt: Long?,
+  now: Long,
+): String? {
+  if (feedback != null) return feedback
+  if (!trackingAllowed) return null
+  if (!tracking) return "GPS ao vivo ainda nao ligou. Confira a permissao de localizacao."
+  if (lastLocationSentAt == null) return "Aguardando o primeiro envio automatico de localizacao."
+
+  val ageSeconds = (now - lastLocationSentAt).coerceAtLeast(0L) / 1000
+  return when {
+    ageSeconds <= LOCATION_STALE_WARNING_SECONDS -> "GPS ao vivo atualizado ha ${ageSeconds}s."
+    else -> "A loja esta sem localizacao nova ha ${ageSeconds}s. Mantenha o app aberto e confira o GPS."
   }
 }
 
@@ -193,3 +202,6 @@ private val locationPermissions = arrayOf(
   Manifest.permission.ACCESS_FINE_LOCATION,
   Manifest.permission.ACCESS_COARSE_LOCATION,
 )
+
+private const val LOCATION_WATCH_INTERVAL_MS = 15_000L
+private const val LOCATION_STALE_WARNING_SECONDS = 75L

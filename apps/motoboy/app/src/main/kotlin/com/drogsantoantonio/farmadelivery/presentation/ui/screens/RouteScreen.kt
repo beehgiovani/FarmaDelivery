@@ -38,6 +38,7 @@ import com.drogsantoantonio.farmadelivery.presentation.navigation.buildDirection
 import com.drogsantoantonio.farmadelivery.presentation.navigation.routeMapsButtonLabel
 import com.drogsantoantonio.farmadelivery.presentation.navigation.routeMapsUnavailableText
 import com.drogsantoantonio.farmadelivery.presentation.navigation.routeSegmentNoticeText
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.Instant
 
@@ -52,23 +53,33 @@ fun RouteScreen(
   var error by remember { mutableStateOf<String?>(null) }
   var lastSyncedAt by remember { mutableStateOf<Instant?>(null) }
 
-  fun refresh() {
+  fun refresh(silent: Boolean = false) {
     scope.launch {
-      loading = true
-      error = null
+      if (!silent) {
+        loading = true
+        error = null
+      }
       try {
         routes = routeRepository.activeRoutes()
         lastSyncedAt = Instant.now()
       } catch (failure: Exception) {
-        error = courierFacingError(failure, "Nao foi possivel carregar a rota.")
+        if (!silent) {
+          error = courierFacingError(failure, "Nao foi possivel carregar a rota.")
+        }
       } finally {
-        loading = false
+        if (!silent) {
+          loading = false
+        }
       }
     }
   }
 
   LaunchedEffect(Unit) {
     refresh()
+    while (true) {
+      delay(ROUTE_AUTO_REFRESH_INTERVAL_MS)
+      refresh(silent = true)
+    }
   }
 
   Surface {
@@ -90,7 +101,7 @@ fun RouteScreen(
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
           OutlinedButton(enabled = !loading, onClick = { refresh() }) {
-            Text("Atualizar")
+          Text("Buscar agora")
           }
           OutlinedButton(onClick = onLogout) {
             Text("Sair")
@@ -144,10 +155,12 @@ private fun RouteErrorState(message: String, onRetry: () -> Unit) {
 private fun RouteEmptyState(message: String, onRefresh: () -> Unit) {
   OperationalStateLayout(
     title = message,
-    actionLabel = "Atualizar",
+    actionLabel = "Buscar agora",
     onAction = onRefresh,
   )
 }
+
+private const val ROUTE_AUTO_REFRESH_INTERVAL_MS = 10_000L
 
 @Composable
 private fun RouteCard(activeRoute: ActiveRouteWithPendingStops) {

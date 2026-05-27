@@ -35,9 +35,17 @@ test("prints payment and operational notes on the receipt", () => {
   assert.match(html, /Pagamento\/obs\./);
   assert.match(html, /Pagamento: Dinheiro - troco para R\$ 100/);
   assert.match(html, /Ligar ao chegar/);
+  assert.match(html, /row stacked/);
   assert.match(html, /white-space: pre-wrap/);
   assert.match(html, /receiptBlock/);
   assert.match(html, /padding-bottom: 6mm/);
+});
+
+test("omits courier from the printed receipt because it is assigned later in the courier app", () => {
+  const html = buildThermalReceiptHtml(makeDelivery({ courier: "Sem motoboy" }));
+
+  assert.doesNotMatch(html, /Motoboy/);
+  assert.doesNotMatch(html, /Sem motoboy/);
 });
 
 test("escapes receipt values before writing printable html", () => {

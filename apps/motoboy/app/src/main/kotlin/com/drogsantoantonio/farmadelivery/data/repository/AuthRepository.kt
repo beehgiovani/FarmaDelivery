@@ -36,4 +36,5 @@ class AuthRepository(
 private suspend fun SessionPreferences.saveSession(session: AuthSession) {
   saveToken(session.token)
   saveCourierId(session.courier?.id)
+  setCourierAvailable(session.courier?.available == true)
 }

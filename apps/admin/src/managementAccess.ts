@@ -147,7 +147,7 @@ export function buildCreatedAccessCard(input: {
 }): CreatedAccessCard {
   return {
     name: input.name,
-    login: (input.email?.trim() || input.phone?.trim() || "").trim(),
+    login: (input.email?.trim() || input.phone?.trim() || input.name.trim()).trim(),
     password: input.password,
     role: input.role,
     storeName: input.storeName,

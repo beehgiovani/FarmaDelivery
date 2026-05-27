@@ -5,23 +5,23 @@ Use este arquivo para registrar o teste real do painel admin, login de loja, API
 ## Evidencia Segura
 
 - Commit testado:
-- Data/hora aproximada:
-- Ambiente da API: local, rede local ou HTTPS publicado
-- Ambiente do admin: local, preview ou hosting publicado
+- Data/hora aproximada: 2026-05-27
+- Ambiente da API: local via Docker em `localhost:3433`
+- Ambiente do admin: local via Docker em `localhost:5173`
 - Perfil admin usado: admin de teste
 - Perfil loja usado: login operacional de teste
-- Resultado geral: pendente, aprovado ou reprovado
+- Resultado geral: pendente; preflight local aprovado, smoke operacional manual ainda pendente
 
 ## Preflight
 
 | Item | Resultado | Observacao sem dado sensivel |
 | --- | --- | --- |
-| `npm run preflight:production -- file=env/api.env file=env/admin.env` passou | Pendente |  |
-| `npm run repo:sensitive:check` passou | Pendente |  |
-| `npm run db:rls:check` passou | Pendente |  |
+| `npm run preflight:production -- file=env/api.env file=env/admin.env` passou | Aprovado | Passou com warnings apenas de deploy real: storage persistente, Firebase Admin, URL publica da API e Firebase Web config. |
+| `npm run repo:sensitive:check` passou | Aprovado | Nenhum arquivo sensivel rastreado encontrado. |
+| `npm run db:rls:check` passou | Aprovado | Auditoria estatica validou RLS e comentarios no SQL canonico. |
 | Supabase revisado no SQL Editor conforme runbook | Pendente |  |
-| API responde `/health` no ambiente testado | Pendente |  |
-| Admin abre apontando para a API correta | Pendente |  |
+| API responde `/health` no ambiente testado | Aprovado | API local Docker respondeu 200. |
+| Admin abre apontando para a API correta | Parcial | Container admin local esta healthy; conferencia visual com login ainda pendente. |
 
 ## Admin
 

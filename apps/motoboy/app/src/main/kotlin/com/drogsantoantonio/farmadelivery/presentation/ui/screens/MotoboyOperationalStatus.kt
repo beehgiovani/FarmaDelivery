@@ -11,20 +11,20 @@ fun motoboyOperationalStatus(
 ): MotoboyOperationalStatus {
   if (!available) {
     return MotoboyOperationalStatus(
-      title = "Pausado",
-      text = "Novas entregas nao serao direcionadas para voce ate ativar a disponibilidade.",
+      title = "Corridas paradas",
+      text = "Voce nao recebera novas entregas ate tocar em Comecar corridas.",
     )
   }
 
   if (trackingEnabled) {
     return MotoboyOperationalStatus(
-      title = "Disponivel com GPS automatico",
-      text = "Voce esta recebendo entregas e sua localizacao sera enviada enquanto o servico de GPS estiver ativo.",
+      title = "Recebendo corridas",
+      text = "Novas entregas podem aparecer aqui. Sua localizacao ajuda a loja a acompanhar o atendimento.",
     )
   }
 
   return MotoboyOperationalStatus(
-    title = "Disponivel para corridas",
-    text = "Voce pode aceitar entregas. Ligue o Auto para enviar localizacao sem apertar Enviar toda vez.",
+    title = "Recebendo corridas",
+    text = "Novas entregas podem aparecer aqui. Ligue o GPS ao vivo para a loja acompanhar sua posicao.",
   )
 }

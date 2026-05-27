@@ -33,6 +33,7 @@ Este app nao deve documentar nomes reais de lojas, enderecos, coordenadas, chave
   - `MOTOBOY`: login dedicado do app/campo, com `storeId` obrigatorio para criar motoboy e vinculo base inicial.
   - `BALCONISTA_CAIXA`: referencia de conferencia/autocomplete, sem senha operacional obrigatoria e sem loja obrigatoria.
 - Criacao de entregas com cliente, endereco, prioridade, prazo manual, agendamento, atendente/balconista e numeracao diaria por loja.
+- Cliente e enderecos sao reaproveitados pelo telefone; a criacao com cliente evita duplicar endereco igual para o mesmo cliente nos caminhos Prisma e Supabase REST.
 - Geocodificacao via backend com cache e consultas progressivas.
 - Entregas com e sem ponto de mapa.
 - Transicoes operacionais: aceitar, coletar, sair em rota, entregar, problema e cancelar.
