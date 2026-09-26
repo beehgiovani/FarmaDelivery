@@ -1,18 +1,19 @@
 # Status e próximos passos — FarmaDelivery
 
-> Auditoria de 22/09/2026. Esta é uma fotografia baseada em arquivos, Git, artefatos e endpoints observáveis. Nenhum build completo foi executado nesta classificação.
+> Atualizado em 26/09/2026 após consolidação da árvore, testes e build local.
 
 ## Classificação
 
-- **Estado:** MVP técnico maduro e publicado; evolução local não consolidada
+- **Estado:** MVP técnico publicado; árvore consolidada, ainda sem validação comercial
 - **Confiança:** alta
 - **Natureza:** monorepo operacional de entregas farmacêuticas
 
 ## Evidências observadas
 
 - Admin e PWA respondem HTTP 200 em `drogstoantonio.web.app` e `drogstoantonio-motoboy.web.app`.
-- Existe APK debug Android e documentação extensa de preflight.
-- O repositório possui 49 mudanças locais, com trabalho em rotas, mapas, alertas e app Android.
+- Testes e build web passaram na validação local de 26/09/2026.
+- A auditoria npm ainda aponta 25 vulnerabilidades conhecidas (1 crítica, 12 altas, 10 moderadas e 2 baixas), registradas no README.
+- Builds, segredos e configurações pessoais não fazem parte da árvore rastreada.
 
 ## Diagnóstico franco
 
@@ -22,8 +23,9 @@ Está concretizado como sistema demonstrável, mas ainda não há comprovação 
 
 ### P0 — preservar e tornar retomável
 
-- Preservar as 49 mudanças em backup e commits temáticos, sem reset.
-- Executar a suíte de admin, PWA, API e Android e registrar o que realmente passa.
+- [x] Preservar e consolidar as mudanças locais sem reset destrutivo.
+- [x] Executar os testes e o build disponíveis e registrar o resultado real.
+- Corrigir as vulnerabilidades por etapas, com testes de regressão, sem atualizações cegas de dependências.
 - Separar ambiente de demonstração de qualquer dado operacional real.
 
 ### P1 — estabilizar
