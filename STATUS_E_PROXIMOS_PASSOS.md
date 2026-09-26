@@ -1,10 +1,10 @@
 # Status e próximos passos — FarmaDelivery
 
-> Atualizado em 26/09/2026 após consolidação da árvore, testes e build local.
+> Atualizado em 26/09/2026 após curadoria da branch publicada, testes e build local dessa revisão.
 
 ## Classificação
 
-- **Estado:** MVP técnico publicado; árvore consolidada, ainda sem validação comercial
+- **Estado:** MVP técnico publicado; branch remota organizada, ainda sem validação comercial
 - **Confiança:** alta
 - **Natureza:** monorepo operacional de entregas farmacêuticas
 
@@ -14,6 +14,7 @@
 - Testes e build web passaram na validação local de 26/09/2026.
 - A auditoria npm ainda aponta 25 vulnerabilidades conhecidas (1 crítica, 12 altas, 10 moderadas e 2 baixas), registradas no README.
 - Builds, segredos e configurações pessoais não fazem parte da árvore rastreada.
+- Uma árvore de trabalho separada contém 52 entradas de implementação em admin, PWA, Android e API ainda não integradas ao GitHub. Ela foi preservada para revisão em branch própria.
 
 ## Diagnóstico franco
 
@@ -23,7 +24,8 @@ Está concretizado como sistema demonstrável, mas ainda não há comprovação 
 
 ### P0 — preservar e tornar retomável
 
-- [x] Preservar e consolidar as mudanças locais sem reset destrutivo.
+- [x] Preservar as mudanças locais sem reset destrutivo.
+- Consolidar esse trabalho em commits por domínio antes de integrá-lo à branch publicada.
 - [x] Executar os testes e o build disponíveis e registrar o resultado real.
 - Corrigir as vulnerabilidades por etapas, com testes de regressão, sem atualizações cegas de dependências.
 - Separar ambiente de demonstração de qualquer dado operacional real.
