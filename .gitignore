@@ -5,6 +5,14 @@ dist/
 **/build/
 **/.gradle/
 **/.kotlin/
+coverage/
+**/coverage/
+.nyc_output/
+test-results/
+playwright-report/
+.vite/
+**/.vite/
+.eslintcache
 .env
 .env.*
 !.env.example
@@ -19,8 +27,11 @@ env/
 uploads/
 **/uploads/
 .idea/
+.vscode/*.local.*
 .gradle/
 build/
+.firebase/
+**/.firebase/
 .temp/
 tmp/
 temp/
@@ -30,3 +41,16 @@ google-services.json
 local.properties
 *.apk
 *.aab
+
+# Credentials and signing material
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+*.key
+keystore.properties
+credentials/
+secrets/
+service-account*.json
+firebase-admin*.json
